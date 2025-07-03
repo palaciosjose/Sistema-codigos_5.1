@@ -76,72 +76,82 @@ $diagnostic_info = $license_client->getDiagnosticInfo();
     <title>Renovar Licencia - Sistema de Códigos</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/modern_global.css">
+    <link rel="stylesheet" href="styles/modern_admin.css">
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        body.admin-page {
+            font-family: 'Poppins', sans-serif;
             min-height: 100vh;
             padding: 2rem 0;
         }
-        
+
         .renewal-container {
-            background: white;
-            border-radius: 15px;
+            background: var(--card-purple);
+            border: 1px solid var(--glow-border);
+            border-radius: 20px;
             padding: 2rem;
             max-width: 700px;
             margin: 0 auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
-        
+
         .header-icon {
             font-size: 3rem;
-            color: #28a745;
+            color: var(--accent-green);
             margin-bottom: 1rem;
         }
-        
+
         .license-form {
-            background: #f8f9fa;
-            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glow-border);
+            border-radius: 12px;
             padding: 1.5rem;
             margin: 1rem 0;
         }
-        
+
         .diagnostic-info {
-            background: #e9ecef;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glow-border);
             border-radius: 8px;
             padding: 1rem;
             font-family: monospace;
             font-size: 0.9rem;
             margin-top: 1rem;
+            color: var(--text-info-light);
         }
-        
+
         .btn-renew {
-            background: linear-gradient(45deg, #28a745, #20c997);
+            background: var(--accent-green);
+            color: var(--bg-purple-dark);
             border: none;
-            color: white;
             font-weight: 600;
             padding: 12px 30px;
             border-radius: 8px;
+            box-shadow: 0 0 15px var(--glow-green);
             transition: all 0.3s ease;
         }
-        
+
         .btn-renew:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
-            color: white;
+            box-shadow: 0 0 25px var(--accent-green);
+            color: var(--bg-purple-dark);
         }
-        
+
         .current-license {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--glow-border);
             border-radius: 8px;
             padding: 1rem;
             margin: 1rem 0;
+            color: var(--text-info-light);
         }
     </style>
 </head>
-<body>
-    <div class="container">
+<body class="admin-page">
+    <div class="admin-container">
         <div class="renewal-container">
             <div class="text-center">
                 <div class="header-icon">
