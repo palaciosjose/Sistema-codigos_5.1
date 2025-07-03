@@ -12,6 +12,9 @@
 - `/ayuda` - Mostrar ayuda
 - `/stats` - Estadísticas (solo admin)
 - `/config` - Ver configuración personal
+- `/login` - Iniciar sesión con usuario y contraseña si no tienes telegram_id
+
+La sesión creada por `/login` dura 30 minutos y se renueva con cada interacción del bot.
 
 ## Troubleshooting
 ### Error de webhook
