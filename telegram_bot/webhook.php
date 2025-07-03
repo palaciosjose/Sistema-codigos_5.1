@@ -18,6 +18,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../instalacion/basededatos.php';
 require_once __DIR__ . '/../cache/cache_helper.php';
 require_once __DIR__ . '/../shared/UnifiedQueryEngine.php';
+use TelegramBot\Services\TelegramAuth;
 
 // ========== CONFIGURACIÓN ==========
 try {
@@ -28,6 +29,8 @@ try {
     http_response_code(500);
     exit('{"ok":false,"error":"Database connection failed"}');
 }
+
+$auth = new TelegramAuth();
 
 $config = SimpleCache::get_settings($db);
 if (($config['TELEGRAM_BOT_ENABLED'] ?? '0') !== '1') {
@@ -2674,12 +2677,48 @@ try {
     $message = $update['message'];
     $chatId = $message['chat']['id'];
     $userId = $message['from']['id'];
+    $telegramUser = $message['from']['username'] ?? '';
     $firstName = $message['from']['first_name'] ?? 'Usuario';
     $text = $message['text'] ?? '';
-    
+
     log_bot("Mensaje recibido de $firstName ($userId): $text", 'INFO');
-    
-    $user = verificarUsuario($userId, $db);
+
+    $command = '';
+    if (strpos($text, '/') === 0) {
+        $command = strtolower(trim(explode(' ', $text)[0], '/'));
+    }
+
+    $loginState = $auth->getLoginState($userId);
+    if ($loginState) {
+        if (($loginState['state'] ?? '') === 'await_username') {
+            $auth->setLoginState($userId, ['state' => 'await_password', 'username' => $text]);
+            enviarMensaje($botToken, $chatId, 'Ingresa tu contraseña:');
+            exit();
+        }
+        if (($loginState['state'] ?? '') === 'await_password') {
+            $user = $auth->loginWithCredentials($userId, $loginState['username'] ?? '', $text);
+            $auth->clearLoginState($userId);
+            if ($user) {
+                mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
+            } else {
+                enviarMensaje($botToken, $chatId, "🚫 Credenciales inválidas");
+            }
+            exit();
+        }
+    }
+
+    if (in_array($command, ['start', 'login'])) {
+        $user = $auth->authenticateUser($userId, $telegramUser);
+        if ($user) {
+            mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
+        } else {
+            $auth->setLoginState($userId, ['state' => 'await_username']);
+            enviarMensaje($botToken, $chatId, 'Ingresa tu nombre de usuario:');
+        }
+        exit();
+    }
+
+    $user = $auth->authenticateUser($userId, $telegramUser);
     if (!$user) {
         log_bot("Usuario no autorizado: $userId", 'WARNING');
         enviarMensaje($botToken, $chatId, "🚫 *Acceso Denegado*\\. Solo usuarios autorizados pueden usar este bot\\.");
@@ -2726,10 +2765,11 @@ try {
         $chatId = $callback['message']['chat']['id'];
         $messageId = $callback['message']['message_id'];
         $userId = $callback['from']['id'];
+        $telegramUser = $callback['from']['username'] ?? '';
         $firstName = $callback['from']['first_name'] ?? 'Usuario';
         $callbackData = $callback['data'];
 
-        $user = verificarUsuario($userId, $db);
+        $user = $auth->authenticateUser($userId, $telegramUser);
         if (!$user) {
             responderCallback($botToken, $callback['id'], "❌ No autorizado");
             exit();
