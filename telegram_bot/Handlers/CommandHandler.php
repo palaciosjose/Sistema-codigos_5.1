@@ -52,6 +52,26 @@ class CommandHandler
             return;
         }
 
+        // Manejar flujo de inicio de sesión si está activo
+        $loginState = self::$auth->getLoginState($telegramId);
+        if ($loginState) {
+            if (($loginState['state'] ?? '') === 'await_username') {
+                self::$auth->setLoginState($telegramId, ['state' => 'await_password', 'username' => $text]);
+                TelegramAPI::sendMessage($chatId, 'Ingresa tu contraseña:');
+                return;
+            }
+            if (($loginState['state'] ?? '') === 'await_password') {
+                $user = self::$auth->loginWithCredentials($telegramId, $loginState['username'] ?? '', $text);
+                self::$auth->clearLoginState($telegramId);
+                if ($user) {
+                    TelegramAPI::sendMessage($chatId, self::getMessage('welcome'), ['reply_markup' => json_encode(self::getKeyboard('start'))]);
+                } else {
+                    TelegramAPI::sendMessage($chatId, self::getMessage('unauthorized'));
+                }
+                return;
+            }
+        }
+
         // Registrar actividad
         if (self::$query) {
             self::$query->logActivity($telegramId, "command_$command", [
@@ -63,8 +83,22 @@ class CommandHandler
         switch ($command) {
             case 'start':
                 $user = self::$auth->authenticateUser($telegramId, $telegramUser);
-                $msg = $user ? self::getMessage('welcome') : self::getMessage('unauthorized');
-                TelegramAPI::sendMessage($chatId, $msg, ['reply_markup' => json_encode(self::getKeyboard('start'))]);
+                if ($user) {
+                    TelegramAPI::sendMessage($chatId, self::getMessage('welcome'), ['reply_markup' => json_encode(self::getKeyboard('start'))]);
+                } else {
+                    self::$auth->setLoginState($telegramId, ['state' => 'await_username']);
+                    TelegramAPI::sendMessage($chatId, 'Ingresa tu nombre de usuario:');
+                }
+                break;
+
+            case 'login':
+                $user = self::$auth->authenticateUser($telegramId, $telegramUser);
+                if ($user) {
+                    TelegramAPI::sendMessage($chatId, self::getMessage('welcome'), ['reply_markup' => json_encode(self::getKeyboard('start'))]);
+                } else {
+                    self::$auth->setLoginState($telegramId, ['state' => 'await_username']);
+                    TelegramAPI::sendMessage($chatId, 'Ingresa tu nombre de usuario:');
+                }
                 break;
                 
             case 'ayuda':
