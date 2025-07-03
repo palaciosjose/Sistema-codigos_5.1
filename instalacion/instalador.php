@@ -472,15 +472,26 @@ function createCompleteDatabase($pdo) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         
         "CREATE TABLE IF NOT EXISTS `telegram_activity_log` (
-            id INT AUTO_INCREMENT PRIMARY KEY, 
-            telegram_id BIGINT NOT NULL, 
-            action VARCHAR(100) NOT NULL, 
-            details TEXT, 
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telegram_id BIGINT NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            details TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_telegram_id (telegram_id),
             INDEX idx_created_at (created_at),
             INDEX idx_action (action)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci",
+
+        "CREATE TABLE IF NOT EXISTS `telegram_sessions` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telegram_id BIGINT,
+            user_id INT,
+            session_token VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            is_active BOOLEAN DEFAULT TRUE,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         // --- Tablas de Configuración Específica del Bot ---
         "CREATE TABLE IF NOT EXISTS `telegram_bot_config` (
