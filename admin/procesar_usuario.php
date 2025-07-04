@@ -88,6 +88,8 @@ function updateUser($conn) {
     $telegram_id = trim($_POST['telegram_id'] ?? '');
     $password = $_POST['password'];
     $status = isset($_POST['status']) ? 1 : 0;
+    $telegram_param = $telegram_id !== '' ? $telegram_id : null;
+
     
     // Validar datos
     if (empty($username) || empty($user_id)) {
@@ -113,7 +115,6 @@ function updateUser($conn) {
     if (empty($password)) {
         // Si no se proporciona contraseña, actualizar otros campos
     $stmt = $conn->prepare("UPDATE users SET username = ?, telegram_id = ?, status = ? WHERE id = ?");
-    $telegram_param = $telegram_id !== '' ? $telegram_id : null;
     $stmt->bind_param("ssii", $username, $telegram_param, $status, $user_id);
     } else {
         // Si se proporciona contraseña, actualizar todos los campos
