@@ -159,6 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
         
         // CREAR TODA LA ESTRUCTURA DE BASE DE DATOS (INCLUYENDO BOT)
         createCompleteDatabase($pdo);
+
+        // Garantizar índice único para telegram_temp_data
+        ensureTelegramTempIndex($pdo);
         
         // ✅ CORRECCIÓN CRÍTICA: Pasar correctamente el parámetro $admin_telegram
         insertInitialData($pdo, $admin_user, $admin_password, $admin_telegram);
@@ -201,6 +204,13 @@ function ensureLicenseIsSaved($license_key) {
         }
     } else {
         error_log('Archivo de licencia encontrado correctamente en: ' . LICENSE_FILE);
+    }
+}
+
+function ensureTelegramTempIndex($pdo) {
+    $result = $pdo->query("SHOW INDEX FROM telegram_temp_data WHERE Key_name = 'unique_user_type'");
+    if ($result->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE telegram_temp_data ADD UNIQUE KEY unique_user_type (user_id, data_type)");
     }
 }
 

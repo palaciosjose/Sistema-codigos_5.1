@@ -14,6 +14,7 @@ try {
         echo "La columna telegram_id ya existe.\n";
     }
 
+
     // Eliminar columna email si existe
     $result = $pdo->query("SHOW COLUMNS FROM users LIKE 'email'");
     if ($result->rowCount() > 0) {
@@ -21,6 +22,15 @@ try {
         echo "Columna email eliminada.\n";
     } else {
         echo "La columna email no existe.\n";
+    }
+
+    // Verificar índice único para telegram_temp_data
+    $result = $pdo->query("SHOW INDEX FROM telegram_temp_data WHERE Key_name = 'unique_user_type'");
+    if ($result->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE telegram_temp_data ADD UNIQUE KEY unique_user_type (user_id, data_type)");
+        echo "Índice unique_user_type creado.\n";
+    } else {
+        echo "El índice unique_user_type ya existe.\n";
     }
 
     echo "Actualización completada correctamente.\n";
