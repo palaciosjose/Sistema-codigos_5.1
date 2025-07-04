@@ -87,7 +87,7 @@ class TelegramAuth
     {
         $type = 'login_' . $telegramId;
         $stmt = $this->db->prepare(
-            'SELECT data_content FROM telegram_temp_data WHERE user_id=0 AND data_type=? LIMIT 1'
+            'SELECT data_content FROM telegram_temp_data WHERE user_id=0 AND data_type=? ORDER BY id DESC LIMIT 1'
         );
         $stmt->bind_param('s', $type);
         $stmt->execute();
