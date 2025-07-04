@@ -48,3 +48,15 @@ Una vez seleccionado el archivo, confirme la importaci\xC3\xB3n. Se mostrar\xC3\
 ## Bot de Telegram
 
 Desde la pestaña **Bot Telegram** podrás configurar el token, los usuarios autorizados y consultar estadísticas del bot sin editar archivos manualmente. Revisa también [TELEGRAM_BOT_MANUAL.md](TELEGRAM_BOT_MANUAL.md) para un detalle de comandos disponibles.
+
+### Campos disponibles
+
+En la pestaña encontrarás los siguientes apartados:
+
+- **Activar bot**: habilita o deshabilita la integración.
+- **Token**: clave entregada por BotFather para autenticar el bot.
+- **URL del Webhook**: dirección que recibe las actualizaciones de Telegram.
+- **Usuarios autorizados**: lista de IDs permitidos para interactuar con el bot.
+- **Estadísticas**: muestra datos de uso y actividad.
+
+Los cambios realizados aquí eliminan la necesidad de modificar archivos manualmente. Consulta [TELEGRAM_BOT_MANUAL.md](TELEGRAM_BOT_MANUAL.md) para ver los comandos de uso.
