@@ -266,6 +266,23 @@ check_session(true, '../index.php');
             transform: scale(1.1);
         }
 
+        .btn-return {
+            display: inline-block;
+            margin-top: 10px;
+            background: var(--neon-primary);
+            color: var(--bg-dark);
+            padding: 6px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .btn-return:hover {
+            background: var(--neon-secondary);
+            color: var(--bg-dark);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 {
@@ -717,9 +734,34 @@ check_session(true, '../index.php');
                 </div>
             </div>
 
+            <div class="subsection">
+                <h3>Asignación de Correos y Asuntos</h3>
+                <p>Permite definir qué direcciones y palabras clave de asunto puede consultar cada usuario.</p>
+
+                <div class="config-item">
+                    <div class="config-name">Pasos Básicos</div>
+                    <div class="config-description">
+                        1. Activa <code>USER_EMAIL_RESTRICTIONS_ENABLED</code> y <code>USER_SUBJECT_RESTRICTIONS_ENABLED</code> en "Opciones Principales".<br>
+                        2. En la sección <strong>Asignar Correos por Usuario</strong> elige el usuario y registra las direcciones y asuntos permitidos.<br>
+                        3. Guarda los cambios para que sólo pueda consultar la información autorizada.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Consejos Útiles</div>
+                    <div class="config-description">
+                        Mantén actualizadas las listas para evitar accesos indebidos y utiliza asuntos claros para mejorar los resultados de búsqueda.
+                    </div>
+                </div>
+            </div>
+
             <div class="alert alert-info">
                 <i class="bi bi-info-circle-fill"></i>
                 <span>Los administradores siempre mantienen acceso completo al sistema, independientemente de cualquier restricción configurada.</span>
+            </div>
+
+            <div class="text-end" style="margin-top: 15px;">
+                <a href="#dashboard" class="btn-return"><i class="bi bi-arrow-up-circle"></i> Regresar al Inicio</a>
             </div>
         </div>
 
