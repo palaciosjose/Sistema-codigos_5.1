@@ -11,8 +11,9 @@
 - Seguir las instrucciones en pantalla
 
 ### 3. Configurar Base de Datos
-- Editar `instalacion/basededatos.php`
-- Configurar credenciales de BD
+- Define las variables de entorno `DB_HOST`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`
+  o crea `config/db_credentials.php` a partir de `config/db_credentials.sample.php`
+  con tus datos de conexión.
 
 ### 4. Configurar Bot
 - Ir a: `tu_dominio.com/admin/telegram_management.php`
@@ -58,7 +59,7 @@ composer update
 3. Verificar que vendor/ esté completo
 
 ### Error de base de datos:
-1. Verificar credenciales en `instalacion/basededatos.php`
+1. Verificar variables de entorno o `config/db_credentials.php`
 2. Verificar que las tablas existan
 3. Ejecutar instalador si es necesario
 

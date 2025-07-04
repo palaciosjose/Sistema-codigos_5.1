@@ -49,7 +49,7 @@ if (file_exists("vendor/autoload.php")) {
 
 echo "<h2>🚀 Próximos pasos:</h2>";
 echo "<ol>";
-echo "<li>Configura la base de datos en <code>instalacion/basededatos.php</code></li>";
+echo "<li>Define las credenciales en variables de entorno o en <code>config/db_credentials.php</code></li>";
 echo "<li>Ve al panel de administración: <a href=\"admin/telegram_management.php\">Panel Admin</a></li>";
 echo "<li>Configura el token del bot y webhook</li>";
 echo "<li>Prueba el bot enviando /start</li>";
