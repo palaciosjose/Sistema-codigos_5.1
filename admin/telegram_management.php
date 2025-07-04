@@ -114,10 +114,18 @@ function checkBotStatus($conn) {
         }
     }
     
-    // 5. Verificar tablas de base de datos
-    $requiredTables = ['telegram_bot_config', 'telegram_bot_logs'];
+    // 5. Verificar tablas de base de datos (ACTUALIZADO CON TODAS LAS TABLAS)
+    $requiredTables = [
+        'telegram_bot_config', 
+        'telegram_bot_logs', 
+        'telegram_sessions',     // ← ESTA ES LA QUE FALTABA
+        'telegram_temp_data',
+        'telegram_activity_log'
+    ];
+    
     $tablesExist = true;
     $missingTables = [];
+    $existingTables = [];
     
     foreach ($requiredTables as $table) {
         try {
@@ -125,6 +133,8 @@ function checkBotStatus($conn) {
             if (!$result || $result->num_rows == 0) {
                 $tablesExist = false;
                 $missingTables[] = $table;
+            } else {
+                $existingTables[] = $table;
             }
         } catch (Exception $e) {
             $tablesExist = false;
@@ -141,7 +151,43 @@ function checkBotStatus($conn) {
     } else {
         $status['checks']['database'] = [
             'status' => 'ok',
-            'message' => 'Todas las tablas requeridas existen'
+            'message' => 'Todas las tablas requeridas existen (' . count($existingTables) . '/'. count($requiredTables) .')'
+        ];
+    }
+    
+    // 6. Verificar estructura de tablas existentes
+    $structureIssues = [];
+    
+    // Verificar que telegram_bot_logs tenga updated_at
+    try {
+        $check_updated_at = $conn->query("SHOW COLUMNS FROM telegram_bot_logs LIKE 'updated_at'");
+        if ($check_updated_at && $check_updated_at->num_rows == 0) {
+            $structureIssues[] = 'telegram_bot_logs falta columna updated_at';
+        }
+    } catch (Exception $e) {
+        // La tabla no existe, se manejará en el check anterior
+    }
+    
+    // Verificar que users tenga telegram_id
+    try {
+        $check_telegram_id = $conn->query("SHOW COLUMNS FROM users LIKE 'telegram_id'");
+        if ($check_telegram_id && $check_telegram_id->num_rows == 0) {
+            $structureIssues[] = 'users falta columna telegram_id';
+        }
+    } catch (Exception $e) {
+        $structureIssues[] = 'No se pudo verificar tabla users';
+    }
+    
+    if (!empty($structureIssues)) {
+        $status['checks']['structure'] = [
+            'status' => 'warning',
+            'message' => 'Problemas de estructura: ' . implode(', ', $structureIssues)
+        ];
+        if ($status['overall'] !== 'error') $status['overall'] = 'warning';
+    } else {
+        $status['checks']['structure'] = [
+            'status' => 'ok',
+            'message' => 'Estructura de tablas correcta'
         ];
     }
     
@@ -160,13 +206,16 @@ function checkBotStatus($conn) {
 
 function createTelegramTables($conn) {
     $queries = [
+        // Tabla principal de configuración del bot
         "CREATE TABLE IF NOT EXISTS telegram_bot_config (
             id INT AUTO_INCREMENT PRIMARY KEY,
             setting_name VARCHAR(100) UNIQUE NOT NULL,
             setting_value TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        
+        // Tabla de logs del bot (corregida con updated_at)
         "CREATE TABLE IF NOT EXISTS telegram_bot_logs (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT,
@@ -174,20 +223,102 @@ function createTelegramTables($conn) {
             action VARCHAR(100),
             details TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_telegram_id (telegram_id),
+            INDEX idx_created_at (created_at),
+            INDEX idx_action (action)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        
+        // Tabla de sesiones de Telegram (LA QUE FALTABA)
+        "CREATE TABLE IF NOT EXISTS telegram_sessions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telegram_id BIGINT NOT NULL,
+            user_id INT,
+            session_token VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            is_active BOOLEAN DEFAULT TRUE,
+            INDEX idx_telegram_id (telegram_id),
+            INDEX idx_user_id (user_id),
+            INDEX idx_session_token (session_token),
+            INDEX idx_expires_at (expires_at),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        
+        // Tabla de datos temporales para el bot
+        "CREATE TABLE IF NOT EXISTS telegram_temp_data (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            data_type VARCHAR(50) NOT NULL,
+            data_content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_user_type (user_id, data_type),
+            INDEX idx_user_id (user_id),
+            INDEX idx_data_type (data_type),
             INDEX idx_created_at (created_at)
-        )"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        
+        // Tabla para logs de actividad específica del bot
+        "CREATE TABLE IF NOT EXISTS telegram_activity_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telegram_id BIGINT NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_telegram_id (telegram_id),
+            INDEX idx_created_at (created_at),
+            INDEX idx_action (action)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     ];
     
+    // Ejecutar todas las consultas
     foreach ($queries as $query) {
-        $conn->query($query);
+        if (!$conn->query($query)) {
+            error_log("Error creando tabla de Telegram: " . $conn->error);
+            error_log("Query: " . $query);
+        }
     }
     
-    // Verificar si la tabla users tiene la columna telegram_id
+    // Verificar y agregar columna telegram_id a la tabla users si no existe
     $check_column = $conn->query("SHOW COLUMNS FROM users LIKE 'telegram_id'");
-    if ($check_column->num_rows == 0) {
-        // Agregar columna telegram_id a la tabla users si no existe
-        $conn->query("ALTER TABLE users ADD COLUMN telegram_id BIGINT NULL");
+    if ($check_column && $check_column->num_rows == 0) {
+        $alter_query = "ALTER TABLE users ADD COLUMN telegram_id BIGINT NULL UNIQUE, 
+                       ADD COLUMN telegram_username VARCHAR(255) NULL,
+                       ADD COLUMN last_telegram_activity TIMESTAMP NULL";
+        
+        if (!$conn->query($alter_query)) {
+            error_log("Error agregando columnas de Telegram a users: " . $conn->error);
+        }
+    }
+    
+    // Verificar y agregar columnas a la tabla search_logs para soporte de Telegram
+    $check_search_logs = $conn->query("SHOW TABLES LIKE 'search_logs'");
+    if ($check_search_logs && $check_search_logs->num_rows > 0) {
+        // Verificar si ya tiene las columnas de Telegram
+        $check_telegram_columns = $conn->query("SHOW COLUMNS FROM search_logs LIKE 'telegram_chat_id'");
+        if ($check_telegram_columns && $check_telegram_columns->num_rows == 0) {
+            $alter_search_logs = "ALTER TABLE search_logs 
+                                 ADD COLUMN telegram_chat_id BIGINT NULL,
+                                 ADD COLUMN source VARCHAR(50) DEFAULT 'web',
+                                 ADD INDEX idx_telegram_chat_id (telegram_chat_id),
+                                 ADD INDEX idx_source (source)";
+            
+            if (!$conn->query($alter_search_logs)) {
+                error_log("Error agregando columnas de Telegram a search_logs: " . $conn->error);
+            }
+        }
+    }
+    
+    // Verificar y actualizar tabla telegram_bot_logs existente si le falta updated_at
+    $check_updated_at = $conn->query("SHOW COLUMNS FROM telegram_bot_logs LIKE 'updated_at'");
+    if ($check_updated_at && $check_updated_at->num_rows == 0) {
+        $add_updated_at = "ALTER TABLE telegram_bot_logs 
+                          ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
+        
+        if (!$conn->query($add_updated_at)) {
+            error_log("Error agregando columna updated_at a telegram_bot_logs: " . $conn->error);
+        }
     }
 }
 
@@ -213,6 +344,346 @@ function call_telegram_api($url, $postData = null) {
     $data = json_decode($response, true);
     if (json_last_error() !== JSON_ERROR_NONE) return ['ok' => false, 'description' => 'La respuesta de Telegram no es un JSON válido.'];
     return $data;
+}
+
+// ========================================
+// FUNCIONES DE INTEGRACIÓN
+// ========================================
+
+/**
+ * Verifica el estado de integración del sistema
+ */
+function checkIntegrationStatus() {
+    $status = [
+        'integrated' => false,
+        'setup_web_exists' => file_exists('../setup_web.php'),
+        'test_web_exists' => file_exists('../test_web.php'),
+        'composer_updated' => false,
+        'post_install_script_exists' => file_exists('../telegram_bot/Scripts/PostInstallScript.php'),
+        'install_guide_exists' => file_exists('../INSTALL_GUIDE.md'),
+        'integration_file_exists' => file_exists('../.telegram_bot_integration')
+    ];
+    
+    // Verificar si está integrado
+    if ($status['integration_file_exists']) {
+        $integrationData = json_decode(file_get_contents('../.telegram_bot_integration'), true);
+        $status['integrated'] = $integrationData['integrated'] ?? false;
+    }
+    
+    // Verificar composer.json
+    if (file_exists('../composer.json')) {
+        $composerData = json_decode(file_get_contents('../composer.json'), true);
+        $status['composer_updated'] = isset($composerData['scripts']['bot-install']);
+    }
+    
+    return $status;
+}
+
+/**
+ * Verifica el estado del autoloader
+ */
+function checkAutoloaderStatus() {
+    $status = ['working' => false, 'classes' => [], 'percentage' => 0];
+    
+    if (file_exists('../vendor/autoload.php')) {
+        try {
+            require_once '../vendor/autoload.php';
+            
+            $testClasses = [
+                'TelegramBot\\Services\\TelegramAuth',
+                'TelegramBot\\Services\\TelegramQuery',
+                'TelegramBot\\Handlers\\CommandHandler',
+                'TelegramBot\\Handlers\\CallbackHandler',
+                'TelegramBot\\Utils\\TelegramAPI'
+            ];
+            
+            $workingClasses = 0;
+            foreach ($testClasses as $class) {
+                $exists = class_exists($class);
+                $status['classes'][$class] = $exists;
+                if ($exists) $workingClasses++;
+            }
+            
+            $status['working'] = $workingClasses === count($testClasses);
+            $status['percentage'] = round(($workingClasses / count($testClasses)) * 100);
+        } catch (Exception $e) {
+            error_log("Error checking autoloader: " . $e->getMessage());
+        }
+    }
+    
+    return $status;
+}
+
+/**
+ * Genera el archivo setup_web.php
+ */
+function generateSetupWeb() {
+    $setupContent = '<?php
+/**
+ * Configuración Web del Bot de Telegram
+ * Generado automáticamente desde el Panel Admin
+ */
+
+echo "<!DOCTYPE html>";
+echo "<html lang=\"es\">";
+echo "<head>";
+echo "<meta charset=\"UTF-8\">";
+echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+echo "<title>🤖 Configuración del Bot de Telegram</title>";
+echo "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\">";
+echo "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">";
+echo "<style>";
+echo "body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }";
+echo ".container { max-width: 900px; margin: 2rem auto; }";
+echo ".setup-card { background: rgba(255, 255, 255, 0.95); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 2rem; margin-bottom: 2rem; }";
+echo ".setup-header { text-align: center; margin-bottom: 2rem; }";
+echo ".setup-title { color: #2c3e50; font-size: 2.5rem; margin-bottom: 0.5rem; }";
+echo ".setup-subtitle { color: #6c757d; font-size: 1.1rem; }";
+echo ".status-section { margin: 1.5rem 0; padding: 1.5rem; border-radius: 10px; }";
+echo ".status-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }";
+echo ".status-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }";
+echo ".status-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }";
+echo ".btn-custom { padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-block; margin: 0.25rem; transition: all 0.3s ease; }";
+echo ".btn-primary-custom { background: #007bff; color: white; }";
+echo ".btn-success-custom { background: #28a745; color: white; }";
+echo ".check-item { display: flex; align-items: center; margin: 0.5rem 0; }";
+echo ".check-icon { margin-right: 0.75rem; font-size: 1.2rem; }";
+echo ".check-ok { color: #28a745; }";
+echo ".check-fail { color: #dc3545; }";
+echo "</style>";
+echo "</head>";
+echo "<body>";
+
+echo "<div class=\"container\">";
+echo "<div class=\"setup-card\">";
+echo "<div class=\"setup-header\">";
+echo "<h1 class=\"setup-title\"><i class=\"fas fa-robot\"></i> Configuración del Bot</h1>";
+echo "<p class=\"setup-subtitle\">Sistema de configuración automática para nuevas instalaciones</p>";
+echo "</div>";
+
+if (!file_exists("composer.json")) {
+    echo "<div class=\"status-section status-error\">";
+    echo "<h3><i class=\"fas fa-exclamation-triangle\"></i> Error de Ubicación</h3>";
+    echo "<p>Este archivo debe estar en la raíz del proyecto</p>";
+    echo "</div>";
+    echo "</div></div></body></html>";
+    exit;
+}
+
+echo "<div class=\"status-section\">";
+echo "<h2><i class=\"fas fa-server\"></i> Verificación del Sistema</h2>";
+
+$phpVersion = PHP_VERSION;
+echo "<div class=\"check-item\">";
+echo "<i class=\"fas fa-check-circle check-icon check-ok\"></i>";
+echo "<span><strong>PHP Version:</strong> $phpVersion</span>";
+echo "</div>";
+
+$requiredExtensions = [\"mysqli\", \"curl\", \"json\", \"mbstring\"];
+foreach ($requiredExtensions as $ext) {
+    echo "<div class=\"check-item\">";
+    if (extension_loaded($ext)) {
+        echo "<i class=\"fas fa-check-circle check-icon check-ok\"></i>";
+        echo "<span>$ext</span>";
+    } else {
+        echo "<i class=\"fas fa-times-circle check-icon check-fail\"></i>";
+        echo "<span>$ext (REQUERIDA)</span>";
+    }
+    echo "</div>";
+}
+
+if (!file_exists("vendor/autoload.php")) {
+    echo "<div class=\"status-section status-error\">";
+    echo "<h4><i class=\"fas fa-times-circle\"></i> Autoloader No Encontrado</h4>";
+    echo "<p>vendor/autoload.php no existe. Ejecuta <code>composer install</code></p>";
+    echo "</div>";
+} else {
+    echo "<div class=\"status-section status-success\">";
+    echo "<h4><i class=\"fas fa-check-circle\"></i> Autoloader Encontrado</h4>";
+    echo "<p>Sistema de carga de clases funcionando correctamente</p>";
+    echo "</div>";
+}
+
+echo "</div>";
+
+echo "<div class=\"status-section\">";
+echo "<h2><i class=\"fas fa-rocket\"></i> Próximos Pasos</h2>";
+echo "<ol>";
+echo "<li>Ve al Panel de Administración</li>";
+echo "<li>Configura el token del bot y webhook</li>";
+echo "<li>Crea las tablas si es necesario</li>";
+echo "<li>Prueba el bot enviando /start</li>";
+echo "</ol>";
+
+echo "<div style=\"text-align: center; margin: 2rem 0;\">";
+echo "<a href=\"admin/telegram_management.php\" class=\"btn-custom btn-success-custom\">";
+echo "<i class=\"fas fa-cog\"></i> Ir al Panel de Admin";
+echo "</a>";
+echo "<a href=\"test_web.php\" class=\"btn-custom btn-primary-custom\">";
+echo "<i class=\"fas fa-vial\"></i> Ejecutar Pruebas";
+echo "</a>";
+echo "</div>";
+
+echo "</div>";
+echo "</div>";
+echo "</div>";
+echo "</body>";
+echo "</html>";
+';
+
+    return file_put_contents('../setup_web.php', $setupContent);
+}
+
+/**
+ * Genera el archivo test_web.php
+ */
+function generateTestWeb() {
+    $testContent = '<?php
+/**
+ * Pruebas Web del Bot de Telegram
+ */
+
+echo "<!DOCTYPE html>";
+echo "<html lang=\"es\">";
+echo "<head>";
+echo "<meta charset=\"UTF-8\">";
+echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+echo "<title>🧪 Pruebas del Bot de Telegram</title>";
+echo "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\">";
+echo "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">";
+echo "<style>";
+echo "body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }";
+echo ".container { max-width: 900px; margin: 2rem auto; }";
+echo ".test-card { background: rgba(255, 255, 255, 0.95); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 2rem; margin-bottom: 2rem; }";
+echo ".test-header { text-align: center; margin-bottom: 2rem; }";
+echo ".test-title { color: #2c3e50; font-size: 2.5rem; margin-bottom: 0.5rem; }";
+echo ".test-section { margin: 1.5rem 0; padding: 1.5rem; border-radius: 10px; background: #f8f9fa; }";
+echo ".test-result { margin: 0.5rem 0; padding: 0.75rem; border-radius: 8px; }";
+echo ".test-ok { background: #d4edda; color: #155724; }";
+echo ".test-fail { background: #f8d7da; color: #721c24; }";
+echo ".btn-custom { padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-block; margin: 0.25rem; }";
+echo ".btn-primary-custom { background: #007bff; color: white; }";
+echo ".btn-success-custom { background: #28a745; color: white; }";
+echo "</style>";
+echo "</head>";
+echo "<body>";
+
+echo "<div class=\"container\">";
+echo "<div class=\"test-card\">";
+echo "<div class=\"test-header\">";
+echo "<h1 class=\"test-title\"><i class=\"fas fa-vial\"></i> Pruebas del Sistema</h1>";
+echo "<p>Verificación completa del bot de Telegram</p>";
+echo "</div>";
+
+$errors = [];
+
+echo "<div class=\"test-section\">";
+echo "<h3><i class=\"fas fa-code\"></i> Test de Carga de Clases</h3>";
+
+if (file_exists("vendor/autoload.php")) {
+    require_once "vendor/autoload.php";
+    echo "<div class=\"test-result test-ok\">";
+    echo "<i class=\"fas fa-check\"></i> Autoloader cargado exitosamente";
+    echo "</div>";
+} else {
+    echo "<div class=\"test-result test-fail\">";
+    echo "<i class=\"fas fa-times\"></i> vendor/autoload.php no encontrado";
+    echo "</div>";
+    $errors[] = "Autoloader no encontrado";
+}
+echo "</div>";
+
+echo "<div class=\"test-section\">";
+echo "<h3><i class=\"fas fa-database\"></i> Test de Base de Datos</h3>";
+
+if (file_exists("instalacion/basededatos.php")) {
+    include "instalacion/basededatos.php";
+    
+    if (isset($db_host, $db_user, $db_password, $db_name)) {
+        echo "<div class=\"test-result test-ok\">";
+        echo "<i class=\"fas fa-check\"></i> Variables de configuración encontradas";
+        echo "</div>";
+        
+        try {
+            $testDb = new mysqli($db_host, $db_user, $db_password, $db_name);
+            if ($testDb->connect_error) {
+                echo "<div class=\"test-result test-fail\">";
+                echo "<i class=\"fas fa-times\"></i> Error de conexión: " . $testDb->connect_error;
+                echo "</div>";
+                $errors[] = "Error de conexión a BD";
+            } else {
+                echo "<div class=\"test-result test-ok\">";
+                echo "<i class=\"fas fa-check\"></i> Conexión exitosa a la base de datos";
+                echo "</div>";
+                $testDb->close();
+            }
+        } catch (Exception $e) {
+            echo "<div class=\"test-result test-fail\">";
+            echo "<i class=\"fas fa-times\"></i> Error: " . $e->getMessage();
+            echo "</div>";
+            $errors[] = "Error de BD";
+        }
+    } else {
+        echo "<div class=\"test-result test-fail\">";
+        echo "<i class=\"fas fa-times\"></i> Variables de configuración no definidas";
+        echo "</div>";
+        $errors[] = "Variables de BD no definidas";
+    }
+} else {
+    echo "<div class=\"test-result test-fail\">";
+    echo "<i class=\"fas fa-times\"></i> Archivo de configuración no encontrado";
+    echo "</div>";
+    $errors[] = "basededatos.php no encontrado";
+}
+echo "</div>";
+
+echo "<div class=\"test-section\">";
+echo "<h3><i class=\"fas fa-chart-line\"></i> Resumen Final</h3>";
+
+if (empty($errors)) {
+    echo "<div class=\"test-result test-ok\">";
+    echo "<h4><i class=\"fas fa-trophy\"></i> ¡Todas las pruebas críticas pasaron!</h4>";
+    echo "<p>Tu bot de Telegram está listo para funcionar.</p>";
+    echo "</div>";
+} else {
+    echo "<div class=\"test-result test-fail\">";
+    echo "<h4><i class=\"fas fa-exclamation-triangle\"></i> Se encontraron " . count($errors) . " errores</h4>";
+    echo "</div>";
+}
+
+echo "<div style=\"text-align: center; margin: 2rem 0;\">";
+echo "<a href=\"admin/telegram_management.php\" class=\"btn-custom btn-success-custom\">";
+echo "<i class=\"fas fa-cog\"></i> Ir al Panel de Admin";
+echo "</a>";
+echo "</div>";
+
+echo "</div>";
+echo "</div>";
+echo "</div>";
+echo "</body>";
+echo "</html>";
+';
+
+    return file_put_contents('../test_web.php', $testContent);
+}
+
+/**
+ * Crea el archivo de marca de integración
+ */
+function markAsIntegrated() {
+    $integrationData = [
+        'integrated' => true,
+        'integration_date' => date('Y-m-d H:i:s'),
+        'version' => '1.0.0',
+        'features' => [
+            'web_setup' => true,
+            'web_tests' => true,
+            'auto_configuration' => true,
+            'documentation' => true
+        ]
+    ];
+    
+    return file_put_contents('../.telegram_bot_integration', json_encode($integrationData, JSON_PRETTY_PRINT));
 }
 
 // ========================================
@@ -252,6 +723,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_type = 'success';
         } catch (Exception $e) {
             $message = 'Error al guardar: ' . $e->getMessage();
+            $message_type = 'danger';
+        }
+    }
+    
+    elseif ($action === 'generate_setup_web') {
+        try {
+            if (generateSetupWeb()) {
+                $message = 'setup_web.php generado exitosamente';
+                $message_type = 'success';
+            } else {
+                $message = 'Error generando setup_web.php';
+                $message_type = 'danger';
+            }
+        } catch (Exception $e) {
+            $message = 'Error: ' . $e->getMessage();
+            $message_type = 'danger';
+        }
+    }
+
+    elseif ($action === 'generate_test_web') {
+        try {
+            if (generateTestWeb()) {
+                $message = 'test_web.php generado exitosamente';
+                $message_type = 'success';
+            } else {
+                $message = 'Error generando test_web.php';
+                $message_type = 'danger';
+            }
+        } catch (Exception $e) {
+            $message = 'Error: ' . $e->getMessage();
+            $message_type = 'danger';
+        }
+    }
+
+    elseif ($action === 'complete_integration') {
+        try {
+            $success = true;
+            $errors = [];
+            
+            // Generar archivos si no existen
+            if (!file_exists('../setup_web.php')) {
+                if (!generateSetupWeb()) {
+                    $success = false;
+                    $errors[] = 'Error generando setup_web.php';
+                }
+            }
+            
+            if (!file_exists('../test_web.php')) {
+                if (!generateTestWeb()) {
+                    $success = false;
+                    $errors[] = 'Error generando test_web.php';
+                }
+            }
+            
+            // Marcar como integrado
+            if ($success) {
+                if (markAsIntegrated()) {
+                    $message = 'Integración completada exitosamente';
+                    $message_type = 'success';
+                } else {
+                    $message = 'Error completando la integración';
+                    $message_type = 'danger';
+                }
+            } else {
+                $message = 'Error en la integración: ' . implode(', ', $errors);
+                $message_type = 'danger';
+            }
+        } catch (Exception $e) {
+            $message = 'Error: ' . $e->getMessage();
             $message_type = 'danger';
         }
     }
@@ -438,6 +978,11 @@ if ($user_id) {
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
                 <i class="fas fa-users me-2"></i>Usuarios Vinculados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sistema-tab" data-bs-toggle="tab" data-bs-target="#sistema" type="button">
+                <i class="fas fa-cogs me-2"></i>Sistema
             </button>
         </li>
     </ul>
@@ -651,6 +1196,195 @@ if ($user_id) {
                     </table>
                 </div>
                 <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- PESTAÑA SISTEMA -->
+        <div class="tab-pane fade" id="sistema" role="tabpanel">
+            <div class="admin-card">
+                <h3 class="admin-card-title">
+                    <i class="fas fa-cogs me-2"></i>Configuración del Sistema
+                </h3>
+                <p style="color: var(--text-info-light);">Herramientas de configuración e integración para facilitar futuras instalaciones</p>
+                
+                <?php
+                $integrationStatus = checkIntegrationStatus();
+                $autoloaderStatus = checkAutoloaderStatus();
+                ?>
+                
+                <!-- Estado de Integración -->
+                <div class="mb-4">
+                    <h4 style="color: var(--text-primary); margin-bottom: 1rem;">
+                        <i class="fas fa-microchip me-2"></i>Estado de Integración
+                    </h4>
+                    
+                    <?php if ($integrationStatus['integrated']): ?>
+                        <div class="alert alert-success-admin">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Sistema Integrado</strong>
+                            <p style="margin-top: 0.5rem; margin-bottom: 0;">Tu bot es compatible con futuras instalaciones y actualizaciones automáticas.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning-admin">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Sistema No Integrado</strong>
+                            <p style="margin-top: 0.5rem; margin-bottom: 0;">Tu bot funciona correctamente, pero podría tener problemas en futuras instalaciones.</p>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6 style="color: var(--text-info-light); margin-bottom: 1rem;">Componentes del Sistema:</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center p-2" style="background: rgba(0,0,0,0.1); border-radius: 6px; margin-bottom: 0.5rem;">
+                                    <span style="color: var(--text-primary);"><i class="fas fa-globe me-2"></i> Scripts Web</span>
+                                    <?php if ($integrationStatus['setup_web_exists']): ?>
+                                        <span style="color: var(--accent-green);">✓</span>
+                                    <?php else: ?>
+                                        <span style="color: #ffc107;">✗</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-2" style="background: rgba(0,0,0,0.1); border-radius: 6px; margin-bottom: 0.5rem;">
+                                    <span style="color: var(--text-primary);"><i class="fas fa-box me-2"></i> Composer Actualizado</span>
+                                    <?php if ($integrationStatus['composer_updated']): ?>
+                                        <span style="color: var(--accent-green);">✓</span>
+                                    <?php else: ?>
+                                        <span style="color: #ffc107;">✗</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-2" style="background: rgba(0,0,0,0.1); border-radius: 6px; margin-bottom: 0.5rem;">
+                                    <span style="color: var(--text-primary);"><i class="fas fa-magic me-2"></i> Auto-Configuración</span>
+                                    <?php if ($integrationStatus['post_install_script_exists']): ?>
+                                        <span style="color: var(--accent-green);">✓</span>
+                                    <?php else: ?>
+                                        <span style="color: #ffc107;">✗</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-2" style="background: rgba(0,0,0,0.1); border-radius: 6px;">
+                                    <span style="color: var(--text-primary);"><i class="fas fa-book me-2"></i> Documentación</span>
+                                    <?php if ($integrationStatus['install_guide_exists']): ?>
+                                        <span style="color: var(--accent-green);">✓</span>
+                                    <?php else: ?>
+                                        <span style="color: #ffc107;">✗</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 style="color: var(--text-info-light); margin-bottom: 1rem;">Estado del Autoloader:</h6>
+                            <?php if ($autoloaderStatus['working']): ?>
+                                <div class="alert alert-success-admin">
+                                    <i class="fas fa-check me-2"></i>
+                                    <strong>Funcionando Correctamente</strong>
+                                    <p style="margin-top: 0.5rem; margin-bottom: 0;">Todas las clases del bot se cargan sin problemas.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-danger-admin">
+                                    <i class="fas fa-times me-2"></i>
+                                    <strong>Problemas Detectados</strong>
+                                    <p style="margin-top: 0.5rem; margin-bottom: 0;">Algunas clases no se pueden cargar correctamente.</p>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="progress mb-2" style="height: 20px; background: rgba(0,0,0,0.2);">
+                                <div class="progress-bar <?php echo $autoloaderStatus['working'] ? 'bg-success' : 'bg-warning'; ?>" 
+                                     style="width: <?php echo $autoloaderStatus['percentage']; ?>%">
+                                    <?php echo $autoloaderStatus['percentage']; ?>%
+                                </div>
+                            </div>
+                            <small style="color: var(--text-info-light);">Clases funcionando: <?php echo $autoloaderStatus['percentage']; ?>%</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Herramientas de Configuración -->
+                <div class="mb-4">
+                    <h4 style="color: var(--text-primary); margin-bottom: 1rem;">
+                        <i class="fas fa-tools me-2"></i>Herramientas de Configuración
+                    </h4>
+                    
+                    <div class="row">
+                        <!-- Configuración Web -->
+                        <div class="col-md-4">
+                            <div class="text-center p-3" style="background: rgba(0,0,0,0.1); border-radius: 10px; height: 100%;">
+                                <div class="mb-3">
+                                    <i class="fas fa-globe fa-2x" style="color: var(--accent-green);"></i>
+                                </div>
+                                <h6 style="color: var(--text-primary); margin-bottom: 0.5rem;">Configuración Web</h6>
+                                <p style="color: var(--text-info-light); font-size: 0.9rem; margin-bottom: 1rem;">Configurar sistema desde navegador</p>
+                                
+                                <?php if ($integrationStatus['setup_web_exists']): ?>
+                                    <a href="../setup_web.php" target="_blank" class="btn btn-primary-admin btn-sm">
+                                        <i class="fas fa-external-link-alt me-1"></i>
+                                        Abrir Setup
+                                    </a>
+                                <?php else: ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="action" value="generate_setup_web">
+                                        <button type="submit" class="btn btn-primary-admin btn-sm">
+                                            <i class="fas fa-plus me-1"></i>
+                                            Generar Setup
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Pruebas Web -->
+                        <div class="col-md-4">
+                            <div class="text-center p-3" style="background: rgba(0,0,0,0.1); border-radius: 10px; height: 100%;">
+                                <div class="mb-3">
+                                    <i class="fas fa-vial fa-2x" style="color: var(--accent-green);"></i>
+                                </div>
+                                <h6 style="color: var(--text-primary); margin-bottom: 0.5rem;">Pruebas Web</h6>
+                                <p style="color: var(--text-info-light); font-size: 0.9rem; margin-bottom: 1rem;">Verificar funcionamiento del sistema</p>
+                                
+                                <?php if ($integrationStatus['test_web_exists']): ?>
+                                    <a href="../test_web.php" target="_blank" class="btn btn-primary-admin btn-sm">
+                                        <i class="fas fa-external-link-alt me-1"></i>
+                                        Ejecutar Tests
+                                    </a>
+                                <?php else: ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="action" value="generate_test_web">
+                                        <button type="submit" class="btn btn-warning-admin btn-sm">
+                                            <i class="fas fa-plus me-1"></i>
+                                            Generar Tests
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Integración Completa -->
+                        <div class="col-md-4">
+                            <div class="text-center p-3" style="background: rgba(0,0,0,0.1); border-radius: 10px; height: 100%;">
+                                <div class="mb-3">
+                                    <i class="fas fa-magic fa-2x" style="color: var(--accent-green);"></i>
+                                </div>
+                                <h6 style="color: var(--text-primary); margin-bottom: 0.5rem;">Integración Completa</h6>
+                                <p style="color: var(--text-info-light); font-size: 0.9rem; margin-bottom: 1rem;">Hacer compatible con futuras instalaciones</p>
+                                
+                                <?php if ($integrationStatus['integrated']): ?>
+                                    <span style="color: var(--accent-green); font-weight: bold;">
+                                        <i class="fas fa-check me-1"></i>
+                                        Integrado
+                                    </span>
+                                <?php else: ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="action" value="complete_integration">
+                                        <button type="submit" class="btn btn-info-admin btn-sm">
+                                            <i class="fas fa-rocket me-1"></i>
+                                            Completar Integración
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
             </div>
         </div>
     </div>

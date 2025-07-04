@@ -2698,6 +2698,53 @@ $users = $users_list;
     </div>
 </div>
 
+<div class="tab-pane fade" id="licencia" role="tabpanel">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-card-title">
+                <i class="fas fa-certificate me-2 text-warning"></i>
+                Información de la Licencia
+            </h3>
+        </div>
+        
+        <div class="p-3">
+            <?php if ($license_info): ?>
+                <div class="current-license-info" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.5rem;">
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <h5 style="color: var(--accent-green);">
+                                <i class="fas fa-shield-alt me-2"></i>Estado de la Licencia
+                            </h5>
+                            <p class="mb-0 fs-4 fw-bold <?= $is_license_valid ? 'text-success-light' : 'text-danger' ?>">
+                                <?= htmlspecialchars($license_info['status'] ?? ($is_license_valid ? 'Activa' : 'No Válida')) ?>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-1"><strong class="text-secondary">Dominio Autorizado:</strong><br><?= htmlspecialchars($license_info['domain']) ?></p>
+                            <p class="mb-1"><strong class="text-secondary">Fecha de Activación:</strong><br><?= htmlspecialchars($license_info['activated_at']) ?></p>
+                            <p class="mb-0"><strong class="text-secondary">Próxima Verificación:</strong><br><?= htmlspecialchars($license_info['last_check']) ?></p>
+                        </div>
+                    </div>
+
+                </div>
+            <?php else: ?>
+                <div class="alert-admin alert-danger-admin">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>No se pudo cargar la información de la licencia. Verifica que el archivo de licencia exista y tenga los permisos correctos.</span>
+                </div>
+            <?php endif; ?>
+
+            <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25">
+                 <a href="../renovar_licencia.php" class="btn-admin btn-primary-admin btn-lg-admin">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Renovar o Cambiar Licencia
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- CSS Específico para la Gestión Unificada -->
 <style>
 /* Estilos para las tarjetas de usuarios */

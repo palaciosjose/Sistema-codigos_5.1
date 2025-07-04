@@ -18,7 +18,13 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../instalacion/basededatos.php';
 require_once __DIR__ . '/../cache/cache_helper.php';
 require_once __DIR__ . '/../shared/UnifiedQueryEngine.php';
+
+// ========== IMPORTAR CLASES DE TELEGRAM BOT ==========
 use TelegramBot\Services\TelegramAuth;
+use TelegramBot\Services\TelegramQuery;
+use TelegramBot\Handlers\CommandHandler;
+use TelegramBot\Handlers\CallbackHandler;
+use TelegramBot\Utils\TelegramAPI;
 
 // ========== CONFIGURACIÓN ==========
 try {
@@ -2674,93 +2680,117 @@ log_bot("Update procesado correctamente", 'INFO');
 
 try {
     if (isset($update['message'])) {
-    $message = $update['message'];
-    $chatId = $message['chat']['id'];
-    $userId = $message['from']['id'];
-    $telegramUser = $message['from']['username'] ?? '';
-    $firstName = $message['from']['first_name'] ?? 'Usuario';
-    $text = $message['text'] ?? '';
+        $message = $update['message'];
+        $chatId = $message['chat']['id'];
+        $userId = $message['from']['id'];
+        $telegramUser = $message['from']['username'] ?? '';
+        $firstName = $message['from']['first_name'] ?? 'Usuario';
+        $text = $message['text'] ?? '';
 
-    log_bot("Mensaje recibido de $firstName ($userId): $text", 'INFO');
+        log_bot("Mensaje recibido de $firstName ($userId): $text", 'INFO');
 
-    $command = '';
-    if (strpos($text, '/') === 0) {
-        $command = strtolower(trim(explode(' ', $text)[0], '/'));
-    }
-
-    $loginState = $auth->getLoginState($userId);
-    if ($loginState) {
-        if (($loginState['state'] ?? '') === 'await_username') {
-            $auth->setLoginState($userId, ['state' => 'await_password', 'username' => $text]);
-            enviarMensaje($botToken, $chatId, 'Ingresa tu contraseña:');
-            exit();
+        $command = '';
+        if (strpos($text, '/') === 0) {
+            $command = strtolower(trim(explode(' ', $text)[0], '/'));
         }
-        if (($loginState['state'] ?? '') === 'await_password') {
-            $user = $auth->loginWithCredentials($userId, $loginState['username'] ?? '', $text);
-            $auth->clearLoginState($userId);
+
+        error_log("=== PROCESANDO MENSAJE ===");
+        error_log("User ID: $userId, Text: '$text'");
+
+        // ========== PRIORIDAD 1: MANEJO DE ESTADOS DE LOGIN ==========
+        $loginState = $auth->getLoginState($userId);
+        error_log("Login state obtenido: " . json_encode($loginState));
+
+        if ($loginState) {
+            error_log("Estado encontrado: " . ($loginState['state'] ?? 'sin estado'));
+            
+            if (($loginState['state'] ?? '') === 'await_username') {
+                error_log("Guardando estado await_password con username: '$text'");
+                $auth->setLoginState($userId, ['state' => 'await_password', 'username' => $text]);
+                enviarMensaje($botToken, $chatId, '🔑 Ahora ingresa tu contraseña:');
+                exit(); // IMPORTANTE: Salir aquí para evitar procesamiento adicional
+            }
+            
+            if (($loginState['state'] ?? '') === 'await_password') {
+                error_log("Intentando login con username: '" . ($loginState['username'] ?? 'NO_USERNAME') . "' y password: '$text'");
+                $user = $auth->loginWithCredentials($userId, $loginState['username'] ?? '', $text);
+                $auth->clearLoginState($userId);
+                
+                if ($user) {
+                    error_log("✅ Login exitoso!");
+                    enviarMensaje($botToken, $chatId, "✅ *Bienvenido\\!*\n\nHas iniciado sesión correctamente\\.");
+                    mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
+                } else {
+                    error_log("❌ Login falló");
+                    enviarMensaje($botToken, $chatId, "🚫 *Credenciales inválidas*\n\nEl usuario o contraseña son incorrectos\\.\n\nPuedes intentar nuevamente con `/login`");
+                }
+                exit(); // IMPORTANTE: Salir aquí
+            }
+        } else {
+            error_log("No hay login state");
+        }
+
+        // ========== PRIORIDAD 2: COMANDOS DE INICIO DE SESIÓN ==========
+        if (in_array($command, ['start', 'login'])) {
+            // Primero verificar si ya está autenticado
+            $user = $auth->authenticateUser($userId, $telegramUser);
             if ($user) {
+                log_bot("Usuario ya autenticado: " . $user['username'], 'INFO');
                 mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
             } else {
-                enviarMensaje($botToken, $chatId, "🚫 Credenciales inválidas");
+                log_bot("Iniciando proceso de login para usuario: $userId", 'INFO');
+                $auth->setLoginState($userId, ['state' => 'await_username']);
+                enviarMensaje($botToken, $chatId, "👋 *Hola\\!*\n\n🔐 Para acceder al sistema, necesitas autenticarte\\.\n\n📝 Ingresa tu *nombre de usuario*:");
             }
+            exit(); // IMPORTANTE: Salir aquí
+        }
+
+        // ========== PRIORIDAD 3: VERIFICAR AUTENTICACIÓN PARA OTROS COMANDOS ==========
+        $user = $auth->authenticateUser($userId, $telegramUser);
+        if (!$user) {
+            log_bot("Usuario no autorizado: $userId", 'WARNING');
+            enviarMensaje($botToken, $chatId, "🚫 *Acceso Denegado*\n\nSolo usuarios autorizados pueden usar este bot\\.\n\nUsa `/login` para iniciar sesión\\.");
             exit();
         }
-    }
 
-    if (in_array($command, ['start', 'login'])) {
-        $user = $auth->authenticateUser($userId, $telegramUser);
-        if ($user) {
+        // ========== PROCESAR ESTADOS DE USUARIO AUTENTICADO ==========
+        $stateData = getUserState($user['id'], $db);
+        $state = $stateData['state'] ?? '';
+        
+        if ($state === 'awaiting_manual_email') {
+            clearUserState($user['id'], $db);
+            $email = trim($text);
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                enviarMensaje($botToken, $chatId, "❌ *Email inválido*\n\nIngresa un correo válido\\.", crearTecladoVolver('buscar_codigos'));
+            } else {
+                $emailsPermitidos = obtenerCorreosAutorizados($user, $db);
+                $emailsLower = array_map('strtolower', $emailsPermitidos);
+                if (!in_array(strtolower($email), $emailsLower, true)) {
+                    enviarMensaje($botToken, $chatId, "🚫 *Correo no autorizado*\n\nNo tienes permiso para `".escaparMarkdown($email)."`", crearTecladoVolver('buscar_codigos'));
+                } else {
+                    mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db);
+                }
+            }
+            exit();
+        } elseif ($state === 'awaiting_search_term') {
+            clearUserState($user['id'], $db);
+            $term = trim($text);
+            mostrarCorreosAutorizados($botToken, $chatId, null, $user, $db, 0, $term);
+            exit();
+        }
+
+        // ========== PROCESAR COMANDOS REGULARES ==========
+        if (strpos($text, '/start') === 0) {
+            log_bot("Comando /start ejecutado por: " . $user['username'], 'INFO');
             mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
         } else {
-            $auth->setLoginState($userId, ['state' => 'await_username']);
-            enviarMensaje($botToken, $chatId, 'Ingresa tu nombre de usuario:');
+            // Para otros mensajes, mostrar ayuda
+            log_bot("Mensaje no reconocido, mostrando menú", 'INFO');
+            mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
         }
-        exit();
-    }
-
-    $user = $auth->authenticateUser($userId, $telegramUser);
-    if (!$user) {
-        log_bot("Usuario no autorizado: $userId", 'WARNING');
-        enviarMensaje($botToken, $chatId, "🚫 *Acceso Denegado*\\. Solo usuarios autorizados pueden usar este bot\\.");
-        exit();
-    }
-
-    // Revisar si el usuario tiene alguna acción pendiente
-    $stateData = getUserState($user['id'], $db);
-    $state = $stateData['state'] ?? '';
-    if ($state === 'awaiting_manual_email') {
-        clearUserState($user['id'], $db);
-        $email = trim($text);
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            enviarMensaje($botToken, $chatId, "❌ *Email inválido*\n\nIngresa un correo válido\\.", crearTecladoVolver('buscar_codigos'));
-        } else {
-            $emailsPermitidos = obtenerCorreosAutorizados($user, $db);
-            $emailsLower = array_map('strtolower', $emailsPermitidos);
-            if (!in_array(strtolower($email), $emailsLower, true)) {
-                enviarMensaje($botToken, $chatId, "🚫 *Correo no autorizado*\n\nNo tienes permiso para `".escaparMarkdown($email)."`", crearTecladoVolver('buscar_codigos'));
-            } else {
-                mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db);
-            }
-        }
-        exit();
-    } elseif ($state === 'awaiting_search_term') {
-        clearUserState($user['id'], $db);
-        $term = trim($text);
-        mostrarCorreosAutorizados($botToken, $chatId, null, $user, $db, 0, $term);
-        exit();
-    }
-
-    // Procesar comandos
-    if (strpos($text, '/start') === 0) {
-        log_bot("Comando /start ejecutado por: " . $user['username'], 'INFO');
-        mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
-    } else {
-        // Para otros mensajes, mostrar ayuda
-        log_bot("Mensaje no reconocido, mostrando menú", 'INFO');
-        mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
-    }
 
     } elseif (isset($update['callback_query'])) {
+        // Manejo de callback queries (botones inline)
         $callback = $update['callback_query'];
         $chatId = $callback['message']['chat']['id'];
         $messageId = $callback['message']['message_id'];
@@ -2769,9 +2799,10 @@ try {
         $firstName = $callback['from']['first_name'] ?? 'Usuario';
         $callbackData = $callback['data'];
 
+        // Para callbacks, SIEMPRE verificar autenticación
         $user = $auth->authenticateUser($userId, $telegramUser);
         if (!$user) {
-            responderCallback($botToken, $callback['id'], "❌ No autorizado");
+            responderCallback($botToken, $callback['id'], "❌ No autorizado - Usa /login");
             exit();
         }
 

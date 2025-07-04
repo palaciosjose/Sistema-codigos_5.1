@@ -1,0 +1,26 @@
+
+[03-Jul-2025 23:55:59 UTC] === PROCESANDO MENSAJE ===
+[03-Jul-2025 23:55:59 UTC] User ID: 6285938725, Text: '/start'
+[03-Jul-2025 23:55:59 UTC] Login state obtenido: {"state":"await_username"}
+[03-Jul-2025 23:55:59 UTC] Estado encontrado: await_username
+[03-Jul-2025 23:55:59 UTC] Guardando estado await_password con username: '/start'
+[03-Jul-2025 23:56:06 UTC] === PROCESANDO MENSAJE ===
+[03-Jul-2025 23:56:06 UTC] User ID: 6285938725, Text: '62625252'
+[03-Jul-2025 23:56:06 UTC] Login state obtenido: {"state":"await_username"}
+[03-Jul-2025 23:56:06 UTC] Estado encontrado: await_username
+[03-Jul-2025 23:56:06 UTC] Guardando estado await_password con username: '62625252'
+[03-Jul-2025 23:56:09 UTC] === PROCESANDO MENSAJE ===
+[03-Jul-2025 23:56:09 UTC] User ID: 6285938725, Text: '63635251'
+[03-Jul-2025 23:56:09 UTC] Login state obtenido: {"state":"await_username"}
+[03-Jul-2025 23:56:09 UTC] Estado encontrado: await_username
+[03-Jul-2025 23:56:09 UTC] Guardando estado await_password con username: '63635251'
+[03-Jul-2025 23:56:15 UTC] === PROCESANDO MENSAJE ===
+[03-Jul-2025 23:56:15 UTC] User ID: 6285938725, Text: '/login'
+[03-Jul-2025 23:56:15 UTC] Login state obtenido: {"state":"await_username"}
+[03-Jul-2025 23:56:15 UTC] Estado encontrado: await_username
+[03-Jul-2025 23:56:15 UTC] Guardando estado await_password con username: '/login'
+[03-Jul-2025 23:56:19 UTC] === PROCESANDO MENSAJE ===
+[03-Jul-2025 23:56:19 UTC] User ID: 6285938725, Text: 'Jeysc725252'
+[03-Jul-2025 23:56:19 UTC] Login state obtenido: {"state":"await_username"}
+[03-Jul-2025 23:56:19 UTC] Estado encontrado: await_username
+[03-Jul-2025 23:56:19 UTC] Guardando estado await_password con username: 'Jeysc725252'

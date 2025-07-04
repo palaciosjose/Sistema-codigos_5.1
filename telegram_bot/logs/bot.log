@@ -1,0 +1,59 @@
+[2025-07-03 23:55:59] [INFO] Input recibido: {"update_id":891477973,
+"message":{"message_id":703,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
+[2025-07-03 23:55:59] [INFO] Update procesado correctamente
+[2025-07-03 23:55:59] [INFO] Mensaje recibido de Comfica (6285938725): /start
+[2025-07-03 23:56:06] [INFO] Input recibido: {"update_id":891477974,
+"message":{"message_id":705,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
+[2025-07-03 23:56:06] [INFO] Update procesado correctamente
+[2025-07-03 23:56:06] [INFO] Mensaje recibido de Comfica (6285938725): 62625252
+[2025-07-03 23:56:09] [INFO] Input recibido: {"update_id":891477975,
+"message":{"message_id":707,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
+[2025-07-03 23:56:09] [INFO] Update procesado correctamente
+[2025-07-03 23:56:09] [INFO] Mensaje recibido de Comfica (6285938725): 63635251
+[2025-07-03 23:56:15] [INFO] Input recibido: {"update_id":891477976,
+"message":{"message_id":709,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
+[2025-07-03 23:56:15] [INFO] Update procesado correctamente
+[2025-07-03 23:56:15] [INFO] Mensaje recibido de Comfica (6285938725): /login
+[2025-07-03 23:56:19] [INFO] Input recibido: {"update_id":891477977,
+"message":{"message_id":711,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
+[2025-07-03 23:56:19] [INFO] Update procesado correctamente
+[2025-07-03 23:56:19] [INFO] Mensaje recibido de Comfica (6285938725): Jeysc725252
+[2025-07-04 00:00:07] [INFO] Limpiados 6 registros temporales expirados (2 min)
+[2025-07-04 00:00:07] [INFO] Input recibido: {"update_id":891477978,
+"callback_query":{"id":"3108461528747253568","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
+[2025-07-04 00:00:07] [INFO] Update procesado correctamente
+[2025-07-04 00:00:09] [INFO] Input recibido: {"update_id":891477979,
+"callback_query":{"id":"3108461527223033676","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
+[2025-07-04 00:00:09] [INFO] Update procesado correctamente
+[2025-07-04 00:00:10] [INFO] Input recibido: {"update_id":891477980,
+"callback_query":{"id":"3108461529711980322","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
+[2025-07-04 00:00:10] [INFO] Update procesado correctamente
+[2025-07-04 00:00:13] [INFO] Input recibido: {"update_id":891477981,
+"callback_query":{"id":"3108461530065961701","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
+[2025-07-04 00:00:13] [INFO] Update procesado correctamente
+[2025-07-04 00:00:16] [INFO] Input recibido: {"update_id":891477982,
+"callback_query":{"id":"3108461530220053259","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
+[2025-07-04 00:00:16] [INFO] Update procesado correctamente
+[2025-07-04 00:00:17] [DEBUG] === INICIO BÚSQUEDA REAL ===
+[2025-07-04 00:00:17] [INFO] Usuario ID: 1, Email: test@yahoo.com, Plataforma: Google
+[2025-07-04 00:00:17] [DEBUG] === EJECUTANDO BÚSQUEDA ===
+[2025-07-04 00:00:17] [DEBUG] === RESULTADO OBTENIDO ===
+[2025-07-04 00:00:17] [DEBUG] Found: false
+[2025-07-04 00:00:17] [DEBUG] Emails count: 0
+[2025-07-04 00:00:17] [DEBUG] === PROCESANDO RESULTADOS ===
+[2025-07-04 00:00:17] [DEBUG] === GUARDANDO DATOS TEMPORALES ===
+[2025-07-04 00:00:17] [DEBUG] === INICIO GUARDAR TEMPORAL ===
+[2025-07-04 00:00:17] [DEBUG] UserId: 1, Email: test@yahoo.com, Plataforma: Google
+[2025-07-04 00:00:17] [DEBUG] Resultados found: false
+[2025-07-04 00:00:17] [WARNING] ⚠️ WARNING: No hay clave 'emails' en resultados
+[2025-07-04 00:00:17] [DEBUG] Total emails a procesar: 0
+[2025-07-04 00:00:17] [DEBUG] === LIMPIANDO DATOS ===
+[2025-07-04 00:00:17] [DEBUG] Datos limpiados exitosamente
+[2025-07-04 00:00:17] [DEBUG] === SERIALIZANDO JSON ===
+[2025-07-04 00:00:17] [DEBUG] JSON serializado exitosamente, tamaño: 382 bytes
+[2025-07-04 00:00:17] [DEBUG] === EJECUTANDO QUERY ===
+[2025-07-04 00:00:17] [DEBUG] ✅ QUERY EJECUTADA - Affected rows: 1
+[2025-07-04 00:00:17] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-04 00:00:17] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-04 00:00:17] [DEBUG] === MOSTRANDO RESULTADOS ===
+[2025-07-04 00:00:17] [DEBUG] === FIN BÚSQUEDA REAL ===
