@@ -50,20 +50,46 @@ if (empty($botToken)) {
     exit('{"ok":false,"error":"No bot token configured"}');
 }
 
+// Ajustes de logging
+$LOG_LEVEL = strtoupper($config['LOG_LEVEL'] ?? 'INFO');
+$LOG_RETENTION_DAYS = (int)($config['LOG_RETENTION_DAYS'] ?? 7);
+$LOG_MAX_FILE_SIZE = (int)($config['LOG_MAX_FILE_SIZE'] ?? 2048); // KB
+
 // ========== FUNCIONES DE LOGGING ==========
 // Crear directorio de logs si no existe
 if (!file_exists(__DIR__ . '/logs')) {
     mkdir(__DIR__ . '/logs', 0755, true);
 }
 function log_bot($message, $level = 'INFO') {
+    global $LOG_LEVEL, $LOG_RETENTION_DAYS, $LOG_MAX_FILE_SIZE;
+
+    $map = ['DEBUG' => 0, 'INFO' => 1, 'WARNING' => 2, 'ERROR' => 3];
+    $current = $map[$LOG_LEVEL] ?? 1;
+    $msgLevel = $map[strtoupper($level)] ?? 1;
+    if ($msgLevel < $current) {
+        return;
+    }
+
     $timestamp = date('Y-m-d H:i:s');
     $logMessage = "[$timestamp] [$level] $message\n";
-    
-    // Escribir al archivo de log
+
     $logFile = __DIR__ . '/logs/bot.log';
     @file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
-    
-    // También enviar a error_log en desarrollo
+
+    // Rotación por tamaño
+    if (file_exists($logFile) && filesize($logFile) > ($LOG_MAX_FILE_SIZE * 1024)) {
+        $archive = __DIR__ . '/logs/bot-' . date('Ymd_His') . '.log';
+        @rename($logFile, $archive);
+        @file_put_contents($logFile, '');
+    }
+
+    // Limpieza de archivos antiguos
+    foreach (glob(__DIR__ . '/logs/bot-*.log') as $file) {
+        if (filemtime($file) < time() - ($LOG_RETENTION_DAYS * 86400)) {
+            @unlink($file);
+        }
+    }
+
     if ($level === 'ERROR') {
         error_log("Telegram Bot Error: $message");
     }
@@ -2666,7 +2692,7 @@ function mostrarError($botToken, $chatId, $messageId, $mensaje) {
 
 // ========== PROCESAMIENTO PRINCIPAL ==========
 $input = file_get_contents('php://input');
-log_bot("Input recibido: " . substr($input, 0, 200) . "...", 'INFO');
+log_bot("Input recibido: " . substr($input, 0, 200) . "...", 'DEBUG');
 
 $update = json_decode($input, true);
 
@@ -2676,7 +2702,7 @@ if (!$update) {
     exit('{"ok":false,"error":"Invalid JSON"}');
 }
 
-log_bot("Update procesado correctamente", 'INFO');
+log_bot("Update procesado correctamente", 'DEBUG');
 
 try {
     if (isset($update['message'])) {
@@ -2694,40 +2720,40 @@ try {
             $command = strtolower(trim(explode(' ', $text)[0], '/'));
         }
 
-        error_log("=== PROCESANDO MENSAJE ===");
-        error_log("User ID: $userId, Text: '$text'");
+        log_bot("=== PROCESANDO MENSAJE ===", 'DEBUG');
+        log_bot("User ID: $userId, Text: '$text'", 'DEBUG');
 
         // ========== PRIORIDAD 1: MANEJO DE ESTADOS DE LOGIN ==========
         $loginState = $auth->getLoginState($userId);
-        error_log("Login state obtenido: " . json_encode($loginState));
+        log_bot("Login state obtenido: " . json_encode($loginState), 'DEBUG');
 
         if ($loginState) {
-            error_log("Estado encontrado: " . ($loginState['state'] ?? 'sin estado'));
+            log_bot("Estado encontrado: " . ($loginState['state'] ?? 'sin estado'), 'DEBUG');
             
             if (($loginState['state'] ?? '') === 'await_username') {
-                error_log("Guardando estado await_password con username: '$text'");
+                log_bot("Guardando estado await_password con username: '$text'", 'DEBUG');
                 $auth->setLoginState($userId, ['state' => 'await_password', 'username' => $text]);
                 enviarMensaje($botToken, $chatId, '🔑 Ahora ingresa tu contraseña:');
                 exit(); // IMPORTANTE: Salir aquí para evitar procesamiento adicional
             }
             
             if (($loginState['state'] ?? '') === 'await_password') {
-                error_log("Intentando login con username: '" . ($loginState['username'] ?? 'NO_USERNAME') . "' y password: '$text'");
+                log_bot("Intentando login con username: '" . ($loginState['username'] ?? 'NO_USERNAME') . "' y password: '$text'", 'DEBUG');
                 $user = $auth->loginWithCredentials($userId, $loginState['username'] ?? '', $text);
                 $auth->clearLoginState($userId);
                 
                 if ($user) {
-                    error_log("✅ Login exitoso!");
+                    log_bot("✅ Login exitoso!", 'DEBUG');
                     enviarMensaje($botToken, $chatId, "✅ *Bienvenido\\!*\n\nHas iniciado sesión correctamente\\.");
                     mostrarMenuPrincipal($botToken, $chatId, $firstName, $user);
                 } else {
-                    error_log("❌ Login falló");
+                    log_bot("❌ Login falló", 'DEBUG');
                     enviarMensaje($botToken, $chatId, "🚫 *Credenciales inválidas*\n\nEl usuario o contraseña son incorrectos\\.\n\nPuedes intentar nuevamente con `/login`");
                 }
                 exit(); // IMPORTANTE: Salir aquí
             }
         } else {
-            error_log("No hay login state");
+            log_bot("No hay login state", 'DEBUG');
         }
 
         // ========== PRIORIDAD 2: COMANDOS DE INICIO DE SESIÓN ==========
