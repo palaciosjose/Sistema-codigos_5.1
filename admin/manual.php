@@ -453,7 +453,7 @@ check_session(true, '../index.php');
                 <h3>Configuraciones Avanzadas para Velocidad</h3>
                 
                 <div class="config-item">
-                    <div class="config-name">USE_PRECISE_IMAP_SEARCH - Búsquedas IMAP Precisas</div>
+                    <div class="config-name">Búsquedas IMAP Precisas (USE_PRECISE_IMAP_SEARCH)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Usa búsquedas más específicas con fecha y hora exacta en servidores IMAP.
                         <br><strong>Activado:</strong> Búsquedas más precisas pero pueden ser más lentas.
@@ -462,7 +462,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">EARLY_SEARCH_STOP - Parada Temprana de Búsqueda</div>
+                    <div class="config-name">Parada Temprana de Búsqueda (EARLY_SEARCH_STOP)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Detiene la búsqueda al encontrar el primer resultado válido.
                         <br><strong>Activado:</strong> Búsquedas más rápidas, pero puede perderse información adicional.
@@ -471,7 +471,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_SEARCH_OPTIMIZATION - Optimizaciones Automáticas</div>
+                    <div class="config-name">Optimizaciones Automáticas (IMAP_SEARCH_OPTIMIZATION)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Activa todas las optimizaciones automáticas de búsqueda IMAP.
                         <br>Incluye técnicas avanzadas para reducir tiempo de respuesta y carga del servidor.
@@ -479,7 +479,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">TRUST_IMAP_DATE_FILTER - Confiar en Filtrado de Fechas</div>
+                    <div class="config-name">Confiar en Filtrado de Fechas (TRUST_IMAP_DATE_FILTER)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Confía en el servidor IMAP para filtrar fechas (más rápido).
                         <br><strong>Activado:</strong> El servidor IMAP filtra fechas (más eficiente).
@@ -488,7 +488,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">PERFORMANCE_LOGGING - Registro de Métricas</div>
+                    <div class="config-name">Registro de Métricas (PERFORMANCE_LOGGING)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Registra métricas de rendimiento en los logs del sistema.
                         <br>Útil para diagnosticar problemas de velocidad y optimizar configuraciones.
@@ -500,7 +500,7 @@ check_session(true, '../index.php');
                 <h3>Parámetros Numéricos de Performance</h3>
                 
                 <div class="config-item">
-                    <div class="config-name">MAX_EMAILS_TO_CHECK - Máximo de Emails por Consulta</div>
+                    <div class="config-name">Máximo de Emails por Consulta (MAX_EMAILS_TO_CHECK)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Limita cuántos emails procesa en cada búsqueda.
                         <br><strong>Valor recomendado:</strong> 35 emails. Reducir para buzones muy grandes.
@@ -509,7 +509,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_CONNECTION_TIMEOUT - Timeout de Conexión</div>
+                    <div class="config-name">Timeout de Conexión (IMAP_CONNECTION_TIMEOUT)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Tiempo máximo para establecer conexión con servidor IMAP.
                         <br><strong>Valor recomendado:</strong> 8 segundos para servidores estables.
@@ -518,7 +518,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_SEARCH_TIMEOUT - Timeout de Búsqueda</div>
+                    <div class="config-name">Timeout de Búsqueda (IMAP_SEARCH_TIMEOUT)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Tiempo máximo para cada operación de búsqueda individual.
                         <br><strong>Valor recomendado:</strong> 30 segundos.
