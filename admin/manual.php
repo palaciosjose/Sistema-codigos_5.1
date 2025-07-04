@@ -453,7 +453,7 @@ check_session(true, '../index.php');
                 <h3>Configuraciones Avanzadas para Velocidad</h3>
                 
                 <div class="config-item">
-                    <div class="config-name">USE_PRECISE_IMAP_SEARCH - Búsquedas IMAP Precisas</div>
+                    <div class="config-name">Búsquedas IMAP Precisas (USE_PRECISE_IMAP_SEARCH)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Usa búsquedas más específicas con fecha y hora exacta en servidores IMAP.
                         <br><strong>Activado:</strong> Búsquedas más precisas pero pueden ser más lentas.
@@ -462,7 +462,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">EARLY_SEARCH_STOP - Parada Temprana de Búsqueda</div>
+                    <div class="config-name">Parada Temprana de Búsqueda (EARLY_SEARCH_STOP)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Detiene la búsqueda al encontrar el primer resultado válido.
                         <br><strong>Activado:</strong> Búsquedas más rápidas, pero puede perderse información adicional.
@@ -471,7 +471,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_SEARCH_OPTIMIZATION - Optimizaciones Automáticas</div>
+                    <div class="config-name">Optimizaciones Automáticas (IMAP_SEARCH_OPTIMIZATION)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Activa todas las optimizaciones automáticas de búsqueda IMAP.
                         <br>Incluye técnicas avanzadas para reducir tiempo de respuesta y carga del servidor.
@@ -479,7 +479,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">TRUST_IMAP_DATE_FILTER - Confiar en Filtrado de Fechas</div>
+                    <div class="config-name">Confiar en Filtrado de Fechas (TRUST_IMAP_DATE_FILTER)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Confía en el servidor IMAP para filtrar fechas (más rápido).
                         <br><strong>Activado:</strong> El servidor IMAP filtra fechas (más eficiente).
@@ -488,7 +488,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">PERFORMANCE_LOGGING - Registro de Métricas</div>
+                    <div class="config-name">Registro de Métricas (PERFORMANCE_LOGGING)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Registra métricas de rendimiento en los logs del sistema.
                         <br>Útil para diagnosticar problemas de velocidad y optimizar configuraciones.
@@ -500,7 +500,7 @@ check_session(true, '../index.php');
                 <h3>Parámetros Numéricos de Performance</h3>
                 
                 <div class="config-item">
-                    <div class="config-name">MAX_EMAILS_TO_CHECK - Máximo de Emails por Consulta</div>
+                    <div class="config-name">Máximo de Emails por Consulta (MAX_EMAILS_TO_CHECK)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Limita cuántos emails procesa en cada búsqueda.
                         <br><strong>Valor recomendado:</strong> 35 emails. Reducir para buzones muy grandes.
@@ -509,7 +509,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_CONNECTION_TIMEOUT - Timeout de Conexión</div>
+                    <div class="config-name">Timeout de Conexión (IMAP_CONNECTION_TIMEOUT)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Tiempo máximo para establecer conexión con servidor IMAP.
                         <br><strong>Valor recomendado:</strong> 8 segundos para servidores estables.
@@ -518,7 +518,7 @@ check_session(true, '../index.php');
                 </div>
 
                 <div class="config-item">
-                    <div class="config-name">IMAP_SEARCH_TIMEOUT - Timeout de Búsqueda</div>
+                    <div class="config-name">Timeout de Búsqueda (IMAP_SEARCH_TIMEOUT)</div>
                     <div class="config-description">
                         <strong>Función:</strong> Tiempo máximo para cada operación de búsqueda individual.
                         <br><strong>Valor recomendado:</strong> 30 segundos.
@@ -996,6 +996,93 @@ check_session(true, '../index.php');
             </div>
         </div>
 
+        <!-- Sección: Bot de Telegram -->
+        <div class="section fade-in" id="bot-telegram">
+            <h2 class="section-title">
+                <i class="bi bi-telegram"></i>
+                Bot de Telegram
+            </h2>
+
+            <div class="subsection">
+                <h3>Configuraciones Principales</h3>
+
+                <div class="config-item">
+                    <div class="config-name">Activar Bot (TELEGRAM_BOT_ENABLED)</div>
+                    <div class="config-description">
+                        Habilita o deshabilita por completo la integración con Telegram.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Token del Bot (TELEGRAM_BOT_TOKEN)</div>
+                    <div class="config-description">
+                        Clave generada por BotFather para autenticar las peticiones.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">URL del Webhook (TELEGRAM_WEBHOOK_URL)</div>
+                    <div class="config-description">
+                        Dirección pública que recibe las actualizaciones enviadas por Telegram.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Habilitar Webhook (TELEGRAM_WEBHOOK_ENABLED)</div>
+                    <div class="config-description">
+                        Permite registrar automáticamente la URL anterior como webhook activo.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Registrar Actividad (TELEGRAM_LOG_ACTIVITY)</div>
+                    <div class="config-description">
+                        Guarda en la base de datos los comandos y acciones ejecutadas por los usuarios.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Límite por Minuto (TELEGRAM_RATE_LIMIT)</div>
+                    <div class="config-description">
+                        Controla cuántas solicitudes se permiten cada minuto desde el bot.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Máx. Solicitudes por Usuario (MAX_TELEGRAM_REQUESTS_PER_USER)</div>
+                    <div class="config-description">
+                        Número máximo de comandos diarios que puede ejecutar un mismo usuario.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Cooldown de Comandos (TELEGRAM_COMMAND_COOLDOWN)</div>
+                    <div class="config-description">
+                        Segundos mínimos de espera antes de aceptar un nuevo comando del mismo usuario.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Notificaciones a Admins (TELEGRAM_ADMIN_NOTIFICATIONS)</div>
+                    <div class="config-description">
+                        Envía alertas a los administradores ante actividad sospechosa o errores del bot.
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="config-name">Retención de Logs (TELEGRAM_LOG_RETENTION_DAYS)</div>
+                    <div class="config-description">
+                        Días que se conservarán los registros de actividad del bot en la base de datos.
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>Gestiona estas opciones desde la pestaña <strong>Bot Telegram</strong> del panel de administración.</span>
+            </div>
+        </div>
+
         <!-- Sección: Licencia -->
         <div class="section fade-in" id="licencia">
             <h2 class="section-title">
@@ -1103,6 +1190,9 @@ check_session(true, '../index.php');
             </a>
             <a href="#asignar-correos" class="nav-btn" title="Asignar">
                 <i class="bi bi-person-lines-fill"></i>
+            </a>
+            <a href="#bot-telegram" class="nav-btn" title="Bot Telegram">
+                <i class="bi bi-telegram"></i>
             </a>
             <a href="#licencia" class="nav-btn" title="Licencia">
                 <i class="bi bi-shield-check"></i>
