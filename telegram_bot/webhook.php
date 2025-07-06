@@ -10,6 +10,10 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 set_time_limit(15);
 
+// Garantizar que todas las funciones multibyte operen en UTF-8
+mb_internal_encoding('UTF-8');
+mb_http_output('UTF-8');
+
 // Headers para Telegram
 header('Content-Type: application/json');
 
@@ -129,6 +133,7 @@ function clearUserState($userId, $db) {
 
 // ========== FUNCIONES DE TELEGRAM API ==========
 function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
+    $texto = asegurarUTF8Valido($texto);
     if (trim($texto) === '') {
         log_bot('Empty message text replaced with placeholder', 'WARNING');
         $texto = '⚠️ Contenido no disponible';
@@ -141,6 +146,7 @@ function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode =
 }
 
 function editarMensaje($botToken, $chatId, $messageId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
+    $texto = asegurarUTF8Valido($texto);
     if (trim($texto) === '') {
         log_bot('Empty message text replaced with placeholder', 'WARNING');
         $texto = '⚠️ Contenido no disponible';
@@ -169,6 +175,17 @@ function responderCallback($botToken, $callbackQueryId, $texto = "") {
 }
 
 function enviarRequest($url, $data) {
+    // Asegurar codificación UTF-8 y evitar campos vacíos
+    foreach ($data as $k => $v) {
+        if (is_string($v)) {
+            $v = asegurarUTF8Valido($v);
+            if ($k === 'text' && trim($v) === '') {
+                $v = '⚠️ Contenido no disponible';
+            }
+            $data[$k] = $v;
+        }
+    }
+
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
