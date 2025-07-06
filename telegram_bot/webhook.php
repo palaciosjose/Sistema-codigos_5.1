@@ -10,10 +10,6 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 set_time_limit(15);
 
-// Garantizar que todas las funciones multibyte operen en UTF-8
-mb_internal_encoding('UTF-8');
-mb_http_output('UTF-8');
-
 // Headers para Telegram
 header('Content-Type: application/json');
 
@@ -133,12 +129,6 @@ function clearUserState($userId, $db) {
 
 // ========== FUNCIONES DE TELEGRAM API ==========
 function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
-    $texto = asegurarUTF8Valido($texto);
-    if (trim($texto) === '') {
-        log_bot('Empty message text replaced with placeholder', 'WARNING');
-        $texto = '⚠️ Contenido no disponible';
-    }
-
     $url = "https://api.telegram.org/bot$botToken/sendMessage";
     $data = ['chat_id' => $chatId, 'text' => $texto, 'parse_mode' => $parseMode];
     if ($teclado) $data['reply_markup'] = json_encode($teclado);
@@ -146,12 +136,6 @@ function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode =
 }
 
 function editarMensaje($botToken, $chatId, $messageId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
-    $texto = asegurarUTF8Valido($texto);
-    if (trim($texto) === '') {
-        log_bot('Empty message text replaced with placeholder', 'WARNING');
-        $texto = '⚠️ Contenido no disponible';
-    }
-
     $url = "https://api.telegram.org/bot$botToken/editMessageText";
     $data = ['chat_id' => $chatId, 'message_id' => $messageId, 'text' => $texto, 'parse_mode' => $parseMode];
     if ($teclado) {
@@ -175,17 +159,6 @@ function responderCallback($botToken, $callbackQueryId, $texto = "") {
 }
 
 function enviarRequest($url, $data) {
-    // Asegurar codificación UTF-8 y evitar campos vacíos
-    foreach ($data as $k => $v) {
-        if (is_string($v)) {
-            $v = asegurarUTF8Valido($v);
-            if ($k === 'text' && trim($v) === '') {
-                $v = '⚠️ Contenido no disponible';
-            }
-            $data[$k] = $v;
-        }
-    }
-
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -1792,21 +1765,13 @@ function extraerContenidoPorServicio($html, $subject) {
  */
 function extraerContenidoDisney($html) {
     // Disney+ - Buscar el texto específico alrededor del código
-    // Patrones genéricos en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/Es necesario que verifiques.*?(\d{4,8}).*?minutos\./is',
         '/código de acceso único.*?(\d{4,8}).*?minutos\./is',
         '/verificar.*?cuenta.*?(\d{4,8}).*?vencer/is',
-        '/verification code.*?(\d{4,8})/i',
     ];
-
-    // Patrones adicionales para otros idiomas
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
-    ];
-
-    foreach ($patronesGenerales as $patron) {
+    
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1814,21 +1779,8 @@ function extraerContenidoDisney($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    // Si no se detecta ningún código, devolver todo el texto del email
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoNetflix($html) {
@@ -1858,20 +1810,12 @@ function extraerContenidoNetflix($html) {
         }
     }
     
-    // Prioridad 2: Patrones generales de Netflix en español e inglés
+    // Prioridad 2: Patrones generales de Netflix
     $patronesGenerales = [
         '/código.*?inicio.*?sesión.*?(\d{4,8})/is',
         '/verificación.*?(\d{4,8}).*?minutos/is',
         '/acceso.*?temporal.*?(\d{4,8})/is',
         '/Netflix.*?código.*?(\d{4,8})/is',
-        '/verification.*?(\d{4,8}).*?minutes/i',
-        '/temporary.*?access.*?(\d{4,8})/i',
-    ];
-
-    // Patrones adicionales en portugués y francés
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
     foreach ($patronesGenerales as $patron) {
@@ -1882,40 +1826,18 @@ function extraerContenidoNetflix($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    // Sin coincidencias: devolver todo el texto del correo
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoAmazon($html) {
-    // Patrones genéricos de Amazon en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/código de verificación.*?(\d{4,8})/is',
         '/Amazon.*?(\d{4,8}).*?verificar/is',
         '/Prime.*?(\d{4,8}).*?acceso/is',
-        '/verification code.*?(\d{4,8})/i',
-        '/Amazon.*?code.*?(\d{4,8})/i',
-    ];
-
-    // Frases comunes en portugués y francés
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patronesGenerales as $patron) {
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1923,40 +1845,18 @@ function extraerContenidoAmazon($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    // Ningún código localizado: devolver el mensaje completo
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoMicrosoft($html) {
-    // Frases habituales en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/Microsoft.*?(\d{4,8}).*?verificar/is',
         '/código de seguridad.*?(\d{4,8})/is',
         '/Outlook.*?(\d{4,8})/is',
-        '/security code.*?(\d{4,8})/i',
-        '/Microsoft.*?code.*?(\d{4,8})/i',
-    ];
-
-    // Soporte para portugués y francés
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patronesGenerales as $patron) {
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1964,39 +1864,18 @@ function extraerContenidoMicrosoft($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoGoogle($html) {
-    // Expresiones en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/Google.*?(\d{4,8}).*?verificar/is',
         '/código de verificación.*?(\d{4,8})/is',
         '/Gmail.*?(\d{4,8})/is',
-        '/verification code.*?(\d{4,8})/i',
-        '/Google.*?code.*?(\d{4,8})/i',
-    ];
-
-    // Frases de otros idiomas
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patronesGenerales as $patron) {
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -2004,39 +1883,18 @@ function extraerContenidoGoogle($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoApple($html) {
-    // Pautas comunes en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/Apple.*?(\d{4,8}).*?verificar/is',
         '/iCloud.*?(\d{4,8})/is',
         '/código de verificación.*?(\d{4,8})/is',
-        '/verification code.*?(\d{4,8})/i',
-        '/Apple.*?code.*?(\d{4,8})/i',
-    ];
-
-    // Patrones para portugués y francés
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patronesGenerales as $patron) {
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -2044,39 +1902,18 @@ function extraerContenidoApple($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 function extraerContenidoOpenAI($html) {
-    // Mensajes en español e inglés
-    $patronesGenerales = [
+    $patrones = [
         '/ChatGPT.*?(\d{4,8})/is',
         '/OpenAI.*?(\d{4,8})/is',
         '/código de verificación.*?(\d{4,8})/is',
-        '/verification code.*?(\d{4,8})/i',
-        '/OpenAI.*?code.*?(\d{4,8})/i',
-    ];
-
-    // Traducciones al portugués y francés
-    $patronesExtras = [
-        '/código de verificação.*?(\d{4,8})/iu', // Portugués
-        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patronesGenerales as $patron) {
+    foreach ($patrones as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -2084,20 +1921,8 @@ function extraerContenidoOpenAI($html) {
             return $contenido;
         }
     }
-
-    foreach ($patronesExtras as $patron) {
-        if (preg_match($patron, $html, $matches)) {
-            $contenido = strip_tags($matches[0]);
-            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-            return $contenido;
-        }
-    }
-
-    $contenido = strip_tags($html);
-    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
-    return $contenido;
+    
+    return '';
 }
 
 /**
@@ -2631,225 +2456,7 @@ function crearVistaPreviaConFormato($bodyLimpio) {
 }
 
 /**
- * Organizar contenido completo para visualización
- */
-function organizarContenidoCompletoParaUsuario($body, $subject) {
-    if (empty($body)) {
-        return "📧 Contenido no disponible\n\nNo se pudo obtener el contenido del email\\.";
-    }
-    
-    log_bot("=== ORGANIZANDO CONTENIDO COMPLETO ===", 'DEBUG');
-    
-    // 1. LIMPIAR Y DECODIFICAR EL CONTENIDO
-    $contenidoLimpio = limpiarContenidoParaVisualizacion($body);
-    
-    // 2. DETECTAR SI ES HTML O TEXTO PLANO
-    $esHTML = (strpos($contenidoLimpio, '<') !== false);
-    
-    // 3. PROCESAR SEGÚN EL TIPO
-    if ($esHTML) {
-        $contenidoOrganizado = procesarHTMLParaVisualizacion($contenidoLimpio, $subject);
-    } else {
-        $contenidoOrganizado = procesarTextoPlanoParaVisualizacion($contenidoLimpio, $subject);
-    }
-    
-    // 4. CONSTRUIR EL MENSAJE FINAL (SIN CARACTERES PROBLEMÁTICOS)
-    $mensaje = "📋 CONTENIDO PARA REVISIÓN MANUAL\n\n";
-    $mensaje .= "⚠️ Se detectó con patrón genérico \\- Revisa manualmente\n\n";
-    $mensaje .= "📝 Asunto: " . escaparMarkdown($subject) . "\n\n";
-    $mensaje .= "📄 Contenido:\n\n";
-    $mensaje .= $contenidoOrganizado;
-    
-    // 5. AGREGAR INSTRUCCIONES SEGURAS
-    $mensaje .= "\n\n💡 Guía de búsqueda:\n";
-    $mensaje .= "• Busca números de 4 a 8 dígitos\n";
-    $mensaje .= "• Ignora direcciones y años\n";
-    $mensaje .= "• Enfócate en texto cerca de código o verification\n";
-    $mensaje .= "• Prioriza números en negritas o marcados\n";
-    
-    return $mensaje;
-}
-
-/**
- * ✅ FUNCIÓN: Limpiar contenido para visualización
- */
-function limpiarContenidoParaVisualizacion($body) {
-    // 1. Decodificar quoted-printable
-    if (strpos($body, '=') !== false && preg_match('/=[0-9A-F]{2}/', $body)) {
-        $body = quoted_printable_decode($body);
-        log_bot("Decodificado quoted-printable", 'DEBUG');
-    }
-    
-    // 2. Decodificar base64 si parece serlo
-    if (preg_match('/^[A-Za-z0-9+\/=\s]+$/', $body) && strlen($body) > 100) {
-        $decoded = base64_decode($body, true);
-        if ($decoded !== false && strlen($decoded) > 50) {
-            $body = $decoded;
-            log_bot("Decodificado base64", 'DEBUG');
-        }
-    }
-    
-    // 3. Decodificar entidades HTML
-    $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    
-    // 4. Convertir a UTF-8 válido si es necesario
-    if (!mb_check_encoding($body, 'UTF-8')) {
-        $body = mb_convert_encoding($body, 'UTF-8', ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII']);
-        log_bot("Convertido a UTF-8", 'DEBUG');
-    }
-    
-    // 5. Limpiar caracteres de control (pero preservar saltos de línea)
-    $body = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $body);
-    
-    return $body;
-}
-
-/**
- * ✅ FUNCIÓN: Procesar HTML para visualización
- */
-function procesarHTMLParaVisualizacion($html, $subject) {
-    log_bot("Procesando HTML para visualización", 'DEBUG');
-    
-    // 1. EXTRAER SECCIONES IMPORTANTES ANTES DE LIMPIAR
-    $seccionesImportantes = extraerSeccionesImportantesHTML($html);
-    
-    // 2. LIMPIAR HTML PERO PRESERVAR ESTRUCTURA
-    $html = preg_replace('/<style[^>]*>.*?<\/style>/is', '', $html);
-    $html = preg_replace('/<script[^>]*>.*?<\/script>/is', '', $html);
-    $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html);
-    
-    // 3. CONVERTIR ELEMENTOS HTML A TEXTO ESTRUCTURADO
-    $html = str_replace(['<br>', '<br/>', '<br />'], "\n", $html);
-    $html = str_replace(['<p>', '</p>'], ["\n", "\n"], $html);
-    $html = str_replace(['<div>', '</div>'], ["\n", "\n"], $html);
-    $html = str_replace(['<h1>', '</h1>', '<h2>', '</h2>', '<h3>', '</h3>'], ["**", "**\n", "**", "**\n", "*", "*\n"], $html);
-    
-    // 4. ELIMINAR TAGS RESTANTES
-    $textoLimpio = strip_tags($html);
-    
-    // 5. ORGANIZAR LÍNEAS
-    $lineas = explode("\n", $textoLimpio);
-    $lineasOrganizadas = [];
-    
-    foreach ($lineas as $linea) {
-        $linea = trim($linea);
-        if (strlen($linea) > 5) { // Filtrar líneas muy cortas
-            // Resaltar líneas que probablemente contengan códigos
-            if (preg_match('/\b\d{4,8}\b/', $linea)) {
-                $lineasOrganizadas[] = "🔍 **" . escaparMarkdown($linea) . "**";
-            } else {
-                $lineasOrganizadas[] = escaparMarkdown($linea);
-            }
-        }
-    }
-    
-    // 6. AGREGAR SECCIONES IMPORTANTES DETECTADAS
-    $resultado = "";
-    if (!empty($seccionesImportantes)) {
-        $resultado .= "🎯 *Secciones Relevantes Detectadas:*\n\n";
-        foreach ($seccionesImportantes as $seccion) {
-            $resultado .= "• " . escaparMarkdown($seccion) . "\n";
-        }
-        $resultado .= "\n---\n\n";
-    }
-    
-    // 7. COMBINAR TODO
-    $resultado .= "📄 *Contenido Principal:*\n\n";
-    $resultado .= implode("\n", array_slice($lineasOrganizadas, 0, 25)); // Limitar a 25 líneas
-    
-    if (count($lineasOrganizadas) > 25) {
-        $resultado .= "\n\n_\\[Se muestran las primeras 25 líneas\\]_";
-    }
-    
-    return $resultado;
-}
-
-/**
- * ✅ FUNCIÓN: Procesar texto plano para visualización
- */
-function procesarTextoPlanoParaVisualizacion($texto, $subject) {
-    log_bot("Procesando texto plano para visualización", 'DEBUG');
-    
-    // 1. NORMALIZAR SALTOS DE LÍNEA
-    $texto = str_replace(["\r\n", "\r"], "\n", $texto);
-    
-    // 2. DIVIDIR EN LÍNEAS Y FILTRAR
-    $lineas = explode("\n", $texto);
-    $lineasOrganizadas = [];
-    $contadorLineas = 0;
-    
-    foreach ($lineas as $linea) {
-        $linea = trim($linea);
-        
-        // Filtrar líneas muy cortas o irrelevantes
-        if (strlen($linea) < 5) continue;
-        if (preg_match('/^[\-=_\s]*$/', $linea)) continue; // Líneas decorativas
-        if (preg_match('/^Content-|^From:|^To:|^Subject:|^Date:/i', $linea)) continue; // Headers
-        
-        $contadorLineas++;
-        if ($contadorLineas > 30) break; // Limitar a 30 líneas
-        
-        // RESALTAR LÍNEAS CON POSIBLES CÓDIGOS
-        if (preg_match('/\b\d{4,8}\b/', $linea)) {
-            // Línea con números de 4-8 dígitos
-            $lineasOrganizadas[] = "🔍 **" . escaparMarkdown($linea) . "**";
-        } elseif (preg_match('/(?:code|código|verification|passcode|otp|pin)/i', $linea)) {
-            // Línea con palabras clave
-            $lineasOrganizadas[] = "💡 *" . escaparMarkdown($linea) . "*";
-        } else {
-            // Línea normal
-            $lineasOrganizadas[] = escaparMarkdown($linea);
-        }
-    }
-    
-    $resultado = "📄 *Contenido del Email:*\n\n";
-    $resultado .= implode("\n", $lineasOrganizadas);
-    
-    if ($contadorLineas > 30) {
-        $resultado .= "\n\n_\\[Se muestran las primeras 30 líneas relevantes\\]_";
-    }
-    
-    return $resultado;
-}
-
-/**
- * ✅ FUNCIÓN: Extraer secciones importantes de HTML
- */
-function extraerSeccionesImportantesHTML($html) {
-    $secciones = [];
-    
-    // Patrones para encontrar secciones importantes
-    $patrones = [
-        // Elementos con códigos y estilos específicos
-        '/<td[^>]*(?:font-size:[^>]*(?:2[4-9]|[3-9]\d)px|letter-spacing)[^>]*>([^<]*\d{4,8}[^<]*)<\/td>/i',
-        '/<(?:div|span|p)[^>]*(?:code|verification|passcode)[^>]*>([^<]*)<\/(?:div|span|p)>/i',
-        '/<h[1-6][^>]*>([^<]*\d{4,8}[^<]*)<\/h[1-6]>/i',
-        
-        // Texto con palabras clave importantes
-        '/<[^>]*>([^<]*(?:one-time|passcode|verification|código|expire|minutos)[^<]*)<\/[^>]*>/i',
-    ];
-    
-    foreach ($patrones as $patron) {
-        if (preg_match_all($patron, $html, $matches)) {
-            foreach ($matches[1] as $match) {
-                $texto = strip_tags($match);
-                $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                $texto = trim($texto);
-                
-                if (strlen($texto) > 10 && strlen($texto) < 200) {
-                    $secciones[] = $texto;
-                }
-            }
-        }
-    }
-    
-    return array_unique($secciones);
-}
-
-
-/**
- * Función corregida para mostrar detalle con formato perfecto
- * CORRIGE: Error de etiquetas HTML mal formateadas para patrones genéricos
+ * Función de mostrar detalle con formato perfecto
  */
 function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $plataforma, $index, $user, $db) {
     log_bot("=== INICIO MOSTRAR DETALLE ===", 'DEBUG');
@@ -2905,6 +2512,8 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
         }
 
         $emailData = $emailsArray[$index];
+        
+        $emailData = $emailsArray[$index];
         log_bot("✅ Email obtenido exitosamente en index $index", 'DEBUG');
         
         log_bot("Claves en emailData: " . implode(', ', array_keys($emailData)), 'DEBUG');
@@ -2913,237 +2522,159 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
         log_bot("Tipo acceso: " . ($emailData['tipo_acceso'] ?? 'N/A'), 'DEBUG');
         log_bot("Verification code: " . ($emailData['verification_code'] ?? 'N/A'), 'DEBUG');
         
-        // DETERMINAR SI ES PATRÓN GENÉRICO
-        $esPatronGenerico = false;
-        if (isset($emailData['confianza_deteccion']) && isset($emailData['patron_usado'])) {
-            $confianza = $emailData['confianza_deteccion'];
-            $patronUsado = $emailData['patron_usado'];
-            $esPatronGenerico = ($confianza === 'baja' || $patronUsado > 15);
-            
-            log_bot("EVALUANDO PATRÓN - Confianza: $confianza, Patrón: $patronUsado, Es genérico: " . ($esPatronGenerico ? 'SÍ' : 'NO'), 'DEBUG');
+        // CONSTRUIR MENSAJE
+        log_bot("=== CONSTRUYENDO MENSAJE ===", 'DEBUG');
+        $texto = "📄 *Detalle del Email*\n\n";
+        
+        // === INFORMACIÓN BÁSICA ===
+        if (isset($emailData['date'])) {
+            log_bot("Procesando fecha: " . $emailData['date'], 'DEBUG');
+            $fecha = date('d/m/Y H:i:s', strtotime($emailData['date']));
+            $texto .= "📅 *Fecha:* `$fecha`\n\n";
         }
         
-        // ============================================
-        // DECISIÓN: ¿FORMATO NORMAL O TEXTO PLANO?
-        // ============================================
+        if (isset($emailData['subject'])) {
+            log_bot("Procesando subject", 'DEBUG');
+            $asunto = strlen($emailData['subject']) > 80 ? 
+                     substr($emailData['subject'], 0, 77) . '\\.\\.\\.' : 
+                     $emailData['subject'];
+            $texto .= "📝 *Asunto:*\n" . escaparMarkdown($asunto) . "\n\n";
+        }
         
-        if ($esPatronGenerico) {
-            // PATRÓN GENÉRICO: CONSTRUIR MENSAJE EN TEXTO PLANO (SIN FORMATO)
-            log_bot("🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano", 'INFO');
+        // === REMITENTE ===
+        log_bot("Procesando remitente", 'DEBUG');
+        $from = isset($emailData['from']) ? $emailData['from'] : 'Desconocido';
+        $texto .= "👤 *De:* " . escaparMarkdown($from) . "\n\n";
+        
+        // === CÓDIGO O ENLACE ===
+        log_bot("Procesando código/enlace", 'DEBUG');
+        $tieneContenidoPrincipal = false;
+        
+        if (isset($emailData['tipo_acceso'])) {
+            log_bot("Tipo de acceso detectado: " . $emailData['tipo_acceso'], 'DEBUG');
             
-            $textoPlano = "📄 DETALLE DEL EMAIL\n\n";
-            $textoPlano .= "⚠️ DETECCIÓN DE BAJA PRECISIÓN\n";
-            $textoPlano .= "🔍 Se requiere revisión manual\n\n";
-            $textoPlano .= "---\n\n";
-            
-            // INFORMACIÓN BÁSICA (SIN MARKDOWN, UTF-8 SEGURO)
-            if (isset($emailData['date'])) {
-                $fecha = date('d/m/Y H:i:s', strtotime($emailData['date']));
-                $fecha = asegurarUTF8Valido($fecha);
-                $textoPlano .= "📅 Fecha: $fecha\n\n";
-            }
-            
-            if (isset($emailData['subject'])) {
-                $asunto = $emailData['subject'];
-                if (strlen($asunto) > 80) {
-                    $asunto = substr($asunto, 0, 77) . '...';
-                }
-                $asunto = asegurarUTF8Valido($asunto);
-                $textoPlano .= "📝 Asunto:\n$asunto\n\n";
-            }
-            
-            // REMITENTE
-            $from = isset($emailData['from']) ? $emailData['from'] : 'Desconocido';
-            $from = asegurarUTF8Valido($from);
-            $textoPlano .= "👤 De: $from\n\n";
-            
-            // CONTENIDO DEL EMAIL (LIMPIO Y UTF-8 SEGURO)
-            $bodyOriginal = $emailData['body'] ?? $emailData['body_clean'] ?? '';
-            $bodyRaw = limpiarContenidoParaTextoPlanoSeguro($bodyOriginal);
-            $contenido = '';
-
-            if ($bodyRaw === '') {
-                $textoPlano .= organizarContenidoCompletoParaUsuario($bodyOriginal, $emailData['subject'] ?? '');
-            } else {
-                $textoPlano .= "📄 Contenido del email:\n\n";
-
-                // Limitar longitud y mostrar de forma segura
-                $contenido = substr($bodyRaw, 0, 1500); // Reducir más el límite
-                $contenido = asegurarUTF8Valido($contenido); // Nueva función de seguridad
-
-                $textoPlano .= $contenido;
-
-                if (strlen($bodyRaw) > 1500) {
-                    $textoPlano .= "\n\n[Contenido truncado - busca numeros de 4-8 digitos]";
-                }
-            }
-
-            // Validar que se haya generado contenido
-            if (trim($contenido) === '' || trim($textoPlano) === '') {
-                log_bot("Contenido vacío, regenerando", 'DEBUG');
-                $textoPlano = organizarContenidoCompletoParaUsuario($emailData['body'] ?? '', $emailData['subject'] ?? '');
-            }
-            
-            $textoPlano .= "\n\n💡 Busca numeros de 4 a 8 digitos en el contenido anterior";
-            
-            // LIMPIAR TODO EL MENSAJE FINAL
-            $textoPlano = asegurarUTF8Valido($textoPlano);
-            
-            // CREAR TECLADO
-            $teclado = [
-                'inline_keyboard' => [
-                    [
-                        ['text' => '🔙 Volver a Resultados', 'callback_data' => "search_" . encodePart($email) . '_' . encodePart($plataforma)],
-                        ['text' => '🏠 Menú Principal', 'callback_data' => 'menu_principal']
-                    ]
-                ]
-            ];
-            
-            // ENVIAR SIN PARSE_MODE (TEXTO PLANO) CON VALIDACIÓN UTF-8
-            log_bot("=== ENVIANDO MENSAJE EN TEXTO PLANO SEGURO ===", 'DEBUG');
-            
-            // VALIDACIÓN FINAL DE UTF-8
-            $textoPlano = asegurarUTF8Valido($textoPlano);
-            
-            // Verificar que el mensaje no sea demasiado largo para Telegram (4096 caracteres max)
-            if (strlen($textoPlano) > 4000) {
-                $textoPlano = substr($textoPlano, 0, 3950) . "\n\n[Mensaje truncado por longitud]";
-                $textoPlano = asegurarUTF8Valido($textoPlano);
-            }
-            
-            log_bot("Mensaje final válido UTF-8: " . (mb_check_encoding($textoPlano, 'UTF-8') ? 'SÍ' : 'NO'), 'DEBUG');
-            log_bot("Longitud del mensaje: " . strlen($textoPlano), 'DEBUG');
-            
-            $url = "https://api.telegram.org/bot$botToken/editMessageText";
-            $data = [
-                'chat_id' => $chatId, 
-                'message_id' => $messageId, 
-                'text' => $textoPlano,
-                'reply_markup' => json_encode($teclado)
-                // NO parse_mode = texto plano
-            ];
-            
-            // Asegurar que todos los datos sean UTF-8 válidos
-            foreach ($data as $key => $value) {
-                if (is_string($value)) {
-                    $data[$key] = asegurarUTF8Valido($value);
-                }
-            }
-
-            // Garantizar que el texto no esté vacío antes de enviar
-            if (trim($data['text']) === '') {
-                log_bot("Texto plano vacío antes de enviar, regenerando", 'DEBUG');
-                $textoPlano = organizarContenidoCompletoParaUsuario($emailData['body'] ?? '', $emailData['subject'] ?? '');
-                $textoPlano = asegurarUTF8Valido($textoPlano);
-                $data['text'] = $textoPlano;
-            }
-
-            $resultado = enviarRequest($url, $data);
-            
-        } else {
-            // PATRÓN NORMAL: USAR MARKDOWN V2
-            log_bot("📄 PATRÓN NORMAL - Usando MarkdownV2", 'DEBUG');
-            
-            $texto = "📄 *Detalle del Email*\n\n";
-            
-            // === INFORMACIÓN BÁSICA ===
-            if (isset($emailData['date'])) {
-                log_bot("Procesando fecha: " . $emailData['date'], 'DEBUG');
-                $fecha = date('d/m/Y H:i:s', strtotime($emailData['date']));
-                $texto .= "📅 *Fecha:* `$fecha`\n\n";
-            }
-            
-            if (isset($emailData['subject'])) {
-                log_bot("Procesando subject", 'DEBUG');
-                $asunto = strlen($emailData['subject']) > 80 ? 
-                         substr($emailData['subject'], 0, 77) . '\\.\\.\\.' : 
-                         $emailData['subject'];
-                $texto .= "📝 *Asunto:*\n" . escaparMarkdown($asunto) . "\n\n";
-            }
-            
-            // === REMITENTE ===
-            log_bot("Procesando remitente", 'DEBUG');
-            $from = isset($emailData['from']) ? $emailData['from'] : 'Desconocido';
-            $texto .= "👤 *De:* " . escaparMarkdown($from) . "\n\n";
-            
-            // === CÓDIGO O ENLACE ===
-            log_bot("Procesando código/enlace", 'DEBUG');
-            $tieneContenidoPrincipal = false;
-            
-            if (isset($emailData['tipo_acceso'])) {
-                log_bot("Tipo de acceso detectado: " . $emailData['tipo_acceso'], 'DEBUG');
+            if ($emailData['tipo_acceso'] === 'codigo' && isset($emailData['verification_code'])) {
+                log_bot("Agregando código de verificación: " . $emailData['verification_code'], 'DEBUG');
+                $texto .= "🔐 *CÓDIGO DE VERIFICACIÓN:*\n\n";
+                $texto .= "`" . $emailData['verification_code'] . "`\n\n";
                 
-                if ($emailData['tipo_acceso'] === 'codigo' && isset($emailData['verification_code'])) {
-                    // CÓDIGO CONFIABLE: MOSTRAR NORMALMENTE
-                    log_bot("Agregando código de verificación: " . $emailData['verification_code'], 'DEBUG');
-                    $texto .= "🔐 *CÓDIGO DE VERIFICACIÓN:*\n\n";
-                    $texto .= "`" . $emailData['verification_code'] . "`\n\n";
-                    
-                    if (isset($emailData['fragmento_deteccion']) && !empty($emailData['fragmento_deteccion'])) {
-                        $texto .= "📍 *Contexto donde se detectó:*\n\n";
-                        $fragmentoMostrar = $emailData['fragmento_deteccion'];
-                        if (strpos($fragmentoMostrar, '=') !== false) {
-                            $fragmentoMostrar = quoted_printable_decode($fragmentoMostrar);
-                        }
-                        $fragmentoMostrar = html_entity_decode($fragmentoMostrar, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                        $fragmentoConResaltado = str_ireplace(
-                            $emailData['verification_code'], 
-                            "*" . $emailData['verification_code'] . "*", 
-                            $fragmentoMostrar
-                        );
-                        $texto .= "_\"" . escaparMarkdown($fragmentoConResaltado) . "\"_\n\n";
-                    }
-                    
-                    $tieneContenidoPrincipal = true;
-                    
-                } elseif ($emailData['tipo_acceso'] === 'enlace' && isset($emailData['access_link'])) {
-                    // ENLACE: MOSTRAR NORMALMENTE
-                    log_bot("Agregando enlace de acceso", 'DEBUG');
-                    $texto .= "🔗 *ENLACE DE ACCESO:*\n\n";
-                    $enlace = strlen($emailData['access_link']) > 80 ? 
-                             substr($emailData['access_link'], 0, 77) . '\\.\\.\\.' : 
-                             $emailData['access_link'];
-                    $texto .= escaparMarkdown($enlace) . "\n\n";
-                    
-                    if (isset($emailData['fragmento_deteccion']) && !empty($emailData['fragmento_deteccion'])) {
-                        $texto .= "📍 *Contexto donde se detectó:*\n\n";
-                        $texto .= "_" . escaparMarkdown($emailData['fragmento_deteccion']) . "_\n\n";
-                    }
-                    
-                    $tieneContenidoPrincipal = true;
+                // *** NUEVA SECCIÓN: MOSTRAR FRAGMENTO DONDE SE ENCONTRÓ ***
+                if (isset($emailData['fragmento_deteccion']) && !empty($emailData['fragmento_deteccion'])) {
+    $texto .= "📍 *Contexto donde se detectó:*\n\n";
+
+    $fragmentoMostrar = $emailData['fragmento_deteccion'];
+    
+    // SOLO limpiar encoding del fragmento
+    if (strpos($fragmentoMostrar, '=') !== false) {
+        $fragmentoMostrar = quoted_printable_decode($fragmentoMostrar);
+    }
+    $fragmentoMostrar = html_entity_decode($fragmentoMostrar, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    if ($emailData['tipo_acceso'] === 'codigo' && isset($emailData['verification_code'])) {
+        $fragmentoConResaltado = str_ireplace(
+            $emailData['verification_code'], 
+            "*" . $emailData['verification_code'] . "*", 
+            $fragmentoMostrar
+        );
+        $texto .= "_\"" . escaparMarkdown($fragmentoConResaltado) . "\"_\n\n";
+    } else {
+        $texto .= "_\"" . escaparMarkdown($fragmentoMostrar) . "\"_\n\n";
+    }
+
+    log_bot("✅ FRAGMENTO AGREGADO AL MENSAJE", 'DEBUG');
+}
+                
+                $tieneContenidoPrincipal = true;
+                
+            } elseif ($emailData['tipo_acceso'] === 'enlace' && isset($emailData['access_link'])) {
+    log_bot("Agregando enlace de acceso", 'DEBUG');
+    
+    // MEJORADO: Información específica para enlaces Netflix
+    if (isset($emailData['servicio_detectado']) && $emailData['servicio_detectado'] === 'Netflix') {
+    $texto .= "🎯 _Enlace específico de Netflix detectado_\n";
+    if (isset($emailData['tipo_enlace_netflix'])) {
+        $texto .= "📋 _Tipo: " . escaparMarkdown($emailData['tipo_enlace_netflix']) . "_\n\n";
+    }
+} else {
+        $texto .= "🔗 *ENLACE DE ACCESO:*\n\n";
+    }
+                $enlace = strlen($emailData['access_link']) > 80 ? 
+                         substr($emailData['access_link'], 0, 77) . '\\.\\.\\.' : 
+                         $emailData['access_link'];
+                $texto .= escaparMarkdown($enlace) . "\n\n";
+                
+                // *** NUEVA SECCIÓN: MOSTRAR FRAGMENTO PARA ENLACE ***
+                if (isset($emailData['fragmento_deteccion']) && !empty($emailData['fragmento_deteccion'])) {
+                    $texto .= "📍 *Contexto donde se detectó:*\n\n";
+                    $texto .= "_" . escaparMarkdown($emailData['fragmento_deteccion']) . "_\n\n";
+                    log_bot("✅ FRAGMENTO DE ENLACE AGREGADO", 'DEBUG');
                 }
+                
+                $tieneContenidoPrincipal = true;
             }
-            
-            // === INFORMACIÓN ADICIONAL ===
-            if (!$tieneContenidoPrincipal) {
-                $texto .= "⚠️ _No se detectó código automáticamente_\n";
-                $texto .= "_Contacta al administrador si es necesario_\n\n";
-            } elseif (isset($emailData['confianza_deteccion'])) {
+        } else {
+            log_bot("No hay tipo_acceso definido", 'DEBUG');
+        }
+
+        // === INFORMACIÓN ADICIONAL MEJORADA ===
+        if (!$tieneContenidoPrincipal) {
+            log_bot("No se detectó contenido principal", 'DEBUG');
+            $texto .= "⚠️ _No se detectó código de verificación automáticamente_\n";
+            $texto .= "_Revisa el contenido completo para verificar manualmente_\n\n";
+        } else {
+            // Si se detectó código, agregar información de confianza mejorada
+            if (isset($emailData['confianza_deteccion'])) {
                 $confianza = $emailData['confianza_deteccion'];
+                
+                // Determinar icono según confianza
                 if ($confianza === 'alta') {
-                    $texto .= "🟢 _Detección de alta confianza_\n\n";
+                    $iconoConfianza = '🟢';
+                    $descripcionConfianza = 'alta confianza \\- detección muy precisa';
                 } elseif ($confianza === 'media') {
-                    $texto .= "🟡 _Detección de confianza media_\n\n";
+                    $iconoConfianza = '🟡';
+                    $descripcionConfianza = 'confianza media \\- verificar contexto';
+                } elseif ($confianza === 'baja') {
+                    $iconoConfianza = '🟠';
+                    $descripcionConfianza = 'baja confianza \\- revisar manualmente';
+                } else {
+                    $iconoConfianza = '⚪';
+                    $descripcionConfianza = 'confianza desconocida';
+                }
+                
+                $texto .= $iconoConfianza . " _Detección " . $descripcionConfianza . "_\n\n";
+                
+                // Agregar información del patrón usado (solo para debug)
+                if (isset($emailData['patron_usado'])) {
+                    $patron = $emailData['patron_usado'];
+                    if ($patron < 8) {
+                        $tipoPatron = 'específico del servicio';
+                    } elseif ($patron < 15) {
+                        $tipoPatron = 'contexto general';
+                    } else {
+                        $tipoPatron = 'patrón genérico';
+                    }
+                    $texto .= "🔍 _Método: " . $tipoPatron . "_\n\n";
                 }
             }
-            
-            // CREAR TECLADO
-            log_bot("=== CREANDO TECLADO ===", 'DEBUG');
-            $teclado = [
-                'inline_keyboard' => [
-                    [
-                        ['text' => '🔙 Volver a Resultados', 'callback_data' => "search_" . encodePart($email) . '_' . encodePart($plataforma)],
-                        ['text' => '🏠 Menú Principal', 'callback_data' => 'menu_principal']
-                    ]
-                ]
-            ];
-            
-            // ENVIAR CON MARKDOWNV2
-            log_bot("=== ENVIANDO MENSAJE CON MARKDOWNV2 ===", 'DEBUG');
-            $resultado = editarMensaje($botToken, $chatId, $messageId, $texto, $teclado);
         }
         
-        // VERIFICAR RESULTADO
+        // CREAR TECLADO
+        log_bot("=== CREANDO TECLADO ===", 'DEBUG');
+        $teclado = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '🔙 Volver a Resultados', 'callback_data' => "search_" . encodePart($email) . '_' . encodePart($plataforma)],
+                    ['text' => '🏠 Menú Principal', 'callback_data' => 'menu_principal']
+                ]
+            ]
+        ];
+        
+        // ENVIAR MENSAJE
+        log_bot("=== ENVIANDO MENSAJE ===", 'DEBUG');
+        log_bot("Texto a enviar (primeros 200 chars): " . substr($texto, 0, 200), 'DEBUG');
+        
+        $resultado = editarMensaje($botToken, $chatId, $messageId, $texto, $teclado);
+        
         if ($resultado && ($resultado['ok'] ?? false)) {
             log_bot("✅ MENSAJE ENVIADO EXITOSAMENTE", 'INFO');
         } else {
@@ -3172,308 +2703,6 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
         
         editarMensaje($botToken, $chatId, $messageId, $textoError, $tecladoError);
     }
-}
-
-/**
- * FUNCIÓN GENÉRICA MEJORADA: Extraer contenido real de emails HTML
- * Funciona para Disney+, Netflix, Amazon, etc.
- */
-function limpiarContenidoParaTextoPlanoSeguro($body) {
-    if (empty($body)) return '';
-
-    $originalBody = $body;
-    
-    log_bot("=== EXTRACCIÓN INTELIGENTE DE CONTENIDO ===", 'DEBUG');
-    log_bot("Tamaño original: " . strlen($body), 'DEBUG');
-    
-    // 1. Decodificar quoted-printable de manera segura
-    if (strpos($body, '=') !== false && preg_match('/=[0-9A-F]{2}/', $body)) {
-        $bodyOriginal = $body;
-        $body = @quoted_printable_decode($body);
-        if ($body === false || empty($body)) {
-            $body = $bodyOriginal;
-        }
-        log_bot("Decodificado quoted-printable", 'DEBUG');
-    }
-    
-    // 2. Decodificar entidades HTML
-    $body = @html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    
-    // 3. NUEVO: Extraer contenido inteligentemente del HTML
-    if (strpos($body, '<') !== false) {
-        log_bot("HTML detectado, extrayendo contenido...", 'DEBUG');
-        $contenidoExtraido = extraerContenidoInteligente($body);
-        
-        if (!empty($contenidoExtraido)) {
-            $body = $contenidoExtraido;
-            log_bot("Contenido extraído exitosamente: " . strlen($body) . " chars", 'DEBUG');
-        } else {
-            // Fallback: strip_tags simple
-            $body = strip_tags($body);
-            log_bot("Fallback: strip_tags aplicado", 'DEBUG');
-        }
-    }
-    
-    // 4. Asegurar UTF-8 válido
-    $body = asegurarUTF8Valido($body);
-    
-    // 5. Limpieza final suave (sin ser muy agresivo)
-    $lineas = explode("\n", $body);
-    $lineasUtiles = [];
-    
-    foreach ($lineas as $linea) {
-        $linea = trim($linea);
-        
-        // Solo eliminar líneas muy problemáticas
-        if (strlen($linea) < 2) continue;
-        if (preg_match('/^[\s\-=_\*]{4,}$/', $linea)) continue; // Solo líneas decorativas obvias
-        if (preg_match('/^(From|To|Subject|Date|Content-Type|Content-Transfer-Encoding):/i', $linea)) continue;
-        
-        $lineasUtiles[] = $linea;
-    }
-    
-    $resultado = implode("\n", $lineasUtiles);
-    $resultado = asegurarUTF8Valido($resultado);
-    
-    // 6. Limpiar espacios múltiples pero preservar estructura
-    $resultado = preg_replace('/[ \t]+/', ' ', $resultado);
-    $resultado = preg_replace('/\n\s*\n\s*\n+/', "\n\n", $resultado);
-    $resultado = trim($resultado);
-
-    if ($resultado === '') {
-        $fallback = $originalBody;
-        if (strpos($fallback, '=') !== false && preg_match('/=[0-9A-F]{2}/', $fallback)) {
-            $decoded = @quoted_printable_decode($fallback);
-            if ($decoded !== false && $decoded !== '') {
-                $fallback = $decoded;
-            }
-        }
-        $fallback = @html_entity_decode($fallback, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $fallback = asegurarUTF8Valido($fallback);
-        $fallback = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $fallback);
-        $fallback = str_ireplace(['<p>', '</p>'], "\n", $fallback);
-        $fallback = strip_tags($fallback);
-        $fallback = preg_replace('/\s+/', ' ', $fallback);
-        $fallback = trim($fallback);
-
-        if ($fallback !== '') {
-            $resultado = $fallback;
-        } else {
-            $slice = strip_tags($originalBody);
-            $slice = preg_replace('/\s+/', ' ', $slice);
-            $slice = trim($slice);
-            $resultado = substr($slice, 0, 200);
-        }
-    }
-    
-    log_bot("Resultado final: " . strlen($resultado) . " chars", 'DEBUG');
-    log_bot("Primeros 200 chars: " . substr($resultado, 0, 200), 'DEBUG');
-    
-    return $resultado;
-}
-
-/**
- * FUNCIÓN NUEVA: Extraer contenido inteligente de HTML
- * Genérica para cualquier servicio (Disney+, Netflix, Amazon, etc.)
- */
-function extraerContenidoInteligente($html) {
-    if (empty($html)) return '';
-    
-    $contenidoExtraido = '';
-    
-    // PASO 1: Eliminar elementos que nunca queremos
-    $html = preg_replace('/<style[^>]*>.*?<\/style>/is', '', $html);
-    $html = preg_replace('/<script[^>]*>.*?<\/script>/is', '', $html);
-    $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html);
-    $html = preg_replace('/<!--.*?-->/s', '', $html);
-    
-    // PASO 2: Buscar contenido en elementos importantes por prioridad
-    $patronesPrioritarios = [
-        // TDs con contenido de texto sustancial (como Disney+)
-        '/<td[^>]*style="[^"]*(?:font-size|padding)[^"]*"[^>]*>(.*?)<\/td>/is',
-        
-        // TDs con atributos align="center" que suelen contener contenido principal
-        '/<td[^>]*align="center"[^>]*>(.*?)<\/td>/is',
-        
-        // Cualquier TD con contenido
-        '/<td[^>]*>(.*?)<\/td>/is',
-        
-        // Headers H1-H6
-        '/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is',
-        
-        // Párrafos
-        '/<p[^>]*>(.*?)<\/p>/is',
-        
-        // Divs con contenido
-        '/<div[^>]*>(.*?)<\/div>/is',
-        
-        // Spans
-        '/<span[^>]*>(.*?)<\/span>/is',
-    ];
-    
-    foreach ($patronesPrioritarios as $patron) {
-        if (preg_match_all($patron, $html, $matches)) {
-            foreach ($matches[1] as $match) {
-                // Limpiar el contenido extraído
-                $textoLimpio = strip_tags($match);
-                $textoLimpio = html_entity_decode($textoLimpio, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                $textoLimpio = trim($textoLimpio);
-                
-                // Filtrar contenido útil vs basura
-                if (esContenidoUtil($textoLimpio)) {
-                    $contenidoExtraido .= $textoLimpio . "\n";
-                }
-            }
-        }
-    }
-    
-    // PASO 3: Si no encontramos nada útil, intentar extracción más agresiva
-    if (empty(trim($contenidoExtraido))) {
-        // Eliminar todo el CSS y JavaScript primero
-        $htmlLimpio = preg_replace('/\{[^}]*\}/s', '', $html);
-        $htmlLimpio = preg_replace('/@media[^}]*\{[^}]*\}/s', '', $htmlLimpio);
-        $htmlLimpio = preg_replace('/\/\*.*?\*\//s', '', $htmlLimpio);
-        
-        // Extraer todo el texto
-        $contenidoExtraido = strip_tags($htmlLimpio);
-        $contenidoExtraido = html_entity_decode($contenidoExtraido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    }
-    
-    // PASO 4: Limpiar y estructurar el resultado
-    $lineas = explode("\n", $contenidoExtraido);
-    $lineasFinales = [];
-    
-    foreach ($lineas as $linea) {
-        $linea = trim($linea);
-        if (strlen($linea) > 2 && esContenidoUtil($linea)) {
-            $lineasFinales[] = $linea;
-        }
-    }
-    
-    return implode("\n", $lineasFinales);
-}
-
-/**
- * FUNCIÓN AUXILIAR: Determinar si el contenido es útil para el usuario
- */
-function esContenidoUtil($texto) {
-    if (empty($texto) || strlen($texto) < 3) {
-        return false;
-    }
-    
-    // Eliminar contenido obviamente técnico o basura
-    $patronesBasura = [
-        '/^[\s\-=_\*\+\|\.]{3,}$/',  // Solo caracteres especiales
-        '/^@media/',                   // CSS
-        '/^\.[\w\-]+\s*\{/',          // Selectores CSS
-        '/^#[\w\-]+\s*\{/',           // Selectores CSS con ID
-        '/font-family:|font-size:|margin:|padding:|color:|background/',  // Propiedades CSS
-        '/webkit|mso|outlook/i',       // Propiedades específicas de navegadores/email
-        '/cellpadding|cellspacing|border/i',  // Atributos de tabla
-        '/^(From|To|Subject|Date|Content-Type):/i',  // Headers de email
-        '/^[\d\s\-:;.,!]*$/',         // Solo números y puntuación
-    ];
-    
-    foreach ($patronesBasura as $patron) {
-        if (preg_match($patron, $texto)) {
-            return false;
-        }
-    }
-    
-    // Contenido útil: debe tener al menos algunas letras
-    if (!preg_match('/[a-zA-Z]/', $texto)) {
-        return false;
-    }
-    
-    // Si tiene palabras clave útiles, definitivamente incluirlo
-    $palabrasUtiles = [
-        'passcode', 'code', 'código', 'verification', 'verify', 'disney', 'netflix', 
-        'amazon', 'email', 'account', 'cuenta', 'expire', 'minutos', 'minutes',
-        'one-time', 'help', 'centre', 'center', 'support', 'request'
-    ];
-    
-    foreach ($palabrasUtiles as $palabra) {
-        if (stripos($texto, $palabra) !== false) {
-            return true;
-        }
-    }
-    
-    // Si tiene 4-8 dígitos, probablemente es útil (código)
-    if (preg_match('/\b\d{4,8}\b/', $texto)) {
-        return true;
-    }
-    
-    // Si es texto normal sin símbolos raros, incluirlo
-    if (strlen($texto) > 10 && preg_match('/^[a-zA-Z0-9\s\.,\!\?\-\'\"\(\)]+$/', $texto)) {
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * FUNCIÓN CRÍTICA: Asegurar UTF-8 válido para Telegram
- */
-function asegurarUTF8Valido($texto) {
-    if (empty($texto)) return '';
-
-    // 1. Convertir a string
-    $texto = (string)$texto;
-
-    // 2. Limpiar caracteres NULL y de control
-    $texto = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $texto);
-
-    // 2.5 Detectar charset y convertir si es necesario
-    if (!function_exists('detect_and_convert_charset')) {
-        require_once __DIR__ . '/../decodificador.php';
-    }
-    $convertido = detect_and_convert_charset($texto);
-    if (is_string($convertido)) {
-        $texto = $convertido;
-    }
-
-    // 3. Verificar si ya es UTF-8 válido
-    if (mb_check_encoding($texto, 'UTF-8')) {
-        // Es válido, pero limpiar caracteres problemáticos para Telegram
-        $texto = mb_convert_encoding($texto, 'UTF-8', 'UTF-8');
-    } else {
-        // No es válido, convertir de manera agresiva
-        $texto = mb_convert_encoding($texto, 'UTF-8', ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII']);
-        
-        // Si aún falla, usar solo ASCII
-        if (!mb_check_encoding($texto, 'UTF-8')) {
-            $texto = preg_replace('/[^\x20-\x7E\n\r\t]/', '?', $texto);
-        }
-    }
-    
-    // 4. Limpiar caracteres específicamente problemáticos para Telegram
-    $caracteresProblematicos = [
-        "\u{FEFF}", // BOM
-        "\u{200B}", // Zero-width space
-        "\u{200C}", // Zero-width non-joiner
-        "\u{200D}", // Zero-width joiner
-        "\u{2060}", // Word joiner
-    ];
-    
-    foreach ($caracteresProblematicos as $char) {
-        $texto = str_replace($char, '', $texto);
-    }
-    
-    // 5. Normalizar espacios pero conservando saltos de línea
-    $texto = preg_replace('/[ \t\x0B\x0C\r]+/', ' ', $texto);
-    $texto = preg_replace('/\n{3,}/', "\n\n", $texto);
-    
-    // 6. Limitar caracteres especiales que podrían causar problemas
-    $texto = preg_replace('/[^\x20-\x7E\n\r\tÀ-ÿĀ-žА-я\u{4e00}-\u{9fff}]/u', '', $texto);
-    
-    // 7. Validación final
-    if (!mb_check_encoding($texto, 'UTF-8')) {
-        // Última opción: solo caracteres ASCII básicos
-        $texto = preg_replace('/[^\x20-\x7E\n\r\t]/', '', $texto);
-        $texto = "Contenido con problemas de codificacion - contacta al administrador";
-    }
-    
-    return trim($texto);
 }
 
 function extraerRemitenteEmail($emailData) {
