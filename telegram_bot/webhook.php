@@ -129,6 +129,11 @@ function clearUserState($userId, $db) {
 
 // ========== FUNCIONES DE TELEGRAM API ==========
 function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
+    if (trim($texto) === '') {
+        log_bot('Empty message text replaced with placeholder', 'WARNING');
+        $texto = '⚠️ Contenido no disponible';
+    }
+
     $url = "https://api.telegram.org/bot$botToken/sendMessage";
     $data = ['chat_id' => $chatId, 'text' => $texto, 'parse_mode' => $parseMode];
     if ($teclado) $data['reply_markup'] = json_encode($teclado);
@@ -136,6 +141,11 @@ function enviarMensaje($botToken, $chatId, $texto, $teclado = null, $parseMode =
 }
 
 function editarMensaje($botToken, $chatId, $messageId, $texto, $teclado = null, $parseMode = 'MarkdownV2') {
+    if (trim($texto) === '') {
+        log_bot('Empty message text replaced with placeholder', 'WARNING');
+        $texto = '⚠️ Contenido no disponible';
+    }
+
     $url = "https://api.telegram.org/bot$botToken/editMessageText";
     $data = ['chat_id' => $chatId, 'message_id' => $messageId, 'text' => $texto, 'parse_mode' => $parseMode];
     if ($teclado) {
@@ -3004,7 +3014,7 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
             }
 
             // Garantizar que el texto no esté vacío antes de enviar
-            if (trim($textoPlano) === '') {
+            if (trim($data['text']) === '') {
                 log_bot("Texto plano vacío antes de enviar, regenerando", 'DEBUG');
                 $textoPlano = organizarContenidoCompletoParaUsuario($emailData['body'] ?? '', $emailData['subject'] ?? '');
                 $textoPlano = asegurarUTF8Valido($textoPlano);
