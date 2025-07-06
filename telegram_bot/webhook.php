@@ -1765,13 +1765,21 @@ function extraerContenidoPorServicio($html, $subject) {
  */
 function extraerContenidoDisney($html) {
     // Disney+ - Buscar el texto específico alrededor del código
-    $patrones = [
+    // Patrones genéricos en español e inglés
+    $patronesGenerales = [
         '/Es necesario que verifiques.*?(\d{4,8}).*?minutos\./is',
         '/código de acceso único.*?(\d{4,8}).*?minutos\./is',
         '/verificar.*?cuenta.*?(\d{4,8}).*?vencer/is',
+        '/verification code.*?(\d{4,8})/i',
     ];
-    
-    foreach ($patrones as $patron) {
+
+    // Patrones adicionales para otros idiomas
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
+    ];
+
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1779,8 +1787,21 @@ function extraerContenidoDisney($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    // Si no se detecta ningún código, devolver todo el texto del email
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoNetflix($html) {
@@ -1810,12 +1831,20 @@ function extraerContenidoNetflix($html) {
         }
     }
     
-    // Prioridad 2: Patrones generales de Netflix
+    // Prioridad 2: Patrones generales de Netflix en español e inglés
     $patronesGenerales = [
         '/código.*?inicio.*?sesión.*?(\d{4,8})/is',
         '/verificación.*?(\d{4,8}).*?minutos/is',
         '/acceso.*?temporal.*?(\d{4,8})/is',
         '/Netflix.*?código.*?(\d{4,8})/is',
+        '/verification.*?(\d{4,8}).*?minutes/i',
+        '/temporary.*?access.*?(\d{4,8})/i',
+    ];
+
+    // Patrones adicionales en portugués y francés
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
     foreach ($patronesGenerales as $patron) {
@@ -1826,18 +1855,40 @@ function extraerContenidoNetflix($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    // Sin coincidencias: devolver todo el texto del correo
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoAmazon($html) {
-    $patrones = [
+    // Patrones genéricos de Amazon en español e inglés
+    $patronesGenerales = [
         '/código de verificación.*?(\d{4,8})/is',
         '/Amazon.*?(\d{4,8}).*?verificar/is',
         '/Prime.*?(\d{4,8}).*?acceso/is',
+        '/verification code.*?(\d{4,8})/i',
+        '/Amazon.*?code.*?(\d{4,8})/i',
+    ];
+
+    // Frases comunes en portugués y francés
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1845,18 +1896,40 @@ function extraerContenidoAmazon($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    // Ningún código localizado: devolver el mensaje completo
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoMicrosoft($html) {
-    $patrones = [
+    // Frases habituales en español e inglés
+    $patronesGenerales = [
         '/Microsoft.*?(\d{4,8}).*?verificar/is',
         '/código de seguridad.*?(\d{4,8})/is',
         '/Outlook.*?(\d{4,8})/is',
+        '/security code.*?(\d{4,8})/i',
+        '/Microsoft.*?code.*?(\d{4,8})/i',
+    ];
+
+    // Soporte para portugués y francés
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1864,18 +1937,39 @@ function extraerContenidoMicrosoft($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoGoogle($html) {
-    $patrones = [
+    // Expresiones en español e inglés
+    $patronesGenerales = [
         '/Google.*?(\d{4,8}).*?verificar/is',
         '/código de verificación.*?(\d{4,8})/is',
         '/Gmail.*?(\d{4,8})/is',
+        '/verification code.*?(\d{4,8})/i',
+        '/Google.*?code.*?(\d{4,8})/i',
+    ];
+
+    // Frases de otros idiomas
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1883,18 +1977,39 @@ function extraerContenidoGoogle($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoApple($html) {
-    $patrones = [
+    // Pautas comunes en español e inglés
+    $patronesGenerales = [
         '/Apple.*?(\d{4,8}).*?verificar/is',
         '/iCloud.*?(\d{4,8})/is',
         '/código de verificación.*?(\d{4,8})/is',
+        '/verification code.*?(\d{4,8})/i',
+        '/Apple.*?code.*?(\d{4,8})/i',
+    ];
+
+    // Patrones para portugués y francés
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1902,18 +2017,39 @@ function extraerContenidoApple($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 function extraerContenidoOpenAI($html) {
-    $patrones = [
+    // Mensajes en español e inglés
+    $patronesGenerales = [
         '/ChatGPT.*?(\d{4,8})/is',
         '/OpenAI.*?(\d{4,8})/is',
         '/código de verificación.*?(\d{4,8})/is',
+        '/verification code.*?(\d{4,8})/i',
+        '/OpenAI.*?code.*?(\d{4,8})/i',
+    ];
+
+    // Traducciones al portugués y francés
+    $patronesExtras = [
+        '/código de verificação.*?(\d{4,8})/iu', // Portugués
+        '/code de vérification.*?(\d{4,8})/iu',   // Francés
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1921,8 +2057,20 @@ function extraerContenidoOpenAI($html) {
             return $contenido;
         }
     }
-    
-    return '';
+
+    foreach ($patronesExtras as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            return $contenido;
+        }
+    }
+
+    $contenido = strip_tags($html);
+    $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+    return $contenido;
 }
 
 /**
