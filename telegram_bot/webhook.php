@@ -2785,6 +2785,7 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
             // CONTENIDO DEL EMAIL (LIMPIO Y UTF-8 SEGURO)
             $bodyOriginal = $emailData['body'] ?? $emailData['body_clean'] ?? '';
             $bodyRaw = limpiarContenidoParaTextoPlanoSeguro($bodyOriginal);
+            $contenido = '';
 
             if ($bodyRaw === '') {
                 $textoPlano .= organizarContenidoCompletoParaUsuario($bodyOriginal, $emailData['subject'] ?? '');
@@ -2800,6 +2801,12 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
                 if (strlen($bodyRaw) > 1500) {
                     $textoPlano .= "\n\n[Contenido truncado - busca numeros de 4-8 digitos]";
                 }
+            }
+
+            // Validar que se haya generado contenido
+            if (trim($contenido) === '' || trim($textoPlano) === '') {
+                log_bot("Contenido vacío, regenerando", 'DEBUG');
+                $textoPlano = organizarContenidoCompletoParaUsuario($emailData['body'] ?? '', $emailData['subject'] ?? '');
             }
             
             $textoPlano .= "\n\n💡 Busca numeros de 4 a 8 digitos en el contenido anterior";
@@ -2847,7 +2854,15 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
                     $data[$key] = asegurarUTF8Valido($value);
                 }
             }
-            
+
+            // Garantizar que el texto no esté vacío antes de enviar
+            if (trim($textoPlano) === '') {
+                log_bot("Texto plano vacío antes de enviar, regenerando", 'DEBUG');
+                $textoPlano = organizarContenidoCompletoParaUsuario($emailData['body'] ?? '', $emailData['subject'] ?? '');
+                $textoPlano = asegurarUTF8Valido($textoPlano);
+                $data['text'] = $textoPlano;
+            }
+
             $resultado = enviarRequest($url, $data);
             
         } else {
