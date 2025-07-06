@@ -3433,9 +3433,9 @@ function asegurarUTF8Valido($texto) {
         $texto = str_replace($char, '', $texto);
     }
     
-    // 5. Normalizar espacios
-    $texto = preg_replace('/\s+/', ' ', $texto);
-    $texto = preg_replace('/\n\s*\n/', "\n\n", $texto);
+    // 5. Normalizar espacios pero conservando saltos de línea
+    $texto = preg_replace('/[ \t\x0B\x0C\r]+/', ' ', $texto);
+    $texto = preg_replace('/\n{3,}/', "\n\n", $texto);
     
     // 6. Limitar caracteres especiales que podrían causar problemas
     $texto = preg_replace('/[^\x20-\x7E\n\r\tÀ-ÿĀ-žА-я\u{4e00}-\u{9fff}]/u', '', $texto);
