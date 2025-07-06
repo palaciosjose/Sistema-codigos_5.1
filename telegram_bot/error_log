@@ -1,26 +1,33 @@
-
-[03-Jul-2025 23:55:59 UTC] === PROCESANDO MENSAJE ===
-[03-Jul-2025 23:55:59 UTC] User ID: 6285938725, Text: '/start'
-[03-Jul-2025 23:55:59 UTC] Login state obtenido: {"state":"await_username"}
-[03-Jul-2025 23:55:59 UTC] Estado encontrado: await_username
-[03-Jul-2025 23:55:59 UTC] Guardando estado await_password con username: '/start'
-[03-Jul-2025 23:56:06 UTC] === PROCESANDO MENSAJE ===
-[03-Jul-2025 23:56:06 UTC] User ID: 6285938725, Text: '62625252'
-[03-Jul-2025 23:56:06 UTC] Login state obtenido: {"state":"await_username"}
-[03-Jul-2025 23:56:06 UTC] Estado encontrado: await_username
-[03-Jul-2025 23:56:06 UTC] Guardando estado await_password con username: '62625252'
-[03-Jul-2025 23:56:09 UTC] === PROCESANDO MENSAJE ===
-[03-Jul-2025 23:56:09 UTC] User ID: 6285938725, Text: '63635251'
-[03-Jul-2025 23:56:09 UTC] Login state obtenido: {"state":"await_username"}
-[03-Jul-2025 23:56:09 UTC] Estado encontrado: await_username
-[03-Jul-2025 23:56:09 UTC] Guardando estado await_password con username: '63635251'
-[03-Jul-2025 23:56:15 UTC] === PROCESANDO MENSAJE ===
-[03-Jul-2025 23:56:15 UTC] User ID: 6285938725, Text: '/login'
-[03-Jul-2025 23:56:15 UTC] Login state obtenido: {"state":"await_username"}
-[03-Jul-2025 23:56:15 UTC] Estado encontrado: await_username
-[03-Jul-2025 23:56:15 UTC] Guardando estado await_password con username: '/login'
-[03-Jul-2025 23:56:19 UTC] === PROCESANDO MENSAJE ===
-[03-Jul-2025 23:56:19 UTC] User ID: 6285938725, Text: 'Jeysc725252'
-[03-Jul-2025 23:56:19 UTC] Login state obtenido: {"state":"await_username"}
-[03-Jul-2025 23:56:19 UTC] Estado encontrado: await_username
-[03-Jul-2025 23:56:19 UTC] Guardando estado await_password con username: 'Jeysc725252'
+[04-Jul-2025 01:33:23 UTC] === LOGIN DEBUG ===
+[04-Jul-2025 01:33:23 UTC] Telegram ID: 1631886012
+[04-Jul-2025 01:33:23 UTC] Username recibido: '/login'
+[04-Jul-2025 01:33:23 UTC] Password recibido: '52524241'
+[04-Jul-2025 01:33:23 UTC] ERROR: Usuario no encontrado para username: '/login'
+[04-Jul-2025 02:00:50 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 02:01:59 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 02:02:06 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 02:02:10 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 13:25:25 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 15:33:10 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 17:11:02 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 17:27:13 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 21:36:19 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[04-Jul-2025 22:14:00 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message"}
+[04-Jul-2025 22:14:04 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[04-Jul-2025 22:14:04 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[04-Jul-2025 22:16:44 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[04-Jul-2025 22:16:44 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[05-Jul-2025 03:02:22 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[05-Jul-2025 03:02:22 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[05-Jul-2025 03:02:31 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message"}
+[05-Jul-2025 05:12:07 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:12:07 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:12:07 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:15:39 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:15:49 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:18:00 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:18:09 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:19:49 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:32:04 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 05:39:58 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[05-Jul-2025 15:46:21 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}

@@ -1205,7 +1205,7 @@ if ($user_id) {
                 <h3 class="admin-card-title">
                     <i class="fas fa-cogs me-2"></i>Configuración del Sistema
                 </h3>
-                <p style="color: var(--text-info-light);">Herramientas de configuración e integración para facilitar futuras instalaciones</p>
+                <p style="color: var(--text-info-light);">Herramientas de configuración</p>
                 
                 <?php
                 $integrationStatus = checkIntegrationStatus();
@@ -1222,7 +1222,7 @@ if ($user_id) {
                         <div class="alert alert-success-admin">
                             <i class="fas fa-check-circle me-2"></i>
                             <strong>Sistema Integrado</strong>
-                            <p style="margin-top: 0.5rem; margin-bottom: 0;">Tu bot es compatible con futuras instalaciones y actualizaciones automáticas.</p>
+                            <p style="margin-top: 0.5rem; margin-bottom: 0;">Tu bot es compatible con futuras actualizaciones automáticas.</p>
                         </div>
                     <?php else: ?>
                         <div class="alert alert-warning-admin">
@@ -1363,7 +1363,7 @@ if ($user_id) {
                                     <i class="fas fa-magic fa-2x" style="color: var(--accent-green);"></i>
                                 </div>
                                 <h6 style="color: var(--text-primary); margin-bottom: 0.5rem;">Integración Completa</h6>
-                                <p style="color: var(--text-info-light); font-size: 0.9rem; margin-bottom: 1rem;">Hacer compatible con futuras instalaciones</p>
+                                <p style="color: var(--text-info-light); font-size: 0.9rem; margin-bottom: 1rem;">Compatibilidad del sistema</p>
                                 
                                 <?php if ($integrationStatus['integrated']): ?>
                                     <span style="color: var(--accent-green); font-weight: bold;">

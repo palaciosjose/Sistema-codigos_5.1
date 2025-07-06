@@ -1434,10 +1434,66 @@ function extraerTextoImportanteHTML($html) {
 function extraerCodigoOEnlaceMejorado($body, $subject = '') {
     $textCompleto = $subject . ' ' . $body;
     
-    // ===== DETECCIÓN DE CÓDIGOS =====
+    // ===== PRIORIDAD 1: ENLACES ESPECÍFICOS DE NETFLIX =====
+    $patronesEnlaceNetflix = [
+        // Netflix Travel Verify - MÁXIMA PRIORIDAD
+        '/(https?:\/\/(?:www\.)?netflix\.com\/account\/travel\/verify[^\s\)]*)/i',
+        
+        // Netflix Account Access en general
+        '/(https?:\/\/(?:www\.)?netflix\.com\/account\/[^\s\)]*(?:verify|access|travel)[^\s\)]*)/i',
+        
+        // Netflix Management Account 
+        '/(https?:\/\/(?:www\.)?netflix\.com\/ManageAccountAccess[^\s\)]*)/i',
+        
+        // Netflix Password Reset
+        '/(https?:\/\/(?:www\.)?netflix\.com\/password[^\s\)]*)/i',
+        
+        // Enlaces específicos en HTML (para emails HTML)
+        '/href=["\']([^"\']*netflix\.com\/account\/travel\/verify[^"\']*)["\']/',
+        '/href=["\']([^"\']*netflix\.com\/account[^"\']*(?:verify|access|travel)[^"\']*)["\']/',
+    ];
+    
+    foreach ($patronesEnlaceNetflix as $i => $patron) {
+        if (preg_match($patron, $textCompleto, $matches, PREG_OFFSET_CAPTURE)) {
+            $enlace = $matches[1][0];
+            $posicion = $matches[1][1];
+            
+            // Limpiar el enlace
+            $enlace = trim($enlace, '"\'<>()');
+            $enlace = html_entity_decode($enlace, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            
+            if (filter_var($enlace, FILTER_VALIDATE_URL)) {
+                // Determinar el tipo específico de enlace Netflix
+                $tipoNetflix = determinarTipoEnlaceNetflix($enlace);
+                
+                // Extraer fragmento contextual específico para Netflix
+                $fragmento = extraerContextoNetflixEspecifico($textCompleto, $posicion, $enlace, $tipoNetflix);
+                
+                log_bot("✅ ENLACE NETFLIX DETECTADO: $tipoNetflix - " . substr($enlace, 0, 50), 'INFO');
+                log_bot("FRAGMENTO: " . substr($fragmento, 0, 100), 'DEBUG');
+                
+                return [
+                    'tipo' => 'enlace',
+                    'valor' => $enlace,
+                    'confianza' => 'alta', // Alta confianza para enlaces específicos de Netflix
+                    'fragmento' => $fragmento,
+                    'posicion' => $posicion,
+                    'patron' => $i,
+                    'servicio' => 'Netflix',
+                    'tipo_enlace' => $tipoNetflix
+                ];
+            }
+        }
+    }
+    
+    // ===== PRIORIDAD 2: DETECCIÓN DE CÓDIGOS (LÓGICA ORIGINAL) =====
     $patronesCodigo = [
         // Patrón específico para códigos extraídos de HTML
         '/CODIGO_ENCONTRADO:\s*(\d{4,8})/i',
+        
+        // Netflix específico - códigos de acceso temporal
+        '/(?:código|code).*?(?:acceso|access).*?(?:temporal|temporary).*?(\d{4,8})/iu',
+        '/(?:acceso|access).*?(?:temporal|temporary).*?Netflix.*?(\d{4,8})/iu',
         
         // Extraer código del subject si está explícito (ChatGPT style)
         '/(?:code|código)\s+(?:is|es)\s+(\d{4,8})/i',
@@ -1447,15 +1503,9 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         '/(?:your|tu|el|su)\s+(?:código|code|verification|otp|pin)[\s:]*(\d{4,8})/iu',
         '/(?:enter|ingresa|introduce|usa|use)\s+(?:this|este|el|the)?\s*(?:code|código)[\s:]*(\d{4,8})/iu',
         
-        // Servicios específicos con contexto
-        '/disney\+?.*?(\d{6})/i',
-        '/netflix.*?(\d{4,6})/i',
-        '/amazon.*?(\d{6})/i',
-        '/microsoft.*?(\d{6})/i',
-        '/google.*?(\d{6})/i',
-        '/apple.*?(\d{6})/i',
-        '/chatgpt.*?(\d{6})/i',
-        '/openai.*?(\d{6})/i',
+        // Netflix códigos específicos
+        '/netflix.*?(\d{4,8})/i',
+        '/(?:obtener|get|utiliza|use).*?código.*?(\d{4,8})/iu',
         
         // Contexto español mejorado
         '/(?:acceso|inicio|sesión|verificar|verifica).*?(\d{4,8})/iu',
@@ -1490,7 +1540,7 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
                 // EXTRAER FRAGMENTO ALREDEDOR DEL CÓDIGO
                 $fragmento = extraerFragmentoContexto($textCompleto, $posicion, $codigo);
                 
-                log_bot("CÓDIGO DETECTADO: $codigo (patrón $i, confianza $confianza)", 'DEBUG');
+                log_bot("CÓDIGO DETECTADO: $codigo (patrón $i, confianza: $confianza)", 'INFO');
                 log_bot("FRAGMENTO: " . substr($fragmento, 0, 100), 'DEBUG');
                 
                 return [
@@ -1505,11 +1555,8 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         }
     }
     
-    // ===== DETECCIÓN DE ENLACES =====
-    $patronesEnlace = [
-        // Netflix - enlaces específicos de acceso temporal
-        '/(https?:\/\/[^\s\)]+netflix\.com[^\s\)]*(?:travel\/verify|account\/travel|verify)[^\s\)]*)/i',
-        
+    // ===== PRIORIDAD 3: ENLACES GENÉRICOS =====
+    $patronesEnlaceGenericos = [
         // Servicios específicos con verificación
         '/(https?:\/\/[^\s\)]+(?:verify|verification|code|codigo|auth|login|access)[^\s\)]*)/i',
         
@@ -1523,27 +1570,24 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         '/href=["\']([^"\']+)["\'][^>]*>.*?(?:verify|verifica|código|code|access|obtener|get)/i',
         
         // Servicios específicos (dominios conocidos)
-        '/(https?:\/\/(?:[^\/\s]+\.)?(?:netflix|disney|amazon|microsoft|google|apple|openai)\.com[^\s]*(?:verify|code|auth|login|travel|access)[^\s]*)/i',
+        '/(https?:\/\/(?:[^\/\s]+\.)?(?:disney|amazon|microsoft|google|apple|openai)\.com[^\s]*(?:verify|code|auth|login|travel|access)[^\s]*)/i',
         
         // Enlaces genéricos en contextos de verificación
         '/(https?:\/\/[^\s\)]+)(?=\s*.*(?:verify|code|access|login|temporal|vence))/i',
     ];
     
-    foreach ($patronesEnlace as $patron) {
-        if (preg_match($patron, $body, $matches, PREG_OFFSET_CAPTURE)) {
+    foreach ($patronesEnlaceGenericos as $patron) {
+        if (preg_match($patron, $textCompleto, $matches, PREG_OFFSET_CAPTURE)) {
             $enlace = isset($matches[1]) ? $matches[1][0] : $matches[0][0];
             $posicion = isset($matches[1]) ? $matches[1][1] : $matches[0][1];
             $enlace = trim($enlace, '"\'<>()');
             
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
-                // EXTRAER FRAGMENTO PARA ENLACE
-                $fragmento = extraerFragmentoContexto($body, $posicion, $enlace);
+                $fragmento = extraerFragmentoContexto($textCompleto, $posicion, $enlace);
                 
-                log_bot("ENLACE DETECTADO: " . substr($enlace, 0, 50), 'DEBUG');
-                log_bot("FRAGMENTO: " . substr($fragmento, 0, 100), 'DEBUG');
-                
+                log_bot("ENLACE GENÉRICO DETECTADO: " . substr($enlace, 0, 50), 'DEBUG');
                 return [
-                    'tipo' => 'enlace', 
+                    'tipo' => 'enlace',
                     'valor' => $enlace,
                     'confianza' => 'media',
                     'fragmento' => $fragmento,
@@ -1553,8 +1597,60 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         }
     }
     
-    log_bot("NO SE DETECTÓ CÓDIGO NI ENLACE en: " . substr($textCompleto, 0, 100), 'WARNING');
+    // Si no se encuentra nada
+    log_bot("NO SE DETECTÓ CONTENIDO PRIORITARIO en: " . substr($textCompleto, 0, 100), 'WARNING');
     return ['tipo' => 'ninguno', 'valor' => '', 'confianza' => 'ninguna'];
+}
+
+// ================================================
+// FUNCIÓN PARA DETERMINAR TIPO DE ENLACE NETFLIX
+// ================================================
+
+function determinarTipoEnlaceNetflix($enlace) {
+    if (strpos($enlace, '/account/travel/verify') !== false) {
+        return 'Código de Acceso Temporal (Viajes)';
+    } elseif (strpos($enlace, '/ManageAccountAccess') !== false) {
+        return 'Gestión de Acceso a Cuenta';
+    } elseif (strpos($enlace, '/password') !== false) {
+        return 'Cambio de Contraseña';
+    } elseif (strpos($enlace, '/account/') !== false) {
+        return 'Configuración de Cuenta';
+    } else {
+        return 'Enlace de Netflix';
+    }
+}
+
+// ================================================
+// FUNCIÓN PARA EXTRAER CONTEXTO ESPECÍFICO DE NETFLIX
+// ================================================
+
+function extraerContextoNetflixEspecifico($texto, $posicion, $enlace, $tipoEnlace) {
+    // Buscar texto específico de Netflix alrededor del enlace
+    $patronesContextoNetflix = [
+        // Para enlaces de travel/verify
+        '/(?:obtener|get)\s+código.*?(?:viajes?|travel).*?temporalmente/is',
+        '/código.*?acceso.*?temporal.*?Netflix/is',
+        '/solicitud.*?código.*?acceso.*?temporal/is',
+        '/dispositivo.*?aparece.*?continuación/is',
+        '/enlace.*?vence.*?(\d+).*?minutos?/is',
+        
+        // Para otros tipos de enlaces
+        '/protege.*?cuenta.*?reconozcas/is',
+        '/cerrar.*?sesión.*?dispositivos/is',
+        '/cambiar.*?contraseña/is',
+    ];
+    
+    foreach ($patronesContextoNetflix as $patron) {
+        if (preg_match($patron, $texto, $matches)) {
+            $contexto = trim($matches[0]);
+            if (strlen($contexto) > 20 && strlen($contexto) < 300) {
+                return limpiarFragmentoCompleto($contexto, $enlace);
+            }
+        }
+    }
+    
+    // Fallback al método estándar
+    return extraerFragmentoContexto($texto, $posicion, $enlace);
 }
 
 /**
@@ -1688,13 +1784,41 @@ function extraerContenidoDisney($html) {
 }
 
 function extraerContenidoNetflix($html) {
-    $patrones = [
-        '/código de inicio de sesión.*?(\d{4,8})/is',
-        '/verificación.*?(\d{4,8}).*?minutos/is',
-        '/acceso temporal.*?(\d{4,8})/is',
+    // Prioridad 1: Buscar información sobre enlaces de acceso temporal
+    $patronesAccesoTemporal = [
+        // Texto específico del email de travel verify
+        '/(?:recibimos.*?solicitud|código.*?acceso.*?temporal).*?(?:dispositivo|viajes?).*?(?:minutos?|expira)/is',
+        '/(?:obtener|utiliza).*?código.*?(?:durante.*?viajes?|temporalmente)/is',
+        '/(?:enviaste.*?tú|alguien.*?vive.*?contigo).*?obtener.*?código/is',
+        '/enlace.*?vence.*?(\d+).*?minutos?/is',
+        
+        // Información de seguridad
+        '/protege.*?cuenta.*?(?:solicitud|reconozcas)/is',
+        '/cerrar.*?sesión.*?inmediato.*?dispositivos/is',
+        '/cambiar.*?contraseña/is',
     ];
     
-    foreach ($patrones as $patron) {
+    foreach ($patronesAccesoTemporal as $patron) {
+        if (preg_match($patron, $html, $matches)) {
+            $contenido = strip_tags($matches[0]);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', trim($contenido));
+            
+            if (strlen($contenido) > 20) {
+                return $contenido;
+            }
+        }
+    }
+    
+    // Prioridad 2: Patrones generales de Netflix
+    $patronesGenerales = [
+        '/código.*?inicio.*?sesión.*?(\d{4,8})/is',
+        '/verificación.*?(\d{4,8}).*?minutos/is',
+        '/acceso.*?temporal.*?(\d{4,8})/is',
+        '/Netflix.*?código.*?(\d{4,8})/is',
+    ];
+    
+    foreach ($patronesGenerales as $patron) {
         if (preg_match($patron, $html, $matches)) {
             $contenido = strip_tags($matches[0]);
             $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -2463,8 +2587,17 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
                 $tieneContenidoPrincipal = true;
                 
             } elseif ($emailData['tipo_acceso'] === 'enlace' && isset($emailData['access_link'])) {
-                log_bot("Agregando enlace de acceso", 'DEBUG');
-                $texto .= "🔗 *ENLACE DE ACCESO:*\n\n";
+    log_bot("Agregando enlace de acceso", 'DEBUG');
+    
+    // MEJORADO: Información específica para enlaces Netflix
+    if (isset($emailData['servicio_detectado']) && $emailData['servicio_detectado'] === 'Netflix') {
+    $texto .= "🎯 _Enlace específico de Netflix detectado_\n";
+    if (isset($emailData['tipo_enlace_netflix'])) {
+        $texto .= "📋 _Tipo: " . escaparMarkdown($emailData['tipo_enlace_netflix']) . "_\n\n";
+    }
+} else {
+        $texto .= "🔗 *ENLACE DE ACCESO:*\n\n";
+    }
                 $enlace = strlen($emailData['access_link']) > 80 ? 
                          substr($emailData['access_link'], 0, 77) . '\\.\\.\\.' : 
                          $emailData['access_link'];

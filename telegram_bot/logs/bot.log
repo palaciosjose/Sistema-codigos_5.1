@@ -1,59 +1,195 @@
-[2025-07-03 23:55:59] [INFO] Input recibido: {"update_id":891477973,
-"message":{"message_id":703,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
-[2025-07-03 23:55:59] [INFO] Update procesado correctamente
-[2025-07-03 23:55:59] [INFO] Mensaje recibido de Comfica (6285938725): /start
-[2025-07-03 23:56:06] [INFO] Input recibido: {"update_id":891477974,
-"message":{"message_id":705,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
-[2025-07-03 23:56:06] [INFO] Update procesado correctamente
-[2025-07-03 23:56:06] [INFO] Mensaje recibido de Comfica (6285938725): 62625252
-[2025-07-03 23:56:09] [INFO] Input recibido: {"update_id":891477975,
-"message":{"message_id":707,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
-[2025-07-03 23:56:09] [INFO] Update procesado correctamente
-[2025-07-03 23:56:09] [INFO] Mensaje recibido de Comfica (6285938725): 63635251
-[2025-07-03 23:56:15] [INFO] Input recibido: {"update_id":891477976,
-"message":{"message_id":709,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
-[2025-07-03 23:56:15] [INFO] Update procesado correctamente
-[2025-07-03 23:56:15] [INFO] Mensaje recibido de Comfica (6285938725): /login
-[2025-07-03 23:56:19] [INFO] Input recibido: {"update_id":891477977,
-"message":{"message_id":711,"from":{"id":6285938725,"is_bot":false,"first_name":"Comfica","username":"lucastrofeper","language_code":"es"},"chat":{"id":6285938725,"first_name":...
-[2025-07-03 23:56:19] [INFO] Update procesado correctamente
-[2025-07-03 23:56:19] [INFO] Mensaje recibido de Comfica (6285938725): Jeysc725252
-[2025-07-04 00:00:07] [INFO] Limpiados 6 registros temporales expirados (2 min)
-[2025-07-04 00:00:07] [INFO] Input recibido: {"update_id":891477978,
-"callback_query":{"id":"3108461528747253568","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
-[2025-07-04 00:00:07] [INFO] Update procesado correctamente
-[2025-07-04 00:00:09] [INFO] Input recibido: {"update_id":891477979,
-"callback_query":{"id":"3108461527223033676","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
-[2025-07-04 00:00:09] [INFO] Update procesado correctamente
-[2025-07-04 00:00:10] [INFO] Input recibido: {"update_id":891477980,
-"callback_query":{"id":"3108461529711980322","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
-[2025-07-04 00:00:10] [INFO] Update procesado correctamente
-[2025-07-04 00:00:13] [INFO] Input recibido: {"update_id":891477981,
-"callback_query":{"id":"3108461530065961701","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
-[2025-07-04 00:00:13] [INFO] Update procesado correctamente
-[2025-07-04 00:00:16] [INFO] Input recibido: {"update_id":891477982,
-"callback_query":{"id":"3108461530220053259","from":{"id":723745098,"is_bot":false,"first_name":"Stream Digi","last_name":"\ud83d\ude0e","username":"StreamDigi","language_code"...
-[2025-07-04 00:00:16] [INFO] Update procesado correctamente
-[2025-07-04 00:00:17] [DEBUG] === INICIO BÚSQUEDA REAL ===
-[2025-07-04 00:00:17] [INFO] Usuario ID: 1, Email: test@yahoo.com, Plataforma: Google
-[2025-07-04 00:00:17] [DEBUG] === EJECUTANDO BÚSQUEDA ===
-[2025-07-04 00:00:17] [DEBUG] === RESULTADO OBTENIDO ===
-[2025-07-04 00:00:17] [DEBUG] Found: false
-[2025-07-04 00:00:17] [DEBUG] Emails count: 0
-[2025-07-04 00:00:17] [DEBUG] === PROCESANDO RESULTADOS ===
-[2025-07-04 00:00:17] [DEBUG] === GUARDANDO DATOS TEMPORALES ===
-[2025-07-04 00:00:17] [DEBUG] === INICIO GUARDAR TEMPORAL ===
-[2025-07-04 00:00:17] [DEBUG] UserId: 1, Email: test@yahoo.com, Plataforma: Google
-[2025-07-04 00:00:17] [DEBUG] Resultados found: false
-[2025-07-04 00:00:17] [WARNING] ⚠️ WARNING: No hay clave 'emails' en resultados
-[2025-07-04 00:00:17] [DEBUG] Total emails a procesar: 0
-[2025-07-04 00:00:17] [DEBUG] === LIMPIANDO DATOS ===
-[2025-07-04 00:00:17] [DEBUG] Datos limpiados exitosamente
-[2025-07-04 00:00:17] [DEBUG] === SERIALIZANDO JSON ===
-[2025-07-04 00:00:17] [DEBUG] JSON serializado exitosamente, tamaño: 382 bytes
-[2025-07-04 00:00:17] [DEBUG] === EJECUTANDO QUERY ===
-[2025-07-04 00:00:17] [DEBUG] ✅ QUERY EJECUTADA - Affected rows: 1
-[2025-07-04 00:00:17] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
-[2025-07-04 00:00:17] [INFO] ✅ GUARDADO CONFIRMADO
-[2025-07-04 00:00:17] [DEBUG] === MOSTRANDO RESULTADOS ===
-[2025-07-04 00:00:17] [DEBUG] === FIN BÚSQUEDA REAL ===
+[2025-07-04 22:16:35] [INFO] Logs limpiados por admin: Admin
+[2025-07-04 22:16:44] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[2025-07-04 22:16:44] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[2025-07-04 22:16:48] [INFO] Test ejecutado por admin: Admin
+[2025-07-04 22:17:00] [INFO] Usuario ID: 1, Email: digihome@streamdigi.co, Plataforma: Netflix
+[2025-07-04 22:17:02] [INFO] ✅ CÓDIGO DETECTADO: 3709 (confianza: alta)
+[2025-07-04 22:17:02] [INFO] ✅ FRAGMENTO GUARDADO: **Netflix: Tu código de inicio de sesión**
+
+código para iniciar sesión Ingresa este código para
+[2025-07-04 22:17:02] [INFO] ✅ REMITENTE: Netflix
+[2025-07-04 22:17:02] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-04 22:17:02] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-04 22:17:04] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-04 22:17:11] [INFO] Usuario ID: 1, Email: digihome@streamdigi.co, Plataforma: Netflix
+[2025-07-04 22:17:12] [INFO] ✅ CÓDIGO DETECTADO: 3709 (confianza: alta)
+[2025-07-04 22:17:12] [INFO] ✅ FRAGMENTO GUARDADO: **Netflix: Tu código de inicio de sesión**
+
+código para iniciar sesión Ingresa este código para
+[2025-07-04 22:17:12] [INFO] ✅ REMITENTE: Netflix
+[2025-07-04 22:17:12] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-04 22:17:12] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-04 22:17:14] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-05 03:01:06] [INFO] Limpiados 2 registros temporales expirados (2 min)
+[2025-07-05 03:02:22] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[2025-07-05 03:02:22] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\\'"}
+[2025-07-05 03:02:25] [INFO] Test ejecutado por admin: Admin
+[2025-07-05 03:02:31] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message"}
+[2025-07-05 03:04:07] [INFO] Usuario ID: 1, Email: consultant@streamdigi.co, Plataforma: Netflix
+[2025-07-05 03:04:09] [INFO] ✅ CÓDIGO DETECTADO: 5590 (confianza: alta)
+[2025-07-05 03:04:09] [INFO] ✅ FRAGMENTO GUARDADO: **Tu código de acceso temporal de Netflix**
+
+código de acceso temporal de Netflix Tu código de ac
+[2025-07-05 03:04:09] [INFO] ✅ REMITENTE: Netflix
+[2025-07-05 03:04:09] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 03:04:09] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 03:04:10] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-05 05:12:07] [INFO] Limpiados 1 registros temporales expirados (2 min)
+[2025-07-05 05:12:07] [INFO] Mensaje recibido de Robert (6376767517): 
+[2025-07-05 05:12:07] [WARNING] Usuario no autorizado: 6376767517
+[2025-07-05 05:12:07] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:12:07] [INFO] Mensaje recibido de Robert (6376767517): 
+[2025-07-05 05:12:07] [WARNING] Usuario no autorizado: 6376767517
+[2025-07-05 05:12:07] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:12:07] [INFO] Mensaje recibido de Robert (6376767517): 
+[2025-07-05 05:12:07] [WARNING] Usuario no autorizado: 6376767517
+[2025-07-05 05:12:07] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:15:38] [INFO] Mensaje recibido de Buzz.streaming (7134979003): .
+[2025-07-05 05:15:38] [WARNING] Usuario no autorizado: 7134979003
+[2025-07-05 05:15:39] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:15:49] [INFO] Mensaje recibido de Buzz.streaming (7134979003): ⏩ TU NUBE SIN LÍMITES CON GOOGLE DRIVE PREMIUM◀️
+
+☁️✅😟😥😢☹️🙁✅☁️
+
+1️⃣ Almacenamiento masivo disponible!! 
+
+📱 🚩🚩 TB
+📱 🚩🚩 TB
+📱 🚩🚩 TB
+
+📱 https://wa.me/56934469064
+📱 https://t.me/Buzstreaming
+
+🚫 No incluye unidades compartidas, de equipo ni cuentas .edu
+💠 Solo aplica para nuevas cuentas 
+(no cuentas Google existentes)
+
+🌟 Incluye paquete completo: Google Drive. 
+
+🔸 Licencia de por vida. 
+🔸 Cuenta 100% privada y segura – tú controlas todo, a tu correo personal. 
+🔸Garantía por el servicio. 
+🔸 Nombre de usuario personalizado – ej: tuname@
+🔸 Perfecto para archivos grandes y correos con adjuntos pesados
+💸Guardar películas, series, archivos, programas etc. 
+🆙Puedes subir contenido y arrendarlo. 
+
+🚽ACCESO DE POR VIDA. 
+😀 MENSUALIDAD O PAGO UNICO
+(Conversable) 
+
+⚙️ ¿Cómo funciona?
+
+1️⃣ Envíanos tu nombre de usuario deseado (ej: alex@)
+2️⃣ Creamos tu cuenta y te enviamos los datos de acceso
+3️⃣ Cambia tu contraseña en las siguientes 24 horas por seguridad
+
+🔥 ¡Aprovecha esta oportunidad única y consigue gran capacidad de Almacenamiento. 
+🤩 Contáctanos ahora y empieza a disfrutar almacenamiento sin límites
+[2025-07-05 05:15:49] [WARNING] Usuario no autorizado: 7134979003
+[2025-07-05 05:15:49] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:18:00] [INFO] Mensaje recibido de Group (1087968824): 
+[2025-07-05 05:18:00] [WARNING] Usuario no autorizado: 1087968824
+[2025-07-05 05:18:00] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:18:09] [INFO] Mensaje recibido de Group (1087968824): 
+[2025-07-05 05:18:09] [WARNING] Usuario no autorizado: 1087968824
+[2025-07-05 05:18:09] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:19:49] [INFO] Mensaje recibido de J (5830175375): Nuevo método de trust Wallet carding aprovechen
+[2025-07-05 05:19:49] [WARNING] Usuario no autorizado: 5830175375
+[2025-07-05 05:19:49] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:32:04] [INFO] Mensaje recibido de Play (6409076036): Precio
+[2025-07-05 05:32:04] [WARNING] Usuario no autorizado: 6409076036
+[2025-07-05 05:32:04] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 05:39:58] [INFO] Mensaje recibido de Group (1087968824): Gracias por tu interés en el sistema de consulta de códigos.
+
+Te ofrezco dos opciones:
+
+🔹 ALQUILER: $8/mes - Sin compromisos
+🔹 LICENCIA: $60 pago único - Licencia permanente para un equipo
+
+Ambas incluyen:
+✅ Bot Telegram 24/7
+✅ 5 servidores de correos
+✅ Control total de usuarios
+✅ Búsquedas rápidas
+
+¿Cuál te interesa? 🚀
+[2025-07-05 05:39:58] [WARNING] Usuario no autorizado: 1087968824
+[2025-07-05 05:39:58] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 15:46:21] [INFO] Mensaje recibido de ♛Todo streaming (7306933779): 🌩*VENTA AL POR MAYOR*💃
+Lista de precios
+
+📺NETFLIX COMPLETA ( NO ESTABLE)= 4$ 
+📺NETFLIX PERFIL (ESTABLE+ PAGINA DE CODIGOS)= 3.50$
+📺DISNEY COMPLETA (SIN GARANTÍA)= 4$
+📺DISNEY COMPLETA (CON GARANTÍA)= 8$
+
+📺MAX COMPLETA= 3.50$
+📺CRUNCHYROLL= 2.75$
+✅CHATGPT PLUS= 5$
+📸TELEGRAM PREMIUM MES = 8$
+
+
+🎮RECARGAS DE JUEGOS
+💳FREE FIRE= desde 2.99$ hasta 100$
+➡️FORNITE= esde 8$ hasta 100$
+💳ROBLOX= desde 9$ hasta 100$
+
+
+👑OWNER= @tdstreaming
+Acepto trato admin😈
+
+
+
+📞Whatsapp pagos 1 829 863 8373
+Whatsapp soporte 1 809 462 7648
+[2025-07-05 15:46:21] [WARNING] Usuario no autorizado: 7306933779
+[2025-07-05 15:46:21] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[2025-07-05 23:06:54] [INFO] Usuario ID: 1, Email: consultant@streamdigi.co, Plataforma: Netflix
+[2025-07-05 23:06:59] [WARNING] ⚠️ WARNING: No hay clave 'emails' en resultados
+[2025-07-05 23:06:59] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:06:59] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 23:07:21] [INFO] Usuario ID: 1, Email: premiumstream@streamdigi.co, Plataforma: ChatGPT
+[2025-07-05 23:07:23] [INFO] ✅ CÓDIGO DETECTADO: 730755 (confianza: alta)
+[2025-07-05 23:07:23] [INFO] ✅ FRAGMENTO GUARDADO: **Your ChatGPT code is 730755**
+
+Your ChatGPT code is 730755 /** * Google webfonts. Recommended to i
+[2025-07-05 23:07:23] [INFO] ✅ REMITENTE: ChatGPT
+[2025-07-05 23:07:23] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:07:23] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 23:07:25] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-05 23:36:37] [INFO] Limpiados 2 registros temporales expirados (2 min)
+[2025-07-05 23:36:54] [INFO] Usuario ID: 1, Email: premiumstream@streamdigi.co, Plataforma: ChatGPT
+[2025-07-05 23:36:56] [WARNING] ⚠️ WARNING: No hay clave 'emails' en resultados
+[2025-07-05 23:36:56] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:36:56] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 23:37:07] [INFO] Usuario ID: 1, Email: digihome@streamdigi.co, Plataforma: Netflix
+[2025-07-05 23:37:09] [INFO] ✅ CÓDIGO DETECTADO: 6991 (confianza: alta)
+[2025-07-05 23:37:09] [INFO] ✅ FRAGMENTO GUARDADO: **Netflix: Tu código de inicio de sesión**
+
+código para iniciar sesión Ingresa este código para
+[2025-07-05 23:37:09] [INFO] ✅ REMITENTE: Netflix
+[2025-07-05 23:37:09] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:37:09] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 23:37:11] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-05 23:53:21] [INFO] Limpiados 2 registros temporales expirados (2 min)
+[2025-07-05 23:53:29] [INFO] Usuario ID: 1, Email: digihome@streamdigi.co, Plataforma: Netflix
+[2025-07-05 23:53:31] [INFO] CÓDIGO DETECTADO: 6991 (patrón 7, confianza: alta)
+[2025-07-05 23:53:31] [INFO] ✅ CÓDIGO DETECTADO: 6991 (confianza: alta)
+[2025-07-05 23:53:31] [INFO] ✅ FRAGMENTO GUARDADO: **Netflix: Tu código de inicio de sesión**
+
+código para iniciar sesión Ingresa este código para
+[2025-07-05 23:53:31] [INFO] ✅ REMITENTE: Netflix
+[2025-07-05 23:53:31] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:53:31] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-05 23:53:33] [INFO] ✅ MENSAJE ENVIADO EXITOSAMENTE
+[2025-07-05 23:53:44] [INFO] Usuario ID: 1, Email: digihome@streamdigi.co, Plataforma: Netflix
+[2025-07-05 23:53:45] [INFO] CÓDIGO DETECTADO: 6991 (patrón 7, confianza: alta)
+[2025-07-05 23:53:45] [INFO] ✅ CÓDIGO DETECTADO: 6991 (confianza: alta)
+[2025-07-05 23:53:45] [INFO] ✅ FRAGMENTO GUARDADO: **Netflix: Tu código de inicio de sesión**
+
+código para iniciar sesión Ingresa este código para
+[2025-07-05 23:53:45] [INFO] ✅ REMITENTE: Netflix
+[2025-07-05 23:53:45] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-05 23:53:45] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-06 05:00:24] [INFO] Limpiados 2 registros temporales expirados (2 min)

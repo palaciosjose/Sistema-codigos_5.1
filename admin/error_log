@@ -1,7 +1,0 @@
-[03-Jul-2025 05:58:27 UTC] PHP Warning:  Undefined variable $current_license_info in /home/warsup/streamdigi.warsup.shop/admin/admin.php on line 2711
-[03-Jul-2025 05:58:34 UTC] PHP Warning:  Undefined variable $current_license_info in /home/warsup/streamdigi.warsup.shop/admin/admin.php on line 2711
-[03-Jul-2025 16:56:27 UTC] Error en test_telegram_connection: Token inválido. Telegram dice: Unauthorized
-[03-Jul-2025 18:12:21 UTC] Error en test_telegram_connection: Token inválido. Telegram dice: Unauthorized
-[03-Jul-2025 22:10:04 UTC] PHP Parse error:  Unmatched '}' in /home/warsup/streamdigi.warsup.shop/admin/telegram_management.php on line 312
-[03-Jul-2025 22:10:12 UTC] PHP Parse error:  Unmatched '}' in /home/warsup/streamdigi.warsup.shop/admin/telegram_management.php on line 312
-[03-Jul-2025 22:10:16 UTC] PHP Parse error:  Unmatched '}' in /home/warsup/streamdigi.warsup.shop/admin/telegram_management.php on line 312

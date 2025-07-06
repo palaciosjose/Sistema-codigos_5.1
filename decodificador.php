@@ -362,7 +362,6 @@ function get_email_body($inbox, $email_number, $header = null) {
 // ================================================
 // FUNCIÓN DE PROCESAMIENTO MINIMALISTA - CONSERVA EL CONTENIDO ORIGINAL
 // ================================================
-
 function process_email_body($body) {
     if (empty($body) || trim($body) === '') {
         return '<div style="font-family: Arial, sans-serif; padding: 20px; color: #666; background: #f8f9fa; border-radius: 8px; text-align: center;">
@@ -375,52 +374,85 @@ function process_email_body($body) {
     // Log para debugging
     error_log("PROCESAMIENTO MINIMALISTA - Longitud original: " . strlen($body));
     
-    // SOLO aplicar conversiones de charset básicas
-    if (preg_match('/charset\s*=\s*["\']?([a-zA-Z0-9\-_]+)["\']?/i', $body, $matches)) {
-        $charset = strtoupper(trim($matches[1]));
-        if ($charset !== 'UTF-8') {
-            $converted = mb_convert_encoding($body, 'UTF-8', $charset);
-            if ($converted !== false && mb_check_encoding($converted, 'UTF-8')) {
+    // SOLO corregir problemas de quoted-printable mal decodificado
+    $body = preg_replace('/=\r?\n/', '', $body); // Remover soft line breaks
+    $body = str_replace('=3D', '=', $body); // Corregir = codificados  
+    $body = str_replace('=20', ' ', $body); // Corregir espacios
+    
+    // CSS SOLO para el contenido del email (sin !important agresivo)
+    $css_fix = '
+    <div style="background-color: white; color: #333333; padding: 20px; border: 1px solid #ddd; border-radius: 8px; font-family: Arial, sans-serif; max-width: 600px; margin: 10px auto;">
+        <style scoped>
+            .email-wrapper * { 
+                color: #333333; 
+            }
+            .email-wrapper a { 
+                color: #0066cc; 
+                text-decoration: underline;
+            }
+            .email-wrapper .code-highlight {
+                background-color: #e8f4fd;
+                color: #1a1a1a;
+                padding: 8px 12px;
+                border: 2px solid #007bff;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 18px;
+                display: inline-block;
+                margin: 10px 0;
+            }
+        </style>
+        <div class="email-wrapper">';
+    
+    $css_close = '</div></div>';
+    
+    // Detectar si es HTML
+    if (preg_match('/<\s*(html|body|div|p|span|table|tr|td|h1|h2|h3)\s*[^>]*>/i', $body)) {
+        // Destacar códigos de verificación
+        $body = preg_replace_callback(
+            '/<(h1|h2|h3|p|div|span)[^>]*>(\s*)([0-9]{4,8})(\s*)<\/\1>/i',
+            function($matches) {
+                return '<div class="code-highlight">' . trim($matches[3]) . '</div>';
+            },
+            $body
+        );
+        
+        // Envolver en contenedor seguro
+        $body = $css_fix . $body . $css_close;
+        
+    } else {
+        // Es texto plano - convertir a HTML
+        $body = htmlspecialchars($body, ENT_QUOTES, 'UTF-8');
+        $body = nl2br($body);
+        
+        // Destacar códigos en texto plano
+        $body = preg_replace('/\b([0-9]{4,8})\b/', '<span class="code-highlight">$1</span>', $body);
+        
+        // Envolver en contenedor
+        $body = $css_fix . $body . $css_close;
+    }
+    
+    // Conversiones de charset (conservar lógica original)
+    if (preg_match('/charset\s*=\s*["\']?([^"\'\s>]+)/i', $body, $matches)) {
+        $charset = strtolower(trim($matches[1]));
+        if ($charset !== 'utf-8' && $charset !== 'utf8') {
+            $converted = @iconv($charset, 'UTF-8//IGNORE', $body);
+            if ($converted !== false) {
                 $body = $converted;
             }
         }
     }
-    
-    // Limpiar saltos de línea inconsistentes ÚNICAMENTE
-    $body = preg_replace('/\r\n/', "\n", $body);
-    $body = preg_replace('/\r/', "\n", $body);
-    
-    // Detectar si es HTML
-    $is_html = preg_match('/<\s*(html|body|div|p|span|table|tr|td|h[1-6]|strong|em|br|img|a)\s*[^>]*>/i', $body);
-    
-    if (!$is_html) {
-        // TEXTO PLANO: Conversión mínima
-        $body = htmlspecialchars($body, ENT_QUOTES, 'UTF-8');
-        $body = nl2br($body);
-        
-        // Envolver en contenedor básico
-        $body = '<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; background: #ffffff; color: #333333; border-radius: 8px;">' . $body . '</div>';
-    } else {
-        // HTML: PROCESAMIENTO MÍNIMO - Solo seguridad básica
-        
-        // Remover solo elementos realmente peligrosos
-        $body = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $body);
-        $body = preg_replace('/on\w+\s*=\s*["\'][^"\']*["\']/i', '', $body);
-        $body = preg_replace('/javascript\s*:/i', '#blocked:', $body);
-        
-        // Hacer enlaces seguros (abrir en nueva pestaña)
-        $body = preg_replace('/<a\s+(?![^>]*target\s*=)([^>]*?)href\s*=/i', '<a target="_blank" rel="noopener noreferrer" $1href=', $body);
-        
-        // SOLO arreglar imágenes rotas básicas
-        $body = preg_replace('/src\s*=\s*["\']cid:([^"\']+)["\']/i', 'src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNiAxNkg4VjI0SDE2VjE2WiIgZmlsbD0iIzlDQTNBRiIvPgo8cGF0aCBkPSJNMzIgMTZIMjRWMjRIMzJWMTZaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNCAxNkgxNlYyNEgyNFYxNloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+"', $body);
+
+    // Validaciones de tamaño (conservar lógica original)
+    if (strlen($body) > 5 * 1024 * 1024) { // 5MB
+        return '<div style="padding: 15px; color: #ff6b6b; background: #ffe0e0; border-radius: 5px; text-align: center;">
+                    <strong>⚠️ Contenido demasiado grande</strong><br>
+                    El email excede el límite de tamaño para mostrar.
+                </div>';
     }
-    
-    // NO agregar estructura HTML completa - dejar que el navegador maneje el contenido original
-    error_log("PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: " . strlen($body));
-    
+
     return $body;
 }
-
 // ================================================
 // FUNCIÓN DE DEBUG (CONSERVADA)
 // ================================================
