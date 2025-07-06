@@ -1,19 +1,28 @@
-[2025-07-06 21:25:08] [INFO] Limpiados 2 registros temporales expirados (2 min)
-[2025-07-06 21:25:10] [INFO] Usuario ID: 1, Email: stremingogo@streamdigi.co, Plataforma: Disney+
-[2025-07-06 21:25:12] [INFO] CÓDIGO DETECTADO: 1211 (patrón 17, confianza: baja)
-[2025-07-06 21:25:12] [INFO] ✅ CÓDIGO DETECTADO: 1211 (confianza: baja)
-[2025-07-06 21:25:12] [INFO] ✅ FRAGMENTO GUARDADO: **Your one-time passcode for Disney+**
+[2025-07-06 22:33:17] [INFO] Limpiados 1 registros temporales expirados (2 min)
+[2025-07-06 22:33:20] [INFO] Usuario ID: 1, Email: stremingogo@streamdigi.co, Plataforma: Disney+
+[2025-07-06 22:33:22] [INFO] CÓDIGO DETECTADO: 1211 (patrón 17, confianza: baja)
+[2025-07-06 22:33:22] [INFO] ✅ CÓDIGO DETECTADO: 1211 (confianza: baja)
+[2025-07-06 22:33:22] [INFO] ✅ FRAGMENTO GUARDADO: **Your one-time passcode for Disney+**
 
 **1211**
-[2025-07-06 21:25:12] [INFO] ✅ REMITENTE: Disney+
-[2025-07-06 21:25:12] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
-[2025-07-06 21:25:12] [INFO] ✅ GUARDADO CONFIRMADO
-[2025-07-06 21:25:14] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
-[2025-07-06 21:25:14] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
-[2025-07-06 21:25:14] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
-[2025-07-06 21:25:15] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
-[2025-07-06 21:25:15] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
-[2025-07-06 21:25:15] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
-[2025-07-06 21:25:15] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
-[2025-07-06 21:25:15] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
-[2025-07-06 21:25:15] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:22] [INFO] ✅ REMITENTE: Disney+
+[2025-07-06 22:33:22] [INFO] ✅ DATOS TEMPORALES GUARDADOS EXITOSAMENTE por 2 minutos para usuario 1
+[2025-07-06 22:33:22] [INFO] ✅ GUARDADO CONFIRMADO
+[2025-07-06 22:33:24] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:24] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:24] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:25] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:25] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:25] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:25] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:25] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:25] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:26] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:26] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:26] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:26] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:26] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:26] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
+[2025-07-06 22:33:29] [INFO] 🔍 PATRÓN GENÉRICO DETECTADO - Construyendo mensaje en texto plano
+[2025-07-06 22:33:29] [ERROR] Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message text is empty"}
+[2025-07-06 22:33:29] [ERROR] ❌ ERROR ENVIANDO MENSAJE: {"ok":false,"error_code":400}
