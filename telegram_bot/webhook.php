@@ -3399,13 +3399,22 @@ function esContenidoUtil($texto) {
  */
 function asegurarUTF8Valido($texto) {
     if (empty($texto)) return '';
-    
+
     // 1. Convertir a string
     $texto = (string)$texto;
-    
+
     // 2. Limpiar caracteres NULL y de control
     $texto = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $texto);
-    
+
+    // 2.5 Detectar charset y convertir si es necesario
+    if (!function_exists('detect_and_convert_charset')) {
+        require_once __DIR__ . '/../decodificador.php';
+    }
+    $convertido = detect_and_convert_charset($texto);
+    if (is_string($convertido)) {
+        $texto = $convertido;
+    }
+
     // 3. Verificar si ya es UTF-8 válido
     if (mb_check_encoding($texto, 'UTF-8')) {
         // Es válido, pero limpiar caracteres problemáticos para Telegram
