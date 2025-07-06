@@ -2783,19 +2783,23 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
             $textoPlano .= "👤 De: $from\n\n";
             
             // CONTENIDO DEL EMAIL (LIMPIO Y UTF-8 SEGURO)
-            $bodyRaw = $emailData['body'] ?? $emailData['body_clean'] ?? '';
-            $bodyRaw = limpiarContenidoParaTextoPlanoSeguro($bodyRaw);
-            
-            $textoPlano .= "📄 Contenido del email:\n\n";
-            
-            // Limitar longitud y mostrar de forma segura
-            $contenido = substr($bodyRaw, 0, 1500); // Reducir más el límite
-            $contenido = asegurarUTF8Valido($contenido); // Nueva función de seguridad
-            
-            $textoPlano .= $contenido;
-            
-            if (strlen($bodyRaw) > 1500) {
-                $textoPlano .= "\n\n[Contenido truncado - busca numeros de 4-8 digitos]";
+            $bodyOriginal = $emailData['body'] ?? $emailData['body_clean'] ?? '';
+            $bodyRaw = limpiarContenidoParaTextoPlanoSeguro($bodyOriginal);
+
+            if ($bodyRaw === '') {
+                $textoPlano .= organizarContenidoCompletoParaUsuario($bodyOriginal, $emailData['subject'] ?? '');
+            } else {
+                $textoPlano .= "📄 Contenido del email:\n\n";
+
+                // Limitar longitud y mostrar de forma segura
+                $contenido = substr($bodyRaw, 0, 1500); // Reducir más el límite
+                $contenido = asegurarUTF8Valido($contenido); // Nueva función de seguridad
+
+                $textoPlano .= $contenido;
+
+                if (strlen($bodyRaw) > 1500) {
+                    $textoPlano .= "\n\n[Contenido truncado - busca numeros de 4-8 digitos]";
+                }
             }
             
             $textoPlano .= "\n\n💡 Busca numeros de 4 a 8 digitos en el contenido anterior";
@@ -2986,6 +2990,8 @@ function mostrarDetalleEmailPerfecto($botToken, $chatId, $messageId, $email, $pl
  */
 function limpiarContenidoParaTextoPlanoSeguro($body) {
     if (empty($body)) return '';
+
+    $originalBody = $body;
     
     log_bot("=== EXTRACCIÓN INTELIGENTE DE CONTENIDO ===", 'DEBUG');
     log_bot("Tamaño original: " . strlen($body), 'DEBUG');
@@ -3043,6 +3049,32 @@ function limpiarContenidoParaTextoPlanoSeguro($body) {
     $resultado = preg_replace('/[ \t]+/', ' ', $resultado);
     $resultado = preg_replace('/\n\s*\n\s*\n+/', "\n\n", $resultado);
     $resultado = trim($resultado);
+
+    if ($resultado === '') {
+        $fallback = $originalBody;
+        if (strpos($fallback, '=') !== false && preg_match('/=[0-9A-F]{2}/', $fallback)) {
+            $decoded = @quoted_printable_decode($fallback);
+            if ($decoded !== false && $decoded !== '') {
+                $fallback = $decoded;
+            }
+        }
+        $fallback = @html_entity_decode($fallback, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $fallback = asegurarUTF8Valido($fallback);
+        $fallback = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $fallback);
+        $fallback = str_ireplace(['<p>', '</p>'], "\n", $fallback);
+        $fallback = strip_tags($fallback);
+        $fallback = preg_replace('/\s+/', ' ', $fallback);
+        $fallback = trim($fallback);
+
+        if ($fallback !== '') {
+            $resultado = $fallback;
+        } else {
+            $slice = strip_tags($originalBody);
+            $slice = preg_replace('/\s+/', ' ', $slice);
+            $slice = trim($slice);
+            $resultado = substr($slice, 0, 200);
+        }
+    }
     
     log_bot("Resultado final: " . strlen($resultado) . " chars", 'DEBUG');
     log_bot("Primeros 200 chars: " . substr($resultado, 0, 200), 'DEBUG');
