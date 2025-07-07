@@ -1700,6 +1700,10 @@ function extraerTextoLimpioParaUsuario($html, $subject = '') {
                 $textoLimpio = html_entity_decode($textoLimpio, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $textoLimpio = preg_replace('/\s+/', ' ', trim($textoLimpio));
                 
+                if (preg_match('/\b\d{4,8}\b/', $textoLimpio, $codMatch)) {
+                    $textoImportante .= " CODIGO_ENCONTRADO: {$codMatch[0]} ";
+                }
+
                 if (strlen($textoLimpio) > 10) {
                     $textoImportante .= $textoLimpio . ' ';
                 }
