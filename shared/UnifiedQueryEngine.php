@@ -673,10 +673,10 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
     // =========================================================
     // PASO 1: (MÁXIMA PRIORIDAD) DETECCIÓN DE ENLACE DE NETFLIX
     // =========================================================
-    $patronEnlaceNetflix = '/(https?:\/\/[^\s\)]+netflix\.com[^\s\)]*(?:travel\/verify|account\/travel|verify)[^\s\)]*)/i';
+    $patronEnlaceNetflix = '/(https?:\\/\\/[^\\s\\)\\]]+netflix\\.com[^\\s\\)\\]]*(?:travel\\/verify|account\\/travel|verify)[^\\s\\)\\]]*)/i';
 
     if (preg_match($patronEnlaceNetflix, $body, $matches, PREG_OFFSET_CAPTURE)) {
-        $enlace = trim($matches[1][0], '"\'<>()');
+        $enlace = trim($matches[1][0], '"\'<>()[]');
         if (filter_var($enlace, FILTER_VALIDATE_URL)) {
             $posicion = $matches[1][1];
             $fragmento = $this->extraerFragmentoContexto($body, $posicion, $enlace);
@@ -786,7 +786,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         if (preg_match($patron, $body, $matches, PREG_OFFSET_CAPTURE)) {
             $enlace = isset($matches[1]) ? $matches[1][0] : $matches[0][0];
             $posicion = isset($matches[1]) ? $matches[1][1] : $matches[0][1];
-            $enlace = trim($enlace, '"\'<>()');
+            $enlace = trim($enlace, '"\'<>()[]');
 
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
                 $fragmento = $this->extraerFragmentoContexto($body, $posicion, $enlace);
