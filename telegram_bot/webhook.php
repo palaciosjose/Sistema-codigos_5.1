@@ -1459,7 +1459,7 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
             $posicion = $matches[1][1];
             
             // Limpiar el enlace
-            $enlace = trim($enlace, '"\'<>()');
+            $enlace = trim($enlace, '"\'<>()[]');
             $enlace = html_entity_decode($enlace, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
@@ -1581,7 +1581,7 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         if (preg_match($patron, $textCompleto, $matches, PREG_OFFSET_CAPTURE)) {
             $enlace = isset($matches[1]) ? $matches[1][0] : $matches[0][0];
             $posicion = isset($matches[1]) ? $matches[1][1] : $matches[0][1];
-            $enlace = trim($enlace, '"\'<>()');
+            $enlace = trim($enlace, '"\'<>()[]');
             
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
                 $fragmento = extraerFragmentoContexto($textCompleto, $posicion, $enlace);
