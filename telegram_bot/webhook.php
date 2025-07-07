@@ -18,6 +18,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../instalacion/basededatos.php';
 require_once __DIR__ . '/../cache/cache_helper.php';
 require_once __DIR__ . '/../shared/UnifiedQueryEngine.php';
+require_once __DIR__ . '/../shared/LinkPatterns.php';
 
 // ========== IMPORTAR CLASES DE TELEGRAM BOT ==========
 use TelegramBot\Services\TelegramAuth;
@@ -1435,55 +1436,31 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
     $textCompleto = $subject . ' ' . $body;
     
     // ===== PRIORIDAD 1: ENLACES ESPECÍFICOS DE NETFLIX =====
-    $patronesEnlaceNetflix = [
-        // Netflix Travel Verify - MÁXIMA PRIORIDAD
-        '/(https?:\/\/(?:www\.)?netflix\.com\/account\/travel\/verify[^\s\)]*)/i',
-        
-        // Netflix Account Access en general
-        '/(https?:\/\/(?:www\.)?netflix\.com\/account\/[^\s\)]*(?:verify|access|travel)[^\s\)]*)/i',
-        
-        // Netflix Management Account 
-        '/(https?:\/\/(?:www\.)?netflix\.com\/ManageAccountAccess[^\s\)]*)/i',
-        
-        // Netflix Password Reset
-        '/(https?:\/\/(?:www\.)?netflix\.com\/password[^\s\)]*)/i',
-        
-        // Enlaces específicos en HTML (para emails HTML)
-        '/href=["\']([^"\']*netflix\.com\/account\/travel\/verify[^"\']*)["\']/',
-        '/href=["\']([^"\']*netflix\.com\/account[^"\']*(?:verify|access|travel)[^"\']*)["\']/',
-    ];
-    
-    foreach ($patronesEnlaceNetflix as $i => $patron) {
-        if (preg_match($patron, $textCompleto, $matches, PREG_OFFSET_CAPTURE)) {
-            $enlace = $matches[1][0];
-            $posicion = $matches[1][1];
-            
-            // Limpiar el enlace
-            $enlace = trim($enlace, '"\'<>()[]');
-            $enlace = html_entity_decode($enlace, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            
-            if (filter_var($enlace, FILTER_VALIDATE_URL)) {
-                // Determinar el tipo específico de enlace Netflix
-                $tipoNetflix = determinarTipoEnlaceNetflix($enlace);
-                
-                // Extraer fragmento contextual específico para Netflix
-                $fragmento = extraerContextoNetflixEspecifico($textCompleto, $posicion, $enlace, $tipoNetflix);
-                
-                log_bot("✅ ENLACE NETFLIX DETECTADO: $tipoNetflix - " . substr($enlace, 0, 50), 'INFO');
-                log_bot("FRAGMENTO: " . substr($fragmento, 0, 100), 'DEBUG');
-                
-                return [
-                    'tipo' => 'enlace',
-                    'valor' => $enlace,
-                    'confianza' => 'alta', // Alta confianza para enlaces específicos de Netflix
-                    'fragmento' => $fragmento,
-                    'posicion' => $posicion,
-                    'patron' => $i,
-                    'servicio' => 'Netflix',
-                    'tipo_enlace' => $tipoNetflix
-                ];
-            }
-        }
+    $infoEnlace = detectNetflixLink($textCompleto);
+
+    if ($infoEnlace && filter_var($infoEnlace['enlace'], FILTER_VALIDATE_URL)) {
+        $enlace = $infoEnlace['enlace'];
+        $posicion = $infoEnlace['posicion'];
+
+        // Determinar el tipo específico de enlace Netflix
+        $tipoNetflix = determinarTipoEnlaceNetflix($enlace);
+
+        // Extraer fragmento contextual específico para Netflix
+        $fragmento = extraerContextoNetflixEspecifico($textCompleto, $posicion, $enlace, $tipoNetflix);
+
+        log_bot("✅ ENLACE NETFLIX DETECTADO: $tipoNetflix - " . substr($enlace, 0, 50), 'INFO');
+        log_bot("FRAGMENTO: " . substr($fragmento, 0, 100), 'DEBUG');
+
+        return [
+            'tipo' => 'enlace',
+            'valor' => $enlace,
+            'confianza' => 'alta', // Alta confianza para enlaces específicos de Netflix
+            'fragmento' => $fragmento,
+            'posicion' => $posicion,
+            'servicio' => 'Netflix',
+            'tipo_enlace' => $tipoNetflix,
+            'patron' => $infoEnlace['patron'] ?? 0
+        ];
     }
     
     // ===== PRIORIDAD 2: DETECCIÓN DE CÓDIGOS (LÓGICA ORIGINAL) =====
