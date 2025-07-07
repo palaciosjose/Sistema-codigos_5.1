@@ -19,7 +19,23 @@ class ResponseFormatter
         if (isset($result['error'])) {
             $text = $result['error'];
         } elseif (($result['found'] ?? false) === true) {
-            $text = "*Éxito:* " . ($result['content'] ?? '');
+            if (!empty($result['emails']) && is_array($result['emails'])) {
+                $emails = array_slice($result['emails'], 0, 3);
+                $lines = [];
+                foreach ($emails as $email) {
+                    $from = $email['from'] ?? 'Desconocido';
+                    $subject = $email['subject'] ?? 'Sin asunto';
+                    $code = $email['verification_code'] ?? ($email['access_link'] ?? 'N/A');
+                    $lines[] = "De: {$from}\nAsunto: {$subject}\nDato: {$code}";
+                }
+                $count = count($result['emails']);
+                $text = "*Éxito:* {$count} emails encontrados.\n\n" . implode("\n\n", $lines);
+                if ($count > count($emails)) {
+                    $text .= "\n\n...y más.";
+                }
+            } else {
+                $text = "*Éxito:* " . ($result['content'] ?? '');
+            }
         } else {
             $text = $result['message'] ?? 'Sin resultados.';
         }
