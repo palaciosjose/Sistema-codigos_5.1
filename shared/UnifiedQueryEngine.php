@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/LinkPatterns.php';
+
 /**
  * Motor unificado de búsqueda de emails - VERSIÓN COMPLETA Y DEFINITIVA
  * Compatible 100% con funciones.php del sistema web + TODA la funcionalidad avanzada del bot
@@ -673,23 +675,22 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
     // =========================================================
     // PASO 1: (MÁXIMA PRIORIDAD) DETECCIÓN DE ENLACE DE NETFLIX
     // =========================================================
-    $patronEnlaceNetflix = '/(https?:\\/\\/[^\\s\\)\\]]+netflix\\.com[^\\s\\)\\]]*(?:travel\\/verify|account\\/travel|verify)[^\\s\\)\\]]*)/i';
+    $enlaceInfo = detectNetflixLink($body);
 
-    if (preg_match($patronEnlaceNetflix, $body, $matches, PREG_OFFSET_CAPTURE)) {
-        $enlace = trim($matches[1][0], '"\'<>()[]');
-        if (filter_var($enlace, FILTER_VALIDATE_URL)) {
-            $posicion = $matches[1][1];
-            $fragmento = $this->extraerFragmentoContexto($body, $posicion, $enlace);
+    if ($enlaceInfo && filter_var($enlaceInfo['enlace'], FILTER_VALIDATE_URL)) {
+        $posicion = $enlaceInfo['posicion'];
+        $enlace   = $enlaceInfo['enlace'];
+        $fragmento = $this->extraerFragmentoContexto($body, $posicion, $enlace);
 
-            $this->logPerformance("ENLACE NETFLIX PRIORITARIO DETECTADO: " . substr($enlace, 0, 70));
-            return [
-                'tipo'      => 'enlace',
-                'valor'     => $enlace,
-                'confianza' => 'alta', // Confianza alta por ser un patrón específico
-                'fragmento' => $fragmento,
-                'posicion'  => $posicion
-            ];
-        }
+        $this->logPerformance("ENLACE NETFLIX PRIORITARIO DETECTADO: " . substr($enlace, 0, 70));
+        return [
+            'tipo'      => 'enlace',
+            'valor'     => $enlace,
+            'confianza' => 'alta', // Confianza alta por ser un patrón específico
+            'fragmento' => $fragmento,
+            'posicion'  => $posicion,
+            'patron'    => $enlaceInfo['patron'] ?? 0
+        ];
     }
 
     // ===========================================
