@@ -1497,15 +1497,16 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         
         // Extraer código del subject si está explícito (ChatGPT style)
         '/(?:code|código)\s+(?:is|es)\s+(\d{4,8})/i',
+        '/passcode\s*(?:is|es|:)?\s*(\d{4,8})/iu',
         
         // Patrones generales mejorados con más variaciones
-        '/(?:código|code|verification|verificación|otp|pin|access|acceso)[\s:]*(\d{4,8})/iu',
-        '/(?:your|tu|el|su)\s+(?:código|code|verification|otp|pin)[\s:]*(\d{4,8})/iu',
-        '/(?:enter|ingresa|introduce|usa|use)\s+(?:this|este|el|the)?\s*(?:code|código)[\s:]*(\d{4,8})/iu',
+        '/(?:código|code|passcode|verification|verificación|otp|pin|access|acceso)[\s:]*(\d{4,8})/iu',
+        '/(?:your|tu|el|su)\s+(?:código|code|passcode|verification|otp|pin)[\s:]*(\d{4,8})/iu',
+        '/(?:enter|ingresa|introduce|usa|use)\s+(?:this|este|el|the)?\s*(?:code|código|passcode)[\s:]*(\d{4,8})/iu',
         
         // Netflix códigos específicos
         '/netflix.*?(\d{4,8})/i',
-        '/(?:obtener|get|utiliza|use).*?código.*?(\d{4,8})/iu',
+        '/(?:obtener|get|utiliza|use).*?(?:código|passcode).*?(\d{4,8})/iu',
         
         // Contexto español mejorado
         '/(?:acceso|inicio|sesión|verificar|verifica).*?(\d{4,8})/iu',
@@ -1558,22 +1559,22 @@ function extraerCodigoOEnlaceMejorado($body, $subject = '') {
     // ===== PRIORIDAD 3: ENLACES GENÉRICOS =====
     $patronesEnlaceGenericos = [
         // Servicios específicos con verificación
-        '/(https?:\/\/[^\s\)]+(?:verify|verification|code|codigo|auth|login|access)[^\s\)]*)/i',
+        '/(https?:\/\/[^\s\)]+(?:verify|verification|code|codigo|passcode|auth|login|access)[^\s\)]*)/i',
         
         // Enlaces con texto descriptivo en español e inglés
-        '/(?:click|press|tap|toca|pulsa|accede|obtener|get)\s+(?:here|aquí|below|abajo|button|botón|código|code)[^.]*?(https?:\/\/[^\s\)]+)/i',
+        '/(?:click|press|tap|toca|pulsa|accede|obtener|get)\s+(?:here|aquí|below|abajo|button|botón|código|code|passcode)[^.]*?(https?:\/\/[^\s\)]+)/i',
         '/(?:verify|verifica|confirm|confirma|access|acceder)[^.]*?(https?:\/\/[^\s\)]+)/i',
-        '/(?:get|obtener|generate|generar)\s+(?:code|código)[^.]*?(https?:\/\/[^\s\)]+)/i',
+        '/(?:get|obtener|generate|generar)\s+(?:code|código|passcode)[^.]*?(https?:\/\/[^\s\)]+)/i',
         
         // Enlaces en HTML
-        '/href=["\']([^"\']+(?:verify|access|login|auth|code|codigo|travel)[^"\']*)["\']/',
-        '/href=["\']([^"\']+)["\'][^>]*>.*?(?:verify|verifica|código|code|access|obtener|get)/i',
+        '/href=["\']([^"\']+(?:verify|access|login|auth|code|codigo|passcode|travel)[^"\']*)["\']/',
+        '/href=["\']([^"\']+)["\'][^>]*>.*?(?:verify|verifica|código|code|passcode|access|obtener|get)/i',
         
         // Servicios específicos (dominios conocidos)
         '/(https?:\/\/(?:[^\/\s]+\.)?(?:disney|amazon|microsoft|google|apple|openai)\.com[^\s]*(?:verify|code|auth|login|travel|access)[^\s]*)/i',
         
         // Enlaces genéricos en contextos de verificación
-        '/(https?:\/\/[^\s\)]+)(?=\s*.*(?:verify|code|access|login|temporal|vence))/i',
+        '/(https?:\/\/[^\s\)]+)(?=\s*.*(?:verify|code|passcode|access|login|temporal|vence))/i',
     ];
     
     foreach ($patronesEnlaceGenericos as $patron) {
@@ -2436,7 +2437,7 @@ function crearVistaPreviaConFormato($bodyLimpio) {
         if (preg_match('/^@font-face|^</', $linea)) continue;
         
         // Priorizar líneas con contenido relevante
-        if (preg_match('/(?:código|code|verification|acceso|disney|netflix)/i', $linea)) {
+        if (preg_match('/(?:código|code|passcode|verification|acceso|disney|netflix)/i', $linea)) {
             array_unshift($lineasUtiles, $linea); // Poner al principio
         } else {
             $lineasUtiles[] = $linea;
