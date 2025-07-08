@@ -214,7 +214,9 @@ class TelegramQuery
             return ['error' => 'Usuario no autorizado'];
         }
 
-        $platforms = $this->integration->getAvailablePlatforms();
+        $platforms = $this->integration->getAvailablePlatforms(
+            ($user['role'] === 'admin' || $user['role'] === 'superadmin') ? null : (int)$user['id']
+        );
         
         return [
             'found' => true,

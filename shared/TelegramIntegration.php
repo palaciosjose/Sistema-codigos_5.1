@@ -375,18 +375,42 @@ class TelegramIntegration
     /**
      * Obtiene las plataformas disponibles
      */
-    public function getAvailablePlatforms(): array
+    public function getAvailablePlatforms(int $userId = null): array
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT DISTINCT name, description 
-                FROM platforms 
-                WHERE status = 1 
-                ORDER BY name
-            ");
+            $restricted = false;
+            if ($userId !== null) {
+                $setting = $this->db->query("SELECT value FROM settings WHERE name = 'USER_SUBJECT_RESTRICTIONS_ENABLED' LIMIT 1");
+                $row = $setting ? $setting->fetch_assoc() : null;
+                if ($row && $row['value'] === '1') {
+                    $restricted = true;
+                }
+                if ($setting) {
+                    $setting->close();
+                }
+            }
+
+            if ($restricted) {
+                $stmt = $this->db->prepare(
+                    "SELECT DISTINCT p.name, p.description
+                     FROM platforms p
+                     INNER JOIN user_platform_subjects ups ON p.id = ups.platform_id
+                     WHERE p.status = 1 AND ups.user_id = ?
+                     ORDER BY p.name"
+                );
+                $stmt->bind_param('i', $userId);
+            } else {
+                $stmt = $this->db->prepare(
+                    "SELECT DISTINCT name, description
+                     FROM platforms
+                     WHERE status = 1
+                     ORDER BY name"
+                );
+            }
+
             $stmt->execute();
             $result = $stmt->get_result();
-            
+
             $platforms = [];
             while ($row = $result->fetch_assoc()) {
                 $platforms[] = [
@@ -395,9 +419,9 @@ class TelegramIntegration
                 ];
             }
             $stmt->close();
-            
+
             return $platforms;
-            
+
         } catch (\Exception $e) {
             error_log("Error getting available platforms: " . $e->getMessage());
             return [];

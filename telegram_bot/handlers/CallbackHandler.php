@@ -107,7 +107,7 @@ class CallbackHandler
                     self::sendMessage($chatId, $messages['unauthorized']);
                     break;
                 }
-                self::handleListPlatforms($chatId);
+                self::handleListPlatforms($chatId, $telegramId, $telegramUser);
                 break;
 
             case 'help_commands':
@@ -253,21 +253,22 @@ class CallbackHandler
     /**
      * Lista las plataformas disponibles
      */
-    private static function handleListPlatforms(int $chatId): void
+    private static function handleListPlatforms(int $chatId, int $telegramId, string $telegramUser): void
     {
         try {
-            // Aquí puedes obtener las plataformas desde la base de datos
-            // Por ahora usamos una lista básica
-            $platforms = [
-                'Netflix', 'Amazon', 'PayPal', 'Steam', 'Epic Games',
-                'Spotify', 'Apple', 'Google', 'Microsoft', 'Adobe'
-            ];
+            $result = self::$query->getAvailablePlatforms($telegramId, $telegramUser);
+            if (isset($result['error'])) {
+                $messages = include dirname(__DIR__) . '/templates/messages.php';
+                self::sendMessage($chatId, $messages['error_prefix'] . $result['error']);
+                return;
+            }
 
+            $platforms = $result['platforms'] ?? [];
             $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-            
+
             $message = "🏷️ *Plataformas Disponibles:*\n\n";
             foreach ($platforms as $platform) {
-                $message .= "• `{$platform}`\n";
+                $message .= "• `{$platform['name']}`\n";
             }
             $message .= "\n💡 *Tip:* Usa exactamente estos nombres en tus búsquedas\\.";
 
