@@ -247,8 +247,16 @@ function obtenerCorreosAutorizados($user, $db) {
     } catch (Exception $e) { return []; }
 }
 
-function obtenerPlataformasDisponibles($db) {
-    $stmt = $db->prepare("SELECT p.name, p.name as display_name FROM platforms p WHERE p.status = 1 ORDER BY p.name ASC");
+function obtenerPlataformasDisponibles($db, $userId = null) {
+    global $config;
+
+    $userRestricted = ($userId && ($config['USER_SUBJECT_RESTRICTIONS_ENABLED'] ?? '0') === '1');
+    if ($userRestricted) {
+        $stmt = $db->prepare("SELECT DISTINCT p.name, p.name as display_name FROM platforms p INNER JOIN user_platform_subjects ups ON p.id = ups.platform_id WHERE p.status = 1 AND ups.user_id = ? ORDER BY p.name ASC");
+        $stmt->bind_param('i', $userId);
+    } else {
+        $stmt = $db->prepare("SELECT p.name, p.name as display_name FROM platforms p WHERE p.status = 1 ORDER BY p.name ASC");
+    }
     $stmt->execute();
     $result = $stmt->get_result();
     $plataformas = [];
@@ -806,8 +814,8 @@ function mostrarCorreosAutorizados($botToken, $chatId, $messageId, $user, $db, $
     }
 }
 
-function mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db) {
-    $plataformas = obtenerPlataformasDisponibles($db);
+function mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db, $userId = null) {
+    $plataformas = obtenerPlataformasDisponibles($db, $userId);
 
     if (empty($plataformas)) {
         $texto = "❌ *Sin Plataformas Configuradas*\n\n";
@@ -877,7 +885,7 @@ function mostrarResultadosBusqueda($botToken, $chatId, $messageId, $email, $plat
 
 function mostrarConfiguracionUsuario($botToken, $chatId, $messageId, $user, $db) {
     $emails = obtenerCorreosAutorizados($user, $db);
-    $plataformas = obtenerPlataformasDisponibles($db);
+    $plataformas = obtenerPlataformasDisponibles($db, $user['id']);
     
     $texto = "⚙️ *Tu Configuración*\n\n";
     $texto .= "👤 *Usuario:* `" . escaparMarkdown($user['username']) . "`\n";
@@ -2909,7 +2917,7 @@ try {
                 if (!in_array(strtolower($email), $emailsLower, true)) {
                     enviarMensaje($botToken, $chatId, "🚫 *Correo no autorizado*\n\nNo tienes permiso para `".escaparMarkdown($email)."`", crearTecladoVolver('buscar_codigos'));
                 } else {
-                    mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db);
+                    mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db, $user['id']);
                 }
             }
             exit();
@@ -2978,7 +2986,7 @@ try {
                 
             case strpos($callbackData, 'select_email_') === 0:
                 $email = substr($callbackData, 13);
-                mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db);
+                mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db, $user['id']);
                 break;
                 
             case strpos($callbackData, 'search_') === 0:
