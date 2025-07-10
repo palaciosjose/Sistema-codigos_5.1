@@ -257,6 +257,12 @@ class ClientLicense {
     
     /**
      * Validar licencia con el servidor remoto
+     *
+     * En caso de errores de red se mantiene el valor de
+     * `last_check` para que el periodo de gracia comience
+     * desde la última validación exitosa. Si el servidor
+     * responde con un código HTTP 4xx se considera que la
+     * licencia es inválida inmediatamente.
      */
     private function validateWithServer($license_data) {
         try {
@@ -284,7 +290,20 @@ class ClientLicense {
             }
         } catch (Exception $e) {
             error_log("Error validando licencia: " . $e->getMessage());
-            // En caso de error de red, mantener válida si no ha expirado hace mucho
+
+            // Detectar si el mensaje de la excepción incluye un código HTTP
+            if (preg_match('/HTTP Error:\s*(\d+)/', $e->getMessage(), $m)) {
+                $http = (int)$m[1];
+                if ($http >= 400 && $http < 500) {
+                    // Código 4xx => licencia inválida
+                    $license_data['last_check'] = time();
+                    $license_data['status'] = 'invalid';
+                    $this->saveLicenseData($license_data);
+                    return false;
+                }
+            }
+
+            // Errores de red: mantener fecha anterior y aplicar periodo de gracia
             $grace_period = 7 * 24 * 3600; // 7 días
             return (time() - ($license_data['last_check'] ?? 0)) < $grace_period;
         }

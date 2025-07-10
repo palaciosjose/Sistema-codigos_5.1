@@ -23,6 +23,13 @@ For a step-by-step guide to installing the system, see
 After cloning the repository run `composer install` to download the PHP
 dependencies.
 
+## License validation
+
+The system verifies its license with the remote server every 24 hours. If the
+server responds with an HTTP 4xx code, the license is marked as invalid
+immediately. Network errors keep the previous validation date so the 7‑day grace
+period starts from the last successful check.
+
 ## User Manual
 
 Once installed and logged in, a **Manual** option appears in the navigation bar.
