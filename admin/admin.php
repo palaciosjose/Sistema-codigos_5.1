@@ -2473,7 +2473,7 @@ function testAllEnabledServers() {
 
 <?php
 $users_list = [];
-$users_stmt = $conn->prepare("SELECT id, username, telegram_id, status, created_at FROM users WHERE role != 'admin' ORDER BY id DESC");
+$users_stmt = $conn->prepare("SELECT id, username, telegram_id, status, created_at FROM users WHERE role NOT IN ('admin','superadmin') ORDER BY id DESC");
 $users_stmt->execute();
 $users_result = $users_stmt->get_result();
 while ($user_row = $users_result->fetch_assoc()) {

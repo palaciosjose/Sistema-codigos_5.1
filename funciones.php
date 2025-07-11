@@ -287,7 +287,7 @@ public function searchEmails(string $email, string $platform, int $userId): arra
  */
 private function isAuthorizedEmail($email) {
     // 🔑 BYPASS TOTAL PARA ADMIN - SIN LOGS NORMALES
-    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+    if (isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin','superadmin'], true)) {
         return true; // Admin acceso sin logs
     }
     
@@ -358,7 +358,7 @@ private function isAuthorizedEmail($email) {
  */
 private function checkEmailPermission($email) {
     // 🔑 BYPASS SILENCIOSO PARA ADMIN
-    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+    if (isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin','superadmin'], true)) {
         return true;
     }
     
@@ -438,7 +438,7 @@ private function checkEmailPermission($email) {
         $user = $result->fetch_assoc();
         $stmt->close();
 
-        if ($user && $user['role'] === 'admin') {
+        if ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             return true;
         }
 
@@ -496,7 +496,7 @@ private function checkEmailPermission($email) {
         $user = $result->fetch_assoc();
         $stmt->close();
 
-        if ($user && $user['role'] === 'admin') {
+        if ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             return $allSubjects;
         }
         $platformId = $this->getPlatformId($platform);
@@ -517,7 +517,7 @@ private function checkEmailPermission($email) {
         }
         $stmt->close();
 
-        if (empty($allowedSubjects) || ($user && $user['role'] === 'admin')) {
+        if (empty($allowedSubjects) || ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin'))) {
             return $allSubjects;
         }
 

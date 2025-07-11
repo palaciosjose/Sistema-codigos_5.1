@@ -14,7 +14,7 @@ class NotificationService
 
     public function notifyAdmins(string $message): void
     {
-        $stmt = $this->db->prepare('SELECT telegram_id FROM users WHERE role = "admin" AND telegram_id IS NOT NULL');
+        $stmt = $this->db->prepare('SELECT telegram_id FROM users WHERE (role = "admin" OR role = "superadmin") AND telegram_id IS NOT NULL');
         $stmt->execute();
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) {

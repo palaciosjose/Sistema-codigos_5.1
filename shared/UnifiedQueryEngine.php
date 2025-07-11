@@ -1819,7 +1819,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         $user = $result->fetch_assoc();
         $stmt->close();
         
-        if ($user && $user['role'] === 'admin') {
+        if ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             return true;
         }
         
@@ -1860,7 +1860,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         $user = $result->fetch_assoc();
         $stmt->close();
         
-        if ($user && $user['role'] === 'admin') {
+        if ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             return $allSubjects;
         }
         

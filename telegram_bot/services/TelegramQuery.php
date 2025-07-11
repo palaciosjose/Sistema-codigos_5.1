@@ -59,6 +59,16 @@ class TelegramQuery
             return true;
         }
 
+        $stmtRole = $this->db->prepare('SELECT role FROM users WHERE id=? LIMIT 1');
+        $stmtRole->bind_param('i', $userId);
+        $stmtRole->execute();
+        $roleRes = $stmtRole->get_result();
+        $roleRow = $roleRes->fetch_assoc();
+        $stmtRole->close();
+        if ($roleRow && ($roleRow['role'] === 'admin' || $roleRow['role'] === 'superadmin')) {
+            return true;
+        }
+
         $stmt = $this->db->prepare('SELECT id FROM authorized_emails WHERE email=? LIMIT 1');
         $stmt->bind_param('s', $email);
         $stmt->execute();
@@ -85,6 +95,16 @@ class TelegramQuery
     private function hasPlatformAccess(int $userId, string $platform): bool
     {
         if (($this->settings['USER_SUBJECT_RESTRICTIONS_ENABLED'] ?? '0') !== '1') {
+            return true;
+        }
+
+        $stmtRole = $this->db->prepare('SELECT role FROM users WHERE id=? LIMIT 1');
+        $stmtRole->bind_param('i', $userId);
+        $stmtRole->execute();
+        $roleRes = $stmtRole->get_result();
+        $roleRow = $roleRes->fetch_assoc();
+        $stmtRole->close();
+        if ($roleRow && ($roleRow['role'] === 'admin' || $roleRow['role'] === 'superadmin')) {
             return true;
         }
 
