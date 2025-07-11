@@ -229,7 +229,7 @@ function verificarUsuario($telegramId, $db) {
 
 function obtenerCorreosAutorizados($user, $db) {
     try {
-        if (isset($user['role']) && $user['role'] === 'admin') {
+        if (isset($user['role']) && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             $stmt = $db->prepare("SELECT email FROM authorized_emails WHERE status = 1 ORDER BY email ASC");
             $stmt->execute();
             $result = $stmt->get_result();
@@ -250,7 +250,19 @@ function obtenerCorreosAutorizados($user, $db) {
 function obtenerPlataformasDisponibles($db, $userId = null) {
     global $config;
 
-    $userRestricted = ($userId && ($config['USER_SUBJECT_RESTRICTIONS_ENABLED'] ?? '0') === '1');
+    $userRestricted = false;
+    if ($userId && ($config['USER_SUBJECT_RESTRICTIONS_ENABLED'] ?? '0') === '1') {
+        $stmtRole = $db->prepare("SELECT role FROM users WHERE id = ? LIMIT 1");
+        $stmtRole->bind_param('i', $userId);
+        $stmtRole->execute();
+        $resRole = $stmtRole->get_result();
+        $roleRow = $resRole->fetch_assoc();
+        $stmtRole->close();
+        if (!$roleRow || ($roleRow['role'] !== 'admin' && $roleRow['role'] !== 'superadmin')) {
+            $userRestricted = true;
+        }
+    }
+
     if ($userRestricted) {
         $stmt = $db->prepare("SELECT DISTINCT p.name, p.name as display_name FROM platforms p INNER JOIN user_platform_subjects ups ON p.id = ups.platform_id WHERE p.status = 1 AND ups.user_id = ? ORDER BY p.name ASC");
         $stmt->bind_param('i', $userId);
@@ -739,7 +751,7 @@ function limpiarDatosTemporalesExpirados($db) {
 
 // ========== FUNCIONES PRINCIPALES DE INTERFAZ ==========
 function mostrarMenuPrincipal($botToken, $chatId, $firstName, $user, $messageId = null) {
-    $esAdmin = (isset($user['role']) && $user['role'] === 'admin');
+    $esAdmin = (isset($user['role']) && ($user['role'] === 'admin' || $user['role'] === 'superadmin'));
     
     $texto = "🤖 *¡Hola " . escaparMarkdown($firstName) . "\\!*\n\n";
     $texto .= "🎯 *Sistema de Códigos*\n\n";
@@ -885,7 +897,8 @@ function mostrarResultadosBusqueda($botToken, $chatId, $messageId, $email, $plat
 
 function mostrarConfiguracionUsuario($botToken, $chatId, $messageId, $user, $db) {
     $emails = obtenerCorreosAutorizados($user, $db);
-    $plataformas = obtenerPlataformasDisponibles($db, $user['id']);
+    $pid = ($user['role'] === 'admin' || $user['role'] === 'superadmin') ? null : $user['id'];
+    $plataformas = obtenerPlataformasDisponibles($db, $pid);
     
     $texto = "⚙️ *Tu Configuración*\n\n";
     $texto .= "👤 *Usuario:* `" . escaparMarkdown($user['username']) . "`\n";
@@ -949,7 +962,7 @@ function mostrarAyuda($botToken, $chatId, $messageId) {
 
 function mostrarPanelAdmin($botToken, $chatId, $messageId, $user, $db) {
     // Verificar que sea administrador
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
         $texto = "🚫 *Acceso Denegado*\n\n";
         $texto .= "Solo los administradores pueden acceder a este panel\\.";
         if ($messageId) {
@@ -1013,7 +1026,7 @@ function mostrarPanelAdmin($botToken, $chatId, $messageId, $user, $db) {
 }
 
 function mostrarLogsAdmin($botToken, $chatId, $messageId, $user, $db) {
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
         $texto = "🚫 *Acceso Denegado*";
         if ($messageId) {
             editarMensaje($botToken, $chatId, $messageId, $texto, crearTecladoVolver());
@@ -1083,7 +1096,7 @@ function mostrarLogsAdmin($botToken, $chatId, $messageId, $user, $db) {
 }
 
 function mostrarUsuariosAdmin($botToken, $chatId, $messageId, $user, $db) {
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
         $texto = "🚫 *Acceso Denegado*";
         if ($messageId) {
             editarMensaje($botToken, $chatId, $messageId, $texto, crearTecladoVolver());
@@ -1161,7 +1174,7 @@ function mostrarUsuariosAdmin($botToken, $chatId, $messageId, $user, $db) {
 }
 
 function mostrarEstadoSistema($botToken, $chatId, $messageId, $user, $db) {
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
         $texto = "🚫 *Acceso Denegado*";
         if ($messageId) {
             editarMensaje($botToken, $chatId, $messageId, $texto, crearTecladoVolver());
@@ -1243,7 +1256,7 @@ function mostrarEstadoSistema($botToken, $chatId, $messageId, $user, $db) {
 }
 
 function mostrarTestEmail($botToken, $chatId, $messageId, $user, $db) {
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
         $texto = "🚫 *Acceso Denegado*";
         if ($messageId) {
             editarMensaje($botToken, $chatId, $messageId, $texto, crearTecladoVolver());
@@ -2917,7 +2930,8 @@ try {
                 if (!in_array(strtolower($email), $emailsLower, true)) {
                     enviarMensaje($botToken, $chatId, "🚫 *Correo no autorizado*\n\nNo tienes permiso para `".escaparMarkdown($email)."`", crearTecladoVolver('buscar_codigos'));
                 } else {
-                    mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db, $user['id']);
+                    $uid = ($user['role'] === 'admin' || $user['role'] === 'superadmin') ? null : $user['id'];
+                    mostrarPlataformasParaEmail($botToken, $chatId, null, $email, $db, $uid);
                 }
             }
             exit();
@@ -2986,7 +3000,8 @@ try {
                 
             case strpos($callbackData, 'select_email_') === 0:
                 $email = substr($callbackData, 13);
-                mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db, $user['id']);
+                $uid = ($user['role'] === 'admin' || $user['role'] === 'superadmin') ? null : $user['id'];
+                mostrarPlataformasParaEmail($botToken, $chatId, $messageId, $email, $db, $uid);
                 break;
                 
             case strpos($callbackData, 'search_') === 0:
@@ -3039,7 +3054,7 @@ try {
                 
             // Funciones adicionales del panel admin
             case $callbackData === 'admin_clear_logs':
-                if ($user['role'] === 'admin') {
+                if ($user['role'] === 'admin' || $user['role'] === 'superadmin') {
                     $logFile = __DIR__ . '/logs/bot.log';
                     if (file_exists($logFile)) {
                         file_put_contents($logFile, '');
@@ -3051,7 +3066,7 @@ try {
                 break;
                 
             case $callbackData === 'admin_clear_cache':
-                if ($user['role'] === 'admin') {
+                if ($user['role'] === 'admin' || $user['role'] === 'superadmin') {
                     // Limpiar caché temporal
                     $stmt = $db->prepare("DELETE FROM telegram_temp_data WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
                     $stmt->execute();
@@ -3065,7 +3080,7 @@ try {
                 
             case $callbackData === 'admin_run_test':
             case $callbackData === 'admin_test_result':
-                if ($user['role'] === 'admin') {
+                if ($user['role'] === 'admin' || $user['role'] === 'superadmin') {
                     $texto = "🧪 *Test Ejecutado*\n\n";
                     $texto .= "✅ Conexión a BD: OK\n";
                     $texto .= "✅ Permisos: OK\n";

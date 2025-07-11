@@ -21,7 +21,7 @@ function is_authenticated() {
  * @return bool Verdadero si el usuario es administrador, falso en caso contrario
  */
 function is_admin() {
-    return is_authenticated() && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+    return is_authenticated() && isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin', 'superadmin'], true);
 }
 
 /**
