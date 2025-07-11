@@ -4,6 +4,7 @@
 1. Copiar `.env.example` a `.env` dentro de `telegram_bot`.
 2. Editar el token del bot y la URL del webhook.
 3. Ejecutar `php telegram_bot/setup.php` para registrar el webhook.
+4. Antes de probar desde el panel de administración, envía `/start` al bot y confirma tu ID numérico de Telegram.
 
 ## Comandos Disponibles
 - `/start` - Iniciar bot

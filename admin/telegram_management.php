@@ -825,10 +825,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sendData = call_telegram_api("https://api.telegram.org/bot{$token}/sendMessage", ['chat_id' => $admin_telegram_id, 'text' => $message]);
             
             if (!$sendData['ok']) {
-                throw new Exception("Webhook OK, pero no se pudo enviar mensaje. Error: " . ($sendData['description'] ?? 'N/A'));
+                $desc = $sendData['description'] ?? '';
+                if (stripos($desc, 'chat not found') !== false) {
+                    $response_data['error'] = 'Chat no encontrado. Inicia conversación con el bot y asegúrate de usar tu ID numérico';
+                } else {
+                    throw new Exception("Webhook OK, pero no se pudo enviar mensaje. Error: " . ($desc ?: 'N/A'));
+                }
+            } else {
+                $response_data = ['success' => true, 'message' => '✅ Prueba completada! Webhook registrado y mensaje de confirmación enviado.'];
             }
-
-            $response_data = ['success' => true, 'message' => '✅ Prueba completada! Webhook registrado y mensaje de confirmación enviado.'];
         } catch (Exception $e) {
             error_log("Error en test_telegram_connection: " . $e->getMessage());
             $response_data['error'] = $e->getMessage();
