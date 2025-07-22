@@ -1,0 +1,13 @@
+# Ignore log files
+decode.log
+admin/decode.log
+error_log
+
+# Ignore cache data
+cache/data/
+
+# Ignore license dat files
+license/*.dat
+
+# Ignore composer.phar
+composer.phar
