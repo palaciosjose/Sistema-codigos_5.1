@@ -9,5 +9,5 @@ cache/data/
 # Ignore license dat files
 license/*.dat
 
-# Ignore composer.phar
+# Ignore local Composer binary
 composer.phar

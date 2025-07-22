@@ -15,17 +15,20 @@ Este documento describe los pasos para instalar **Web Codigos 5.0** en un servid
 1. **Obtener el código**
    - Clona este repositorio o copia sus archivos al directorio público de tu servidor.
 
-2. **Configurar la base de datos**
+2. **Descargar Composer**
+   - Si tu servidor no dispone de Composer, descárgalo desde [getcomposer.org](https://getcomposer.org/download/).
+   - Luego ejecuta `composer install` en la raíz del proyecto.
+
+3. **Configurar la base de datos**
    - Define las variables de entorno `DB_HOST`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`.
    - o bien copia `config/db_credentials.sample.php` a `config/db_credentials.php` y edita ese archivo con tus datos.
-
-3. **Ejecutar el instalador**
+4. **Ejecutar el instalador**
    - Accede con un navegador a `instalacion/instalador.php`.
    - Ingresa la clave de licencia solicitada.
    - Completa la información de la base de datos y el usuario administrador.
    - Al finalizar, el instalador creará `config/db_credentials.php` (si no existe) y eliminará los archivos temporales de instalación.
 
-4. **Primer acceso**
+5. **Primer acceso**
    - Abre `index.php` y utiliza el usuario administrador creado para ingresar al sistema.
 
 ## Reinstalación

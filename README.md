@@ -20,8 +20,9 @@ During installation the system will automatically create
 For a step-by-step guide to installing the system, see
 [docs/INSTALACION.md](docs/INSTALACION.md).
 
-After cloning the repository run `composer install` to download the PHP
-dependencies.
+If Composer is not available on your server, download it from
+[getcomposer.org](https://getcomposer.org/download/) and then run
+`composer install` in the project root to fetch the PHP dependencies.
 
 ## License validation
 
