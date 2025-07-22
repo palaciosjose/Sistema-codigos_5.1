@@ -12,6 +12,9 @@ non-tracked file `config/db_credentials.php`.
    `config/db_credentials.php` and fill in your database details. This file is
    ignored by Git so your credentials remain private.
 
+When deploying the application, remember to copy the sample file if
+`config/db_credentials.php` does not exist yet.
+
 During installation the system will automatically create
 `config/db_credentials.php` with the data you provide.
 
