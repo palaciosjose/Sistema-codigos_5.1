@@ -1,5 +1,6 @@
 <?php
 // shared/TelegramIntegration.php
+require_once __DIR__.'/../libs/db_util.php';
 namespace Shared;
 
 /**
@@ -81,7 +82,7 @@ class TelegramIntegration
                 AND last_telegram_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)
             ");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stats['active_users'] = $row['active_users'] ?? 0;
             $stmt->close();
@@ -94,7 +95,7 @@ class TelegramIntegration
                 AND DATE(created_at) = CURDATE()
             ");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stats['searches_today'] = $row['searches_today'] ?? 0;
             $stmt->close();
@@ -106,7 +107,7 @@ class TelegramIntegration
                 WHERE source = 'telegram'
             ");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stats['total_searches'] = $row['total_searches'] ?? 0;
             $stmt->close();
@@ -123,7 +124,7 @@ class TelegramIntegration
                 LIMIT 5
             ");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $topUsers = [];
             while ($row = $result->fetch_assoc()) {
@@ -146,7 +147,7 @@ class TelegramIntegration
                 LIMIT 10
             ");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $platformStats = [];
             while ($row = $result->fetch_assoc()) {
@@ -188,7 +189,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $telegramId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stmt->close();
             
@@ -214,7 +215,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $telegramId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stmt->close();
             
@@ -240,7 +241,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $codeId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stmt->close();
             
@@ -262,7 +263,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $codeId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stmt->close();
             
@@ -308,7 +309,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $telegramId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $row = $result->fetch_assoc();
             $stmt->close();
             
@@ -325,7 +326,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $row['id']);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $emails = [];
             while ($emailRow = $result->fetch_assoc()) {
@@ -342,7 +343,7 @@ class TelegramIntegration
             ");
             $stmt->bind_param('i', $row['id']);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $subjects = [];
             while ($subjectRow = $result->fetch_assoc()) {
@@ -409,7 +410,7 @@ class TelegramIntegration
             }
 
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
 
             $platforms = [];
             while ($row = $result->fetch_assoc()) {

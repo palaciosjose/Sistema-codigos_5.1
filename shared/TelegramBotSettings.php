@@ -4,6 +4,7 @@
  * Generado automáticamente: 2025-06-29 18:17:02
  */
 
+require_once __DIR__.'/../libs/db_util.php';
 class TelegramBotSettings {
     private static $db = null;
     
@@ -17,7 +18,7 @@ class TelegramBotSettings {
         $stmt = self::$db->prepare('SELECT value FROM settings WHERE name = ?');
         $stmt->bind_param('s', $key);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $value = $result->fetch_assoc()['value'] ?? '';
         $stmt->close();
         

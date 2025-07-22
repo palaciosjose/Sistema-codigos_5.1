@@ -17,7 +17,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../instalacion/basededatos.php';
 require_once __DIR__ . '/../cache/cache_helper.php';
-require_once __DIR__ . '/../shared/UnifiedQueryEngine.php';
+require_once __DIR__.'/../libs/db_util.php';
 require_once __DIR__ . '/../shared/LinkPatterns.php';
 
 // ========== IMPORTAR CLASES DE TELEGRAM BOT ==========
@@ -112,7 +112,7 @@ function getUserState($userId, $db) {
     $stmt = $db->prepare("SELECT data_content FROM telegram_temp_data WHERE user_id = ? AND data_type = 'user_state' AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_assoc($stmt);
     if ($row = $result->fetch_assoc()) {
         $stmt->close();
         return json_decode($row['data_content'], true);
@@ -210,7 +210,7 @@ function verificarUsuario($telegramId, $db) {
         
         $stmt->bind_param("i", $telegramId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $user = ($result->num_rows > 0) ? $result->fetch_assoc() : false;
         $stmt->close();
         
@@ -232,13 +232,13 @@ function obtenerCorreosAutorizados($user, $db) {
         if (isset($user['role']) && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
             $stmt = $db->prepare("SELECT email FROM authorized_emails WHERE status = 1 ORDER BY email ASC");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
         } else {
             $stmt = $db->prepare("SELECT ae.email FROM authorized_emails ae LEFT JOIN user_authorized_emails uae ON ae.id = uae.authorized_email_id AND uae.user_id = ? WHERE ae.status = 1 AND (uae.user_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM user_authorized_emails WHERE user_id = ?))");
             $userId = $user['id'];
             $stmt->bind_param("ii", $userId, $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
         }
         $emails = [];
         while ($row = $result->fetch_assoc()) $emails[] = $row['email'];
@@ -255,7 +255,7 @@ function obtenerPlataformasDisponibles($db, $userId = null) {
         $stmtRole = $db->prepare("SELECT role FROM users WHERE id = ? LIMIT 1");
         $stmtRole->bind_param('i', $userId);
         $stmtRole->execute();
-        $resRole = $stmtRole->get_result();
+        $resRole = stmt_get_assoc($stmtRole);
         $roleRow = $resRole->fetch_assoc();
         $stmtRole->close();
         if (!$roleRow || ($roleRow['role'] !== 'admin' && $roleRow['role'] !== 'superadmin')) {
@@ -270,7 +270,7 @@ function obtenerPlataformasDisponibles($db, $userId = null) {
         $stmt = $db->prepare("SELECT p.name, p.name as display_name FROM platforms p WHERE p.status = 1 ORDER BY p.name ASC");
     }
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_assoc($stmt);
     $plataformas = [];
     while ($row = $result->fetch_assoc()) $plataformas[$row['name']] = $row['display_name'];
     $stmt->close();
@@ -685,7 +685,7 @@ function obtenerBusquedaTemporal($userId, $db) {
         ");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         if ($row = $result->fetch_assoc()) {
             $stmt->close();
@@ -716,7 +716,7 @@ function obtenerBusquedaTemporal($userId, $db) {
         ");
         $stmt2->bind_param("i", $userId);
         $stmt2->execute();
-        $result2 = $stmt2->get_result();
+        $result2 = stmt_get_assoc($stmt2);
         $info = $result2->fetch_assoc();
         $stmt2->close();
         
@@ -978,28 +978,28 @@ function mostrarPanelAdmin($botToken, $chatId, $messageId, $user, $db) {
         // Usuarios totales
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM users WHERE status = 1");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $usuariosActivos = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
         // Correos autorizados
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM authorized_emails WHERE status = 1");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $emailsAutorizados = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
         // Plataformas activas
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM platforms WHERE status = 1");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $plataformasActivas = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
         // Búsquedas recientes
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM search_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $busquedasHoy = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
@@ -1062,7 +1062,7 @@ function mostrarLogsAdmin($botToken, $chatId, $messageId, $user, $db) {
         // Estadísticas adicionales
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM search_logs WHERE DATE(created_at) = CURDATE()");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $busquedasHoy = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
@@ -1110,7 +1110,7 @@ function mostrarUsuariosAdmin($botToken, $chatId, $messageId, $user, $db) {
         // Obtener usuarios del sistema
         $stmt = $db->prepare("SELECT id, username, role, status, telegram_id, created_at FROM users ORDER BY created_at DESC LIMIT 10");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         $texto = "👥 *Usuarios del Sistema*\n\n";
         $texto .= "*Últimos 10 usuarios:*\n\n";
@@ -1136,13 +1136,13 @@ function mostrarUsuariosAdmin($botToken, $chatId, $messageId, $user, $db) {
         // Estadísticas generales
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM users");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $totalSistema = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM users WHERE telegram_id IS NOT NULL");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $totalConTelegram = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
@@ -1223,7 +1223,7 @@ function mostrarEstadoSistema($botToken, $chatId, $messageId, $user, $db) {
         // Verificar servidores IMAP
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM email_servers WHERE enabled = 1");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $servidoresActivos = $result->fetch_assoc()['total'] ?? 0;
         $stmt->close();
         
@@ -1273,7 +1273,7 @@ function mostrarTestEmail($botToken, $chatId, $messageId, $user, $db) {
         // Obtener primer email autorizado para prueba
         $stmt = $db->prepare("SELECT email FROM authorized_emails WHERE status = 1 LIMIT 1");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         if ($row = $result->fetch_assoc()) {
             $emailTest = $row['email'];

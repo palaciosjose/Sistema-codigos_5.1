@@ -4,6 +4,7 @@
  * Solo lo esencial para que funcione tu botón de prueba
  */
 
+require_once '../libs/db_util.php';
 session_start();
 
 // Solo peticiones POST
@@ -44,7 +45,7 @@ try {
             $stmt = $conn->prepare("SELECT imap_password FROM email_servers WHERE id = ?");
             $stmt->bind_param("i", $server_id);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             if ($result->num_rows > 0) {
                 $row = $result->fetch_assoc();

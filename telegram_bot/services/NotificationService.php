@@ -16,7 +16,7 @@ class NotificationService
     {
         $stmt = $this->db->prepare('SELECT telegram_id FROM users WHERE (role = "admin" OR role = "superadmin") AND telegram_id IS NOT NULL');
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         while ($row = $result->fetch_assoc()) {
             TelegramAPI::sendMessage($row['telegram_id'], "\xF0\x9F\x94\x94 *Notificaci\xC3\xB3n Admin*\n\n" . $message);
         }

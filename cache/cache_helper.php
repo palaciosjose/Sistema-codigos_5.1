@@ -3,6 +3,7 @@
  * Sistema de Cache Completo para mejorar performance
  * Compatible con admin.php avanzado
  */
+require_once __DIR__.'/../libs/db_util.php';
 
 class SimpleCache {
     private static $cache_dir = 'cache/data/';
@@ -33,7 +34,7 @@ class SimpleCache {
         $settings = [];
         $stmt = $conn->prepare("SELECT name, value FROM settings");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         while ($row = $result->fetch_assoc()) {
             $settings[$row['name']] = $row['value'];
@@ -112,7 +113,7 @@ class SimpleCache {
         $settings = [];
         $stmt = $conn->prepare("SELECT name, value FROM settings");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         while ($row = $result->fetch_assoc()) {
             $settings[$row['name']] = $row['value'];

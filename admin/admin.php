@@ -369,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     $check_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
                     $check_stmt->bind_param("s", $key);
                     $check_stmt->execute();
-                    $check_result = $check_stmt->get_result();
+                    $check_result = stmt_get_assoc($check_stmt);
                     $exists = $check_result->num_rows > 0;
                     $check_stmt->close();
                     
@@ -464,7 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 $verification_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
                 $verification_stmt->bind_param("s", $key);
                 $verification_stmt->execute();
-                $verification_result = $verification_stmt->get_result();
+                $verification_result = stmt_get_assoc($verification_stmt);
                 
                 if ($verification_result->num_rows > 0) {
                     $row = $verification_result->fetch_assoc();
@@ -2113,7 +2113,7 @@ function testAllEnabledServers() {
                 <?php
                 $users_stmt = $conn->prepare("SELECT id, username, telegram_id, status, created_at FROM users ORDER BY id DESC");
                 $users_stmt->execute();
-                $users_result = $users_stmt->get_result();
+                $users_result = stmt_get_assoc($users_stmt);
                 $users = [];
                 while ($user_row = $users_result->fetch_assoc()) {
                     $users[] = $user_row;
@@ -2220,7 +2220,7 @@ function testAllEnabledServers() {
                 ");
                 $logs_paged_stmt->bind_param("ii", $logs_per_page, $offset);
                 $logs_paged_stmt->execute();
-                $logs_paged_result = $logs_paged_stmt->get_result();
+                $logs_paged_result = stmt_get_assoc($logs_paged_stmt);
                 $logs_paged = [];
                 while ($log_paged_row = $logs_paged_result->fetch_assoc()) {
                     $logs_paged[] = $log_paged_row;
@@ -2408,7 +2408,7 @@ function testAllEnabledServers() {
                 <?php
                 $platforms_stmt = $conn->prepare("SELECT id, name, created_at FROM platforms ORDER BY sort_order ASC");
                 $platforms_stmt->execute();
-                $platforms_result = $platforms_stmt->get_result();
+                $platforms_result = stmt_get_assoc($platforms_stmt);
                 $platforms_list = [];
                 while ($platform_row = $platforms_result->fetch_assoc()) {
                     $platforms_list[] = $platform_row;
@@ -2475,7 +2475,7 @@ function testAllEnabledServers() {
 $users_list = [];
 $users_stmt = $conn->prepare("SELECT id, username, telegram_id, status, created_at FROM users WHERE role NOT IN ('admin','superadmin') ORDER BY id DESC");
 $users_stmt->execute();
-$users_result = $users_stmt->get_result();
+$users_result = stmt_get_assoc($users_stmt);
 while ($user_row = $users_result->fetch_assoc()) {
     $users_list[] = $user_row;
 }

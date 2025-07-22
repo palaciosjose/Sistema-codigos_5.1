@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_subjects') {
         $stmt = $conn->prepare("SELECT id, subject FROM platform_subjects WHERE platform_id = ? ORDER BY subject ASC");
         $stmt->bind_param("i", $platform_id);
         if ($stmt->execute()) {
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             while ($row = $result->fetch_assoc()) {
                 $response['subjects'][] = $row;
             }

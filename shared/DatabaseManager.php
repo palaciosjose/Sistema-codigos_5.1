@@ -1,5 +1,6 @@
 <?php
 // shared/DatabaseManager.php
+require_once __DIR__.'/../libs/db_util.php';
 namespace Shared;
 
 /**
@@ -175,7 +176,7 @@ class DatabaseManager
                 throw new \Exception('Error ejecutando consulta: ' . $stmt->error);
             }
             
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $stmt->close();
             
             return $result;

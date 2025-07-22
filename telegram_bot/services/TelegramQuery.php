@@ -62,7 +62,7 @@ class TelegramQuery
         $stmtRole = $this->db->prepare('SELECT role FROM users WHERE id=? LIMIT 1');
         $stmtRole->bind_param('i', $userId);
         $stmtRole->execute();
-        $roleRes = $stmtRole->get_result();
+        $roleRes = stmt_get_assoc($stmtRole);
         $roleRow = $roleRes->fetch_assoc();
         $stmtRole->close();
         if ($roleRow && ($roleRow['role'] === 'admin' || $roleRow['role'] === 'superadmin')) {
@@ -72,7 +72,7 @@ class TelegramQuery
         $stmt = $this->db->prepare('SELECT id FROM authorized_emails WHERE email=? LIMIT 1');
         $stmt->bind_param('s', $email);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $row = $result->fetch_assoc();
         $stmt->close();
         if (!$row) {
@@ -87,7 +87,7 @@ class TelegramQuery
         $stmt = $this->db->prepare('SELECT 1 FROM user_authorized_emails WHERE user_id=? AND authorized_email_id=? LIMIT 1');
         $stmt->bind_param('ii', $userId, $authId);
         $stmt->execute();
-        $ok = $stmt->get_result()->num_rows > 0;
+        $ok = stmt_get_assoc($stmt)->num_rows > 0;
         $stmt->close();
         return $ok;
     }
@@ -101,7 +101,7 @@ class TelegramQuery
         $stmtRole = $this->db->prepare('SELECT role FROM users WHERE id=? LIMIT 1');
         $stmtRole->bind_param('i', $userId);
         $stmtRole->execute();
-        $roleRes = $stmtRole->get_result();
+        $roleRes = stmt_get_assoc($stmtRole);
         $roleRow = $roleRes->fetch_assoc();
         $stmtRole->close();
         if ($roleRow && ($roleRow['role'] === 'admin' || $roleRow['role'] === 'superadmin')) {
@@ -111,7 +111,7 @@ class TelegramQuery
         $stmt = $this->db->prepare('SELECT id FROM platforms WHERE name=? LIMIT 1');
         $stmt->bind_param('s', $platform);
         $stmt->execute();
-        $res = $stmt->get_result();
+        $res = stmt_get_assoc($stmt);
         $row = $res->fetch_assoc();
         $stmt->close();
         if (!$row) {
@@ -122,7 +122,7 @@ class TelegramQuery
         $stmt = $this->db->prepare('SELECT 1 FROM user_platform_subjects WHERE user_id=? AND platform_id=? LIMIT 1');
         $stmt->bind_param('ii', $userId, $platformId);
         $stmt->execute();
-        $ok = $stmt->get_result()->num_rows > 0;
+        $ok = stmt_get_assoc($stmt)->num_rows > 0;
         $stmt->close();
 
         return $ok;
@@ -316,7 +316,7 @@ class TelegramQuery
             
             $stmt->bind_param('si', $searchPattern, $telegramIdSearch);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $users = [];
             while ($row = $result->fetch_assoc()) {
@@ -366,7 +366,7 @@ class TelegramQuery
             ");
             $stmt->bind_param('i', $limit);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $logs = [];
             while ($row = $result->fetch_assoc()) {

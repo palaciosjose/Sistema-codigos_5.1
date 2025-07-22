@@ -2,6 +2,7 @@
 session_start();
 require_once '../instalacion/basededatos.php';
 require_once '../security/auth.php';
+require_once '../libs/db_util.php';
 
 check_session(true, '../index.php');
 
@@ -91,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $stmt = $conn->prepare("SELECT platform_id, subject_keyword FROM user_platform_subjects WHERE user_id = ?");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             if ($result) {
                 while ($row = $result->fetch_assoc()) {
                     $user_assignments[$row['platform_id']][] = $row['subject_keyword'];
