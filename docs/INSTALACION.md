@@ -5,9 +5,10 @@ Este documento describe los pasos para instalar **Web Codigos 5.0** en un servid
 ## Requisitos previos
 
 - Servidor web con **PHP 8.2** o superior.
-- Extensiones PHP necesarias: `session`, `imap`, `mbstring`, `fileinfo`, `json`, `openssl`, `filter`, `ctype`, `iconv` y `curl`.
+- Extensiones PHP necesarias: `session`, `imap`, `mbstring`, `fileinfo`, `json`, `openssl`, `filter`, `ctype`, `iconv`, `curl` y `mysqlnd`.
 - Acceso a una base de datos MySQL.
 - Permisos de escritura para el directorio `license/` y para `cache/data/`.
+- En futuras versiones se añadirá una lógica de respaldo para servidores sin `mysqlnd`.
 
 ## Pasos de instalación
 
