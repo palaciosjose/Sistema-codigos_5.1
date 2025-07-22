@@ -14,3 +14,12 @@ composer.phar
 
 # Ignore local database credentials
 config/db_credentials.php
+
+# Ignore admin logs and cache
+admin/error_log
+admin/cache/data/
+
+# Ignore Telegram bot logs and cache
+telegram_bot/error_log
+telegram_bot/logs/
+telegram_bot/cache/data/
