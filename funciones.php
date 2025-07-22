@@ -195,6 +195,7 @@ require_once 'config/config.php';
 require_once 'decodificador.php';
 require_once 'instalacion/basededatos.php';
 require_once 'cache/cache_helper.php';
+require_once 'libs/db_util.php';
 
 /**
  * Clase principal para manejo de emails - VERSIÓN CORREGIDA
@@ -308,7 +309,7 @@ private function isAuthorizedEmail($email) {
     
     $stmt->bind_param("s", $email);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_assoc($stmt);
     
     if ($result->num_rows == 0) {
         $stmt->close();
@@ -346,7 +347,7 @@ private function isAuthorizedEmail($email) {
     
     $stmt_user->bind_param("ii", $user_id, $authorized_email_id);
     $stmt_user->execute();
-    $result_user = $stmt_user->get_result();
+    $result_user = stmt_get_assoc($stmt_user);
     $has_access = $result_user->num_rows > 0;
     $stmt_user->close();
     
@@ -376,7 +377,7 @@ private function checkEmailPermission($email) {
         if (!$user_restrictions_enabled) {
             $stmt = $this->conn->prepare("SELECT email FROM authorized_emails ORDER BY email ASC");
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $emails = [];
             while ($row = $result->fetch_assoc()) {
@@ -398,7 +399,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare($query);
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         $emails = [];
         while ($row = $result->fetch_assoc()) {
@@ -416,7 +417,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare("SELECT subject_keyword FROM user_platform_subjects WHERE user_id = ? AND platform_id = ?");
         $stmt->bind_param("ii", $user_id, $platform_id);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $subjects = [];
         while ($row = $result->fetch_assoc()) {
             $subjects[] = $row['subject_keyword'];
@@ -434,7 +435,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare("SELECT role FROM users WHERE id = ?");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $user = $result->fetch_assoc();
         $stmt->close();
 
@@ -450,7 +451,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare("SELECT COUNT(*) as count FROM user_platform_subjects WHERE user_id = ? AND platform_id = ?");
         $stmt->bind_param('ii', $userId, $platformId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $row = $result->fetch_assoc();
         $stmt->close();
 
@@ -468,7 +469,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare("SELECT id FROM platforms WHERE name = ? LIMIT 1");
         $stmt->bind_param("s", $platform);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $id = null;
         if ($row = $result->fetch_assoc()) {
             $id = $row['id'];
@@ -492,7 +493,7 @@ private function checkEmailPermission($email) {
         
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $user = $result->fetch_assoc();
         $stmt->close();
 
@@ -509,7 +510,7 @@ private function checkEmailPermission($email) {
         $stmt = $this->conn->prepare("SELECT subject_keyword FROM user_platform_subjects WHERE user_id = ? AND platform_id = ?");
         $stmt->bind_param('ii', $userId, $platformId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
 
         $allowedSubjects = [];
         while ($row = $result->fetch_assoc()) {

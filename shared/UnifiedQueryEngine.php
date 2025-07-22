@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/LinkPatterns.php';
-
+require_once __DIR__.'/../libs/db_util.php';
 /**
  * Motor unificado de búsqueda de emails - VERSIÓN COMPLETA Y DEFINITIVA
  * Compatible 100% con funciones.php del sistema web + TODA la funcionalidad avanzada del bot
@@ -1775,7 +1775,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         ");
         $stmt->bind_param('s', $platform);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         $subjects = [];
         while ($row = $result->fetch_assoc()) {
@@ -1815,7 +1815,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         $stmt = $this->db->prepare("SELECT role FROM users WHERE id = ?");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $user = $result->fetch_assoc();
         $stmt->close();
         
@@ -1835,7 +1835,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         ");
         $stmt->bind_param('ii', $userId, $platformId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $row = $result->fetch_assoc();
         $stmt->close();
         
@@ -1856,7 +1856,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         $stmt = $this->db->prepare("SELECT role FROM users WHERE id = ?");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $user = $result->fetch_assoc();
         $stmt->close();
         
@@ -1876,7 +1876,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         ");
         $stmt->bind_param('ii', $userId, $platformId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         $allowedSubjects = [];
         while ($row = $result->fetch_assoc()) {
@@ -1900,7 +1900,7 @@ private function extraerCodigoOEnlaceMejorado($body, $subject = '') {
         $stmt = $this->db->prepare("SELECT id FROM platforms WHERE name = ? LIMIT 1");
         $stmt->bind_param('s', $platform);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $row = $result->fetch_assoc();
         $stmt->close();
         

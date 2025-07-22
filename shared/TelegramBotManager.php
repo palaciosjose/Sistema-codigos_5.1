@@ -4,6 +4,7 @@
  * Clase para gestionar el bot de Telegram con sincronización completa con la web
  */
 
+require_once __DIR__.'/../libs/db_util.php';
 namespace Shared;
 
 class TelegramBotManager

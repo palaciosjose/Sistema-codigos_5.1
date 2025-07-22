@@ -33,7 +33,7 @@ class TelegramAuth
         );
         $stmt->bind_param('i', $telegramId);
         $stmt->execute();
-        $res = $stmt->get_result();
+        $res = stmt_get_assoc($stmt);
         $row = $res->fetch_assoc();
         $stmt->close();
 
@@ -91,7 +91,7 @@ class TelegramAuth
         );
         $stmt->bind_param('s', $type);
         $stmt->execute();
-        $res = $stmt->get_result();
+        $res = stmt_get_assoc($stmt);
         $row = $res->fetch_assoc();
         $stmt->close();
         return $row ? json_decode($row['data_content'], true) : null;
@@ -117,7 +117,7 @@ public function loginWithCredentials($telegramId, $username, $password)
     $stmt = $this->db->prepare('SELECT * FROM users WHERE username=? AND status=1 LIMIT 1');
     $stmt->bind_param('s', $username);
     $stmt->execute();
-    $res = $stmt->get_result();
+    $res = stmt_get_assoc($stmt);
     $user = $res->fetch_assoc();
     $stmt->close();
 
@@ -179,7 +179,7 @@ public function loginWithCredentials($telegramId, $username, $password)
         $stmt = $this->db->prepare('SELECT * FROM users WHERE telegram_id=? LIMIT 1');
         $stmt->bind_param('i', $telegramId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         $row = $result->fetch_assoc();
         $stmt->close();
 
@@ -196,7 +196,7 @@ public function loginWithCredentials($telegramId, $username, $password)
         $stmt = $this->db->prepare($query);
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         while ($row = $result->fetch_assoc()) {
             $permissions['emails'][] = $row['email'];
         }
@@ -207,7 +207,7 @@ public function loginWithCredentials($telegramId, $username, $password)
         $stmt = $this->db->prepare($query);
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         while ($row = $result->fetch_assoc()) {
             $permissions['subjects'][$row['name']][] = $row['subject_keyword'];
         }

@@ -4,6 +4,7 @@
  * Archivo: admin/get_dashboard_stats.php
  */
 
+require_once '../libs/db_util.php';
 session_start();
 require_once '../instalacion/basededatos.php';
 require_once '../security/auth.php';
@@ -32,7 +33,7 @@ try {
     $stmt = $conn->prepare($searches_today_query);
     $stmt->bind_param("ss", $today_start, $today_end);
     $stmt->execute();
-    $searches_today = $stmt->get_result()->fetch_assoc()['count'];
+    $searches_today = stmt_get_assoc($stmt)->fetch_assoc()['count'];
     $stmt->close();
 
     // 2. TASA DE ÉXITO (últimos 7 días para mejor estadística)
@@ -48,7 +49,7 @@ try {
     $stmt = $conn->prepare($success_rate_query);
     $stmt->bind_param("s", $week_ago);
     $stmt->execute();
-    $success_data = $stmt->get_result()->fetch_assoc();
+    $success_data = stmt_get_assoc($stmt)->fetch_assoc();
     $stmt->close();
     
     $success_rate = $success_data['total'] > 0 ? 
@@ -65,7 +66,7 @@ try {
     $stmt = $conn->prepare($active_users_query);
     $stmt->bind_param("s", $day_ago);
     $stmt->execute();
-    $active_users = $stmt->get_result()->fetch_assoc()['count'];
+    $active_users = stmt_get_assoc($stmt)->fetch_assoc()['count'];
     $stmt->close();
 
     // 4. TIEMPO PROMEDIO DE RESPUESTA (simulado basado en actividad)
@@ -108,7 +109,7 @@ try {
     $stmt = $conn->prepare($week_searches_query);
     $stmt->bind_param("s", $week_start);
     $stmt->execute();
-    $week_searches = $stmt->get_result()->fetch_assoc()['count'];
+    $week_searches = stmt_get_assoc($stmt)->fetch_assoc()['count'];
     $stmt->close();
 
     // 6. DATOS PARA GRÁFICO (búsquedas por hora del día actual)
@@ -121,7 +122,7 @@ try {
         $stmt = $conn->prepare($hourly_query);
         $stmt->bind_param("ss", $hour_start, $hour_end);
         $stmt->execute();
-        $hour_count = $stmt->get_result()->fetch_assoc()['count'];
+        $hour_count = stmt_get_assoc($stmt)->fetch_assoc()['count'];
         $stmt->close();
         
         $hourly_data[] = [

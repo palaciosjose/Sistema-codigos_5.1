@@ -2,6 +2,7 @@
 session_start();
 require_once '../instalacion/basededatos.php';
 require_once '../security/auth.php';
+require_once '../libs/db_util.php';
 check_session(true, '../index.php');
 
 $conn = new mysqli($db_host, $db_user, $db_password, $db_name);
@@ -922,7 +923,7 @@ if ($user_id) {
         $stmt = $conn->prepare("SELECT telegram_id FROM users WHERE id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         if ($row = $result->fetch_assoc()) {
             $admin_telegram_id = $row['telegram_id'] ?? '';
         }

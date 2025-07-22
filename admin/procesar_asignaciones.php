@@ -7,6 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Incluir dependencias
 require_once '../instalacion/basededatos.php';
 require_once '../security/auth.php';
+require_once '../libs/db_util.php';
 
 // Verificar autenticación (admin requerido)
 check_session(true, '../index.php');
@@ -103,7 +104,7 @@ function assignEmailsToUser($conn) {
     
     $stmt_check->bind_param("i", $user_id);
     $stmt_check->execute();
-    $result = $stmt_check->get_result();
+    $result = stmt_get_assoc($stmt_check);
     
     if ($result->num_rows == 0) {
         $_SESSION['assignment_error'] = 'Usuario no encontrado.';
@@ -230,7 +231,7 @@ function getUserEmails($conn) {
     $stmt->bind_param("i", $user_id);
     
     if ($stmt->execute()) {
-        $result = $stmt->get_result();
+        $result = stmt_get_assoc($stmt);
         
         $emails = [];
         while ($row = $result->fetch_assoc()) {

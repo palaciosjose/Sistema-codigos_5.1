@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $stmt = $conn->prepare("SELECT id, username, password FROM admin WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_assoc($stmt);
 
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE username = ? AND status = 1");
     $stmt->bind_param("s", $username);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_assoc($stmt);
 
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();

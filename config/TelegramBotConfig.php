@@ -1,5 +1,6 @@
 <?php
 // config/TelegramBotConfig.php - Configuración del Bot de Telegram
+require_once __DIR__.'/../libs/db_util.php';
 // Integrado con la base de datos del panel de administración
 
 class TelegramBotConfig {
@@ -139,7 +140,7 @@ class TelegramBotConfig {
             $stmt = self::$db->prepare("SELECT id, username, telegram_id FROM users WHERE telegram_id = ?");
             $stmt->bind_param("s", $telegram_id);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             if ($row = $result->fetch_assoc()) {
                 $stmt->close();
