@@ -53,7 +53,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $telegramId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             if ($result->num_rows > 0) {
                 $user = $result->fetch_assoc();
@@ -89,7 +89,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $hourlyCount = $result->fetch_assoc()['count'] ?? 0;
             $stmt->close();
             
@@ -105,7 +105,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $dailyCount = $result->fetch_assoc()['count'] ?? 0;
             $stmt->close();
             
@@ -142,7 +142,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("ii", $userId, $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $emails = [];
             while ($row = $result->fetch_assoc()) {
@@ -171,7 +171,7 @@ class TelegramBotManager
                 ");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
-                $result = $stmt->get_result();
+                $result = stmt_get_assoc($stmt);
                 $count = $result->fetch_assoc()['count'] ?? 0;
                 $stmt->close();
                 
@@ -200,7 +200,7 @@ class TelegramBotManager
                 ");
                 $stmt->bind_param("i", $userId);
                 $stmt->execute();
-                $result = $stmt->get_result();
+                $result = stmt_get_assoc($stmt);
                 $userRestricted = ($result->fetch_assoc()['count'] ?? 0) > 0;
                 $stmt->close();
             }
@@ -227,7 +227,7 @@ class TelegramBotManager
             }
             
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             $platforms = [];
             while ($row = $result->fetch_assoc()) {
@@ -279,7 +279,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $stats['total_searches'] = $result->fetch_assoc()['total_searches'] ?? 0;
             $stmt->close();
             
@@ -291,7 +291,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $stats['successful_searches'] = $result->fetch_assoc()['successful_searches'] ?? 0;
             $stmt->close();
             
@@ -303,7 +303,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $stats['telegram_actions'] = $result->fetch_assoc()['telegram_actions'] ?? 0;
             $stmt->close();
             
@@ -315,7 +315,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             $lastActivity = $result->fetch_assoc()['last_activity'];
             $stats['last_activity'] = $lastActivity ? date('d/m/Y H:i', strtotime($lastActivity)) : 'Nunca';
             $stmt->close();
@@ -367,7 +367,7 @@ class TelegramBotManager
             ");
             $stmt->bind_param("is", $userId, $dataType);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = stmt_get_assoc($stmt);
             
             if ($row = $result->fetch_assoc()) {
                 $stmt->close();
@@ -437,7 +437,7 @@ class TelegramBotManager
                 ");
                 $stmt->bind_param("i", $userId);
                 $stmt->execute();
-                $result_db = $stmt->get_result();
+                $result_db = stmt_get_assoc($stmt);
                 
                 if ($row = $result_db->fetch_assoc()) {
                     $lastAction = strtotime($row['created_at']);
