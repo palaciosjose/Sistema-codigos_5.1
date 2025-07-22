@@ -31,3 +31,175 @@
 [05-Jul-2025 05:32:04 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
 [05-Jul-2025 05:39:58 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
 [05-Jul-2025 15:46:21 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[12-Jul-2025 17:48:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:23 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:30 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:31 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:33 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:35 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:37 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:45 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:48:51 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:49:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:49:23 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:49:33 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:50:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:50:37 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:52:03 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:53:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:54:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:55:59 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:57:19 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 17:59:16 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 18:00:56 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 18:02:55 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/warsup/streamdigi.warsup.shop/telegram_bot/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/warsup/streamdigi.warsup.shop/telegram_bot/webhook.php on line 17
+[12-Jul-2025 19:40:20 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[12-Jul-2025 19:51:53 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[12-Jul-2025 20:11:11 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 00:30:55 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 00:30:57 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 00:31:16 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 00:31:22 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 03:56:45 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 04:28:24 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 06:20:42 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 16:01:04 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 16:25:20 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[13-Jul-2025 17:22:14 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 00:14:15 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 08:10:58 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 08:11:05 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 08:12:26 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 08:13:43 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 10:55:08 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 13:03:30 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 13:31:50 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 15:02:15 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 15:05:15 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 15:25:56 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 19:07:59 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 23:14:54 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 23:15:19 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[14-Jul-2025 23:15:46 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 00:48:43 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 00:57:28 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 00:57:37 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 00:59:46 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: query is too old and response timeout expired or query ID is invalid"}
+[15-Jul-2025 00:59:46 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: message can't be edited"}
+[15-Jul-2025 01:00:00 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: query is too old and response timeout expired or query ID is invalid"}
+[15-Jul-2025 01:11:22 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 01:11:29 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 01:11:47 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 01:11:52 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 14:06:50 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 14:07:05 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 14:07:12 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 15:54:26 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 17:42:35 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 17:43:03 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[15-Jul-2025 19:27:57 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 01:33:26 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 01:50:15 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 01:56:50 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 01:56:57 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 13:07:59 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 16:33:14 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 23:13:43 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[16-Jul-2025 23:39:16 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 02:11:37 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 12:53:25 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 13:05:23 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 21:48:33 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 21:48:33 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 21:48:33 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[17-Jul-2025 21:48:34 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 00:18:06 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 00:18:16 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 00:18:29 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 00:19:07 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 01:39:25 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 01:56:29 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 01:58:06 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 01:59:36 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 02:15:47 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 12:33:45 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 20:15:28 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 20:23:07 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[18-Jul-2025 22:26:56 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[19-Jul-2025 01:35:10 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[19-Jul-2025 01:43:06 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
+[19-Jul-2025 03:54:31 UTC] Telegram Bot Error: Telegram API HTTP 400: {"ok":false,"error_code":400,"description":"Bad Request: chat not found"}
