@@ -22,6 +22,7 @@ Este documento describe los pasos para instalar **Web Codigos 5.0** en un servid
 3. **Configurar la base de datos**
    - Define las variables de entorno `DB_HOST`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`.
    - o bien copia `config/db_credentials.sample.php` a `config/db_credentials.php` y edita ese archivo con tus datos.
+   - Si despliegas el sistema en otro servidor y el archivo no existe, copia este archivo de muestra antes de ejecutar el instalador.
 4. **Ejecutar el instalador**
    - Accede con un navegador a `instalacion/instalador.php`.
    - Ingresa la clave de licencia solicitada.

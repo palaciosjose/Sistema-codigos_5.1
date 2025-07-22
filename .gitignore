@@ -11,3 +11,6 @@ license/*.dat
 
 # Ignore local Composer binary
 composer.phar
+
+# Ignore local database credentials
+config/db_credentials.php
