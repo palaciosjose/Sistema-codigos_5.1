@@ -46,6 +46,7 @@ function showLicenseError() {
     
     header('HTTP/1.1 403 Forbidden');
     header('Content-Type: text/html; charset=utf-8');
+    header('Refresh: 5; url=renovar_licencia.php');
     
     echo '<!DOCTYPE html>
     <html lang="es">
@@ -183,6 +184,7 @@ function showLicenseError() {
                 <i class="fas fa-info-circle me-1"></i>
                 Contacte al administrador del sistema para resolver este problema.
             </p>
+            <p class="text-info mt-2">Redirigiendo para renovar licencia...</p>
         </div>
     </body>
     </html>';
