@@ -389,6 +389,7 @@ if (!defined('INSTALLER_MODE') || !INSTALLER_MODE) {
         if (!$license_client->isLicenseValid()) {
             // Redirigir a página de error de licencia o bloquear acceso
             header('HTTP/1.1 403 Forbidden');
+            header('Refresh: 5; url=renovar_licencia.php');
             echo '<!DOCTYPE html>
             <html>
             <head>
@@ -403,6 +404,7 @@ if (!defined('INSTALLER_MODE') || !INSTALLER_MODE) {
                     <h1>Licencia Requerida</h1>
                     <p>Este software requiere una licencia válida para funcionar.</p>
                     <p>Contacte al administrador del sistema.</p>
+                    <p>Redirigiendo para renovar licencia...</p>
                 </div>
             </body>
             </html>';
