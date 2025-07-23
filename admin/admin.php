@@ -3857,6 +3857,10 @@ document.head.appendChild(style);
                         <i class="fas fa-envelope-open me-2"></i>
                         Correos Disponibles:
                     </h6>
+
+                    <div class="mb-3">
+                        <input type="text" class="form-control-admin" id="assignEmailSearch" placeholder="Buscar correo...">
+                    </div>
                     
                     <?php if (!empty($emails_list)): ?>
                         <div class="row">
@@ -4487,6 +4491,25 @@ function setupTableSearch(inputId, tableId, columnsToSearch, infoId) {
 }
 
 
+// Función para filtrar correos en el modal de asignación
+function setupAssignEmailSearch() {
+    const searchInput = document.getElementById('assignEmailSearch');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase().trim();
+
+        document.querySelectorAll('#assignEmailsModal .email-checkbox').forEach(cb => {
+            const label = cb.parentElement.querySelector('label');
+            const container = cb.closest('.col-md-6');
+            if (!label || !container) return;
+            const text = label.textContent.toLowerCase();
+            container.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+}
+
+
 // Función para enviar la edición de correo autorizado vía AJAX
 function submitEditAuthEmail() {
     const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editEmailModal'));
@@ -4612,6 +4635,20 @@ document.addEventListener('DOMContentLoaded', function() {
             emailCheckboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
+        });
+    }
+
+    // Configurar búsqueda de correos en el modal de asignación
+    setupAssignEmailSearch();
+    const assignEmailsModalEl = document.getElementById('assignEmailsModal');
+    if (assignEmailsModalEl) {
+        assignEmailsModalEl.addEventListener('shown.bs.modal', () => {
+            const searchInput = document.getElementById('assignEmailSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('keyup'));
+                searchInput.focus();
+            }
         });
     }
 
