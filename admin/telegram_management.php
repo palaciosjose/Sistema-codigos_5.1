@@ -1143,19 +1143,19 @@ if ($user_id) {
                 <div class="row text-center">
                     <div class="col-md-4">
                         <div class="p-4" style="background: rgba(0,0,0,0.1); border-radius: 10px;">
-                            <h2 style="color: var(--accent-green);"><?= $stats['total_logs'] ?></h2>
+                            <h2 id="stats-total-logs" style="color: var(--accent-green);"><?= $stats['total_logs'] ?></h2>
                             <p style="color: var(--text-info-light);">Total de Interacciones</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="p-4" style="background: rgba(0,0,0,0.1); border-radius: 10px;">
-                            <h2 style="color: var(--accent-green);"><?= $stats['unique_users'] ?></h2>
+                            <h2 id="stats-unique-users" style="color: var(--accent-green);"><?= $stats['unique_users'] ?></h2>
                             <p style="color: var(--text-info-light);">Usuarios Únicos</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="p-4" style="background: rgba(0,0,0,0.1); border-radius: 10px;">
-                            <h2 style="color: var(--accent-green);"><?= $stats['logs_today'] ?></h2>
+                            <h2 id="stats-logs-today" style="color: var(--accent-green);"><?= $stats['logs_today'] ?></h2>
                             <p style="color: var(--text-info-light);">Interacciones Hoy</p>
                         </div>
                     </div>
@@ -1404,6 +1404,10 @@ if ($user_id) {
         const testButton = document.getElementById('test-connection-btn');
         const testResultsContainer = document.getElementById('test-results');
         const adminTelegramId = '<?= $admin_telegram_id ?>';
+        const totalLogsEl = document.getElementById('stats-total-logs');
+        const uniqueUsersEl = document.getElementById('stats-unique-users');
+        const logsTodayEl = document.getElementById('stats-logs-today');
+        let statsInterval;
 
         function fillWebhookUrl() {
             if (tokenInput.value.trim() !== '' && webhookInput.value.trim() === '') {
@@ -1473,20 +1477,53 @@ if ($user_id) {
             testResultsContainer.innerHTML = `<div class="alert-admin ${alertClass}"><i class="fas ${iconClass}"></i><span>${message}</span></div>`;
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab');
-        if (tab) {
-            const tabElement = document.querySelector(`#${tab}-tab`);
-            if (tabElement) new bootstrap.Tab(tabElement).show();
+        async function fetchBotStats() {
+            try {
+                const response = await fetch('get_bot_stats.php');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data.total_logs !== undefined) totalLogsEl.textContent = data.total_logs;
+                if (data.unique_users !== undefined) uniqueUsersEl.textContent = data.unique_users;
+                if (data.logs_today !== undefined) logsTodayEl.textContent = data.logs_today;
+            } catch (e) {
+                console.error('Error fetching bot stats', e);
+            }
         }
+
+        function startStatsPolling() {
+            fetchBotStats();
+            if (statsInterval) clearInterval(statsInterval);
+            statsInterval = setInterval(fetchBotStats, 30000);
+        }
+
+        function stopStatsPolling() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+        }
+
         document.querySelectorAll('[data-bs-toggle="tab"]').forEach(button => {
             button.addEventListener('shown.bs.tab', event => {
                 const newTabId = event.target.getAttribute('data-bs-target').substring(1);
                 const newUrl = new URL(window.location);
                 newUrl.searchParams.set('tab', newTabId);
                 window.history.pushState({path: newUrl.href}, '', newUrl.href);
+
+                if (newTabId === 'stats') {
+                    startStatsPolling();
+                } else if (event.relatedTarget && event.relatedTarget.getAttribute('data-bs-target') === '#stats') {
+                    stopStatsPolling();
+                }
             });
         });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) {
+            const tabElement = document.querySelector(`#${tab}-tab`);
+            if (tabElement) new bootstrap.Tab(tabElement).show();
+        }
     });
 </script>
 
