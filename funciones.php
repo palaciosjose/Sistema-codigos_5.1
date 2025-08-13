@@ -34,19 +34,28 @@ if (!defined('INSTALLER_MODE')) {
 
 function showLicenseError() {
     $license_client = new ClientLicense();
+    $status = $license_client->getLicenseStatus();
     $diagnostic_info = $license_client->getDiagnosticInfo();
-    
+
     // Verificar si el sistema está instalado
     $system_installed = is_installed();
-    
+
     // Limpiar cualquier salida previa
     if (ob_get_level()) {
         ob_end_clean();
     }
-    
+
     header('HTTP/1.1 403 Forbidden');
     header('Content-Type: text/html; charset=utf-8');
-    
+
+    $status_messages = [
+        'expired' => 'Licencia expirada',
+        'invalid' => 'Licencia inválida o no encontrada',
+        'network_error' => 'Error de red al verificar la licencia',
+        'server_unreachable' => 'Servidor de licencias no alcanzable'
+    ];
+    $status_message = $status_messages[$status['status']] ?? 'Licencia no válida';
+
     echo '<!DOCTYPE html>
     <html lang="es">
     <head>
@@ -56,7 +65,7 @@ function showLicenseError() {
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <style>
-            body { 
+            body {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
                 min-height: 100vh;
@@ -126,37 +135,72 @@ function showLicenseError() {
             <p class="text-muted mb-4">
                 Este software requiere una licencia válida para funcionar correctamente.
             </p>
-            
+
             <div class="alert alert-danger" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Estado:</strong> Licencia no válida o no encontrada
+                <strong>Estado:</strong> ' . $status_message . '
             </div>';
-    
+
     if ($system_installed) {
-        echo '
-            <div class="alert alert-info" role="alert">
-                <i class="fas fa-info-circle me-2"></i>
-                El sistema está instalado correctamente. Solo necesita renovar su licencia.
-            </div>
-            
+        switch ($status['status']) {
+            case 'expired':
+                echo '
             <div class="mb-4">
-                <p class="mb-3">Su licencia ha expirado o no es válida. Para continuar usando el sistema:</p>
+                <p class="mb-3">La licencia ha expirado. Puede verificarla manualmente o renovarla:</p>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="renovar_licencia.php" class="btn btn-renew btn-lg me-md-2">
-                        <i class="fas fa-sync-alt me-2"></i>Renovar Licencia
+                    <a href="manual_license_check.php" class="btn btn-install btn-lg me-md-2">
+                        <i class="fas fa-sync-alt me-2"></i>Verificar Licencia Manualmente
+                    </a>
+                    <a href="renovar_licencia.php" class="btn btn-renew btn-lg">
+                        <i class="fas fa-credit-card me-2"></i>Renovar Licencia
+                    </a>
+                </div>
+            </div>';
+                break;
+            case 'network_error':
+            case 'server_unreachable':
+                $grace_label = '';
+                if (!empty($status['grace_remaining'])) {
+                    $days = floor($status['grace_remaining'] / 86400);
+                    $hours = floor(($status['grace_remaining'] % 86400) / 3600);
+                    $parts = [];
+                    if ($days > 0) { $parts[] = $days . ' día' . ($days > 1 ? 's' : ''); }
+                    if ($hours > 0) { $parts[] = $hours . ' hora' . ($hours > 1 ? 's' : ''); }
+                    $grace_label = 'Tiempo restante de gracia: ' . implode(' ', $parts) . '.';
+                }
+                echo '
+            <div class="mb-4">
+                <p class="mb-3">No se pudo contactar al servidor de licencias. ' . $grace_label . '</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="manual_license_check.php" class="btn btn-install btn-lg me-md-2">
+                        <i class="fas fa-sync-alt me-2"></i>Reintentar Verificación
+                    </a>
+                </div>
+            </div>';
+                break;
+            case 'invalid':
+            default:
+                echo '
+            <div class="mb-4">
+                <p class="mb-3">La licencia es inválida o no se encontró. Configure una nueva licencia o contacte soporte:</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="renovar_licencia.php" class="btn btn-install btn-lg me-md-2">
+                        <i class="fas fa-key me-2"></i>Configurar Nueva Licencia
                     </a>
                     <a href="mailto:soporte@tudominio.com" class="btn btn-outline-secondary btn-lg">
                         <i class="fas fa-envelope me-2"></i>Contactar Soporte
                     </a>
                 </div>
             </div>';
+                break;
+        }
     } else {
         echo '
             <div class="alert alert-warning" role="alert">
                 <i class="fas fa-tools me-2"></i>
                 El sistema no está instalado completamente.
             </div>
-            
+
             <div class="mb-4">
                 <p class="mb-3">Para comenzar a usar el sistema, debe completar la instalación:</p>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
@@ -169,16 +213,17 @@ function showLicenseError() {
                 </div>
             </div>';
     }
-    
+
     echo '
             <div class="diagnostic-info">
                 <h6><i class="fas fa-wrench me-2"></i>Información de Diagnóstico:</h6>
                 <strong>Directorio existe:</strong> ' . ($diagnostic_info['directory_exists'] ? 'Sí' : 'No') . '<br>
                 <strong>Archivo existe:</strong> ' . ($diagnostic_info['file_exists'] ? 'Sí' : 'No') . '<br>
                 <strong>Archivo legible:</strong> ' . ($diagnostic_info['file_readable'] ? 'Sí' : 'No') . '<br>
-                <strong>Dominio actual:</strong> ' . htmlspecialchars($_SERVER['HTTP_HOST']) . '
+                <strong>Dominio actual:</strong> ' . htmlspecialchars($_SERVER['HTTP_HOST']) . '<br>
+                <strong>Última verificación:</strong> ' . ($status['last_check'] ? date('Y-m-d H:i:s', $status['last_check']) : 'N/A') . '<br>
             </div>
-            
+
             <p class="text-muted mt-3">
                 <i class="fas fa-info-circle me-1"></i>
                 Contacte al administrador del sistema para resolver este problema.
