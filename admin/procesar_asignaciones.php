@@ -73,6 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'get_user_emails':
             getUserEmails($conn);
             break;
+        case 'get_available_emails':
+            getAvailableEmails($conn);
+            break;
         default:
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Acción GET no válida.']);
@@ -251,6 +254,48 @@ function getUserEmails($conn) {
         echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
     }
     
+    $stmt->close();
+    exit();
+}
+
+function getAvailableEmails($conn) {
+    if (ob_get_level()) {
+        ob_clean();
+    }
+
+    header('Content-Type: application/json');
+
+    $user_id = filter_var($_GET['user_id'] ?? null, FILTER_VALIDATE_INT);
+    $q = trim($_GET['q'] ?? '');
+    $offset = filter_var($_GET['offset'] ?? 0, FILTER_VALIDATE_INT);
+    $limit = 50;
+
+    if ($user_id === null) {
+        echo json_encode(['success' => false, 'error' => 'ID de usuario inválido']);
+        exit();
+    }
+
+    $like = '%' . $q . '%';
+    $stmt = $conn->prepare("SELECT id, email FROM authorized_emails WHERE email LIKE ? AND id NOT IN (SELECT authorized_email_id FROM user_authorized_emails WHERE user_id = ?) ORDER BY email ASC LIMIT ? OFFSET ?");
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Error al preparar la consulta: ' . $conn->error]);
+        exit();
+    }
+
+    $stmt->bind_param('siii', $like, $user_id, $limit, $offset);
+
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        $emails = [];
+        while ($row = $result->fetch_assoc()) {
+            $emails[] = ['id' => $row['id'], 'email' => $row['email']];
+        }
+        $has_more = count($emails) === $limit;
+        echo json_encode(['success' => true, 'emails' => $emails, 'has_more' => $has_more]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
+    }
+
     $stmt->close();
     exit();
 }
