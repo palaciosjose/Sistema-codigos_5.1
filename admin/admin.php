@@ -2979,7 +2979,7 @@ function toggleUserPermissions(userId) {
         toggleBtn.innerHTML = '<i class="fas fa-chevron-up me-2"></i>Ocultar Permisos';
         
         // Cargar datos cuando se expande
-        loadUserEmailAssignments(userId);
+        renderUserEmailChips(userId);
         loadUserSubjectAssignments(userId);
     } else {
         content.style.display = 'none';
@@ -3004,7 +3004,7 @@ function expandAllUsers() {
             toggleBtn.innerHTML = '<i class="fas fa-chevron-up me-2"></i>Ocultar Permisos';
             
             // Cargar datos
-            loadUserEmailAssignments(userId);
+            renderUserEmailChips(userId);
             loadUserSubjectAssignments(userId);
         }
     });
@@ -3027,8 +3027,8 @@ function collapseAllUsers() {
     });
 }
 
-// Cargar correos asignados del usuario
-function loadUserEmailAssignments(userId) {
+// Renderiza los chips de correos asignados para un usuario
+function renderUserEmailChips(userId) {
     const container = document.getElementById(`user-email-chips-${userId}`);
     if (!container) return;
 
@@ -3048,13 +3048,17 @@ function loadUserEmailAssignments(userId) {
                         const chip = document.createElement('span');
                         chip.className = 'email-chip';
                         chip.id = `email-chip-${userId}-${email.id}`;
-                        chip.innerHTML = `<i class="fas fa-envelope me-1"></i>${escapeHtml(email.email)}<button type="button" class="remove-email" onclick="removeEmailFromUser(${userId}, ${email.id})">&times;</button>`;
+                        chip.innerHTML = `<i class="fas fa-envelope me-1"></i>${escapeHtml(email.email)}<button type="button" class="remove-email" onclick="removeEmailChip(${userId}, ${email.id})">&times;</button>`;
                         container.appendChild(chip);
                     });
                 } else {
                     container.innerHTML = '<span class="text-warning">Sin correos asignados</span>';
                 }
-                updateEmailDisplayCount(userId, data.count);
+                const counter = document.getElementById(`email-count-${userId}`);
+                if (counter) {
+                    counter.dataset.total = data.total_available;
+                }
+                updateEmailCounter(userId, data.total_available);
             } else {
                 container.innerHTML = '<span class="text-danger">Error al cargar correos</span>';
             }
@@ -3065,8 +3069,8 @@ function loadUserEmailAssignments(userId) {
         });
 }
 
-// Eliminar correo asignado
-function removeEmailFromUser(userId, emailId) {
+// Elimina un chip de correo del usuario
+function removeEmailChip(userId, emailId) {
     fetch('procesar_asignaciones.php?action=remove_email_from_user', {
         method: 'POST',
         headers: {
@@ -3080,8 +3084,8 @@ function removeEmailFromUser(userId, emailId) {
             if (data.success) {
                 const chip = document.getElementById(`email-chip-${userId}-${emailId}`);
                 if (chip) chip.remove();
-                const count = document.querySelectorAll(`#user-email-chips-${userId} .email-chip`).length;
-                updateEmailDisplayCount(userId, count);
+                const total = parseInt(document.getElementById(`email-count-${userId}`).dataset.total || '0', 10);
+                updateEmailCounter(userId, total);
             } else {
                 alert(data.error || 'Error al eliminar correo');
             }
@@ -3091,11 +3095,15 @@ function removeEmailFromUser(userId, emailId) {
         });
 }
 
-function updateEmailDisplayCount(userId, count) {
+// Actualiza el contador de correos asignados
+function updateEmailCounter(userId, totalAvailable) {
+    const container = document.getElementById(`user-email-chips-${userId}`);
+    const count = container ? container.querySelectorAll('.email-chip').length : 0;
     const counter = document.getElementById(`email-count-${userId}`);
-    if (!counter) return;
-    const total = counter.dataset.total || 0;
-    counter.textContent = `${count} correo${count !== 1 ? 's' : ''} asignado${count !== 1 ? 's' : ''} de ${total}`;
+    if (counter) {
+        counter.dataset.total = totalAvailable;
+        counter.textContent = `${count} correo${count !== 1 ? 's' : ''} asignado${count !== 1 ? 's' : ''} de ${totalAvailable}`;
+    }
     const header = document.getElementById(`email-count-header-${userId}`);
     if (header) {
         header.textContent = `${count} correo${count !== 1 ? 's' : ''}`;
@@ -3235,7 +3243,7 @@ function resetUserPermissions(userId) {
             tag.classList.remove('selected');
         });
         updateSubjectCount(userId);
-        loadUserEmailAssignments(userId);
+        renderUserEmailChips(userId);
     }
 }
 
@@ -4231,6 +4239,7 @@ function confirmEmailSelection() {
             selectedEmails.clear();
             updateSelectedCount();
             loadUserEmails(currentUserId);
+            renderUserEmailChips(currentUserId);
             const modalEl = document.getElementById('assignEmailsModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
