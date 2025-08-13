@@ -17,25 +17,33 @@ require_once __DIR__ . '/license_client.php';
 if (!defined('INSTALLER_MODE')) {
     try {
         $license_client = new ClientLicense();
-        
-        // Verificación simple de licencia válida
+        $status = $license_client->getLicenseStatus();
+
+        if ($status['status'] === 'network_error' && ($status['grace_remaining'] ?? 0) > 0) {
+            showLicenseError($status);
+        }
+
         if (!$license_client->isLicenseValid()) {
-            showLicenseError();
-            exit();
+            showLicenseError($status);
         }
     } catch (Exception $e) {
-        // En caso de error con el sistema de licencias, log y continuar
         error_log("Error verificando licencia: " . $e->getMessage());
-        // Para desarrollo, puedes comentar las siguientes líneas
         showLicenseError();
-        exit();
     }
 }
 
-function showLicenseError() {
+function showLicenseError($status = null) {
     $license_client = new ClientLicense();
-    $status = $license_client->getLicenseStatus();
+    if ($status === null) {
+        $status = $license_client->getLicenseStatus();
+    }
     $diagnostic_info = $license_client->getDiagnosticInfo();
+
+    if ($status['status'] === 'network_error' && ($status['grace_remaining'] ?? 0) > 0) {
+        $days = ceil($status['grace_remaining'] / 86400);
+        echo '<div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;text-align:center;">Acceso temporal por ' . $days . ' día' . ($days !== 1 ? 's' : '') . ' restantes</div>';
+        return;
+    }
 
     // Verificar si el sistema está instalado
     $system_installed = is_installed();
