@@ -171,10 +171,14 @@ function showLicenseError() {
                 echo '
             <div class="mb-4">
                 <p class="mb-3">No se pudo contactar al servidor de licencias. ' . $grace_label . '</p>
+                <div id="verification-status" class="d-flex align-items-center justify-content-center mb-3">
+                    <div class="spinner-border text-primary me-2" role="status" style="display:none;"></div>
+                    <span id="status-text">Esperando reintento...</span>
+                </div>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="manual_license_check.php" class="btn btn-install btn-lg me-md-2">
+                    <button id="retry-btn" class="btn btn-install btn-lg me-md-2">
                         <i class="fas fa-sync-alt me-2"></i>Reintentar Verificación
-                    </a>
+                    </button>
                 </div>
             </div>';
                 break;
@@ -228,7 +232,49 @@ function showLicenseError() {
                 <i class="fas fa-info-circle me-1"></i>
                 Contacte al administrador del sistema para resolver este problema.
             </p>
-        </div>
+        </div>';
+
+    if (in_array($status['status'], ['network_error', 'server_unreachable'])) {
+        echo '
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const statusBox = document.getElementById("verification-status");
+            const spinner = statusBox.querySelector(".spinner-border");
+            const statusText = document.getElementById("status-text");
+            const retryBtn = document.getElementById("retry-btn");
+            async function checkLicense() {
+                spinner.style.display = "inline-block";
+                statusText.textContent = "Verificando licencia...";
+                try {
+                    const resp = await fetch("manual_license_check.php");
+                    const data = await resp.json();
+                    if (data.success) {
+                        statusText.textContent = "Licencia válida. Recargando...";
+                        location.reload();
+                    } else {
+                        statusText.textContent = data.message || "No se pudo verificar la licencia.";
+                        if (data.status === "network_error") {
+                            setTimeout(checkLicense, 60000);
+                        }
+                    }
+                } catch (e) {
+                    statusText.textContent = "Error de red.";
+                    setTimeout(checkLicense, 60000);
+                } finally {
+                    spinner.style.display = "none";
+                }
+            }
+            retryBtn.addEventListener("click", checkLicense);
+            ';
+        if ($status['status'] === 'network_error') {
+            echo 'setTimeout(checkLicense, 60000);';
+        }
+        echo '
+        });
+        </script>';
+    }
+
+    echo '
     </body>
     </html>';
 
