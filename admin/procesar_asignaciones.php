@@ -79,6 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'get_available_emails':
             getAvailableEmails($conn);
             break;
+        case 'get_all_available_emails':
+            getAllAvailableEmails($conn);
+            break;
         case 'search_emails':
             searchEmails($conn);
             break;
@@ -345,6 +348,45 @@ function getAvailableEmails($conn) {
         }
         $has_more = count($emails) === $limit;
         echo json_encode(['success' => true, 'emails' => $emails, 'has_more' => $has_more]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
+    }
+
+    $stmt->close();
+    exit();
+}
+
+function getAllAvailableEmails($conn) {
+    if (ob_get_level()) {
+        ob_clean();
+    }
+
+    header('Content-Type: application/json');
+
+    $user_id = filter_var($_GET['user_id'] ?? null, FILTER_VALIDATE_INT);
+    $q = trim($_GET['q'] ?? '');
+
+    if ($user_id === null) {
+        echo json_encode(['success' => false, 'error' => 'ID de usuario inválido']);
+        exit();
+    }
+
+    $like = '%' . $q . '%';
+    $stmt = $conn->prepare("SELECT id FROM authorized_emails WHERE email LIKE ? AND id NOT IN (SELECT authorized_email_id FROM user_authorized_emails WHERE user_id = ?)");
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Error al preparar la consulta: ' . $conn->error]);
+        exit();
+    }
+
+    $stmt->bind_param('si', $like, $user_id);
+
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        $ids = [];
+        while ($row = $result->fetch_assoc()) {
+            $ids[] = (int)$row['id'];
+        }
+        echo json_encode(['success' => true, 'email_ids' => $ids]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
     }

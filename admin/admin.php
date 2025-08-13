@@ -3779,14 +3779,16 @@ document.head.appendChild(style);
                     </div>
                 </div>
 
-                <div class="form-group-admin mb-2">
+                <div class="form-group-admin mb-2 d-flex">
                     <input id="email-search" type="text" class="form-control" placeholder="Buscar correo...">
+                    <button type="button" class="btn-admin btn-secondary-admin ms-2" onclick="selectAllAvailableEmails()">Seleccionar todos</button>
                 </div>
 
                 <div id="email-list" class="border rounded" style="height:300px; overflow-y:auto;"></div>
 
-                <div class="mt-2">
+                <div class="mt-2 d-flex justify-content-between align-items-center">
                     <span id="selected-count">0 correos seleccionados</span>
+                    <button type="button" class="btn-admin btn-secondary-admin btn-sm" onclick="clearEmailSelection()">Limpiar selección</button>
                 </div>
             </div>
 
@@ -4197,6 +4199,42 @@ function fetchAvailableEmails(q = '', offset = 0) {
     })
     .catch(err => console.error('Error obteniendo correos:', err))
     .finally(() => { isFetchingEmails = false; });
+}
+
+// Selecciona todos los correos disponibles según la búsqueda actual
+function selectAllAvailableEmails() {
+    if (currentUserId === null) return;
+
+    const params = new URLSearchParams({
+        action: 'get_all_available_emails',
+        user_id: currentUserId,
+        q: currentQuery
+    });
+
+    fetch('procesar_asignaciones.php?' + params.toString(), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && Array.isArray(data.email_ids)) {
+            selectedEmails = new Set(data.email_ids.map(id => parseInt(id)));
+            renderEmailList();
+            updateSelectedCount();
+        }
+    })
+    .catch(err => console.error('Error al seleccionar todos los correos:', err));
+}
+
+// Limpia la selección de correos
+function clearEmailSelection() {
+    selectedEmails.clear();
+    renderEmailList();
+    updateSelectedCount();
 }
 
 // Alterna selección de un correo
