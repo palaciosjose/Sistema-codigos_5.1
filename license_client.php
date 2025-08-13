@@ -127,6 +127,7 @@ class ClientLicense {
                     'activated_at' => date('Y-m-d H:i:s'),
                     'last_check' => time(),
                     'status' => 'active',
+                    'expires_at' => $response['expires_at'] ?? null,
                     'server_response' => $response
                 ];
                 
@@ -149,30 +150,95 @@ class ClientLicense {
     }
     
     /**
-     * Verificar si la licencia es válida
+     * Obtener el estado actual de la licencia
      */
-    public function isLicenseValid() {
-        // Verificar en modo instalador
+    public function getLicenseStatus() {
+        // Modo instalador: solo verifica la existencia del archivo
         if (defined('INSTALLER_MODE') && INSTALLER_MODE) {
-            return $this->hasLicense();
+            if ($this->hasLicense()) {
+                $data = $this->getLicenseData() ?: [];
+                return [
+                    'status' => 'active',
+                    'message' => 'Modo instalador',
+                    'expires_at' => $data['expires_at'] ?? null,
+                    'last_check' => $data['last_check'] ?? null,
+                    'grace_remaining' => 0
+                ];
+            }
+            return [
+                'status' => 'invalid',
+                'message' => 'No se encontró licencia',
+                'expires_at' => null,
+                'last_check' => null,
+                'grace_remaining' => 0
+            ];
         }
-        
+
         if (!$this->hasLicense()) {
-            return false;
+            return [
+                'status' => 'invalid',
+                'message' => 'No se encontró licencia',
+                'expires_at' => null,
+                'last_check' => null,
+                'grace_remaining' => 0
+            ];
         }
-        
+
         $license_data = $this->getLicenseData();
         if (!$license_data) {
-            return false;
+            return [
+                'status' => 'invalid',
+                'message' => 'Datos de licencia corruptos',
+                'expires_at' => null,
+                'last_check' => null,
+                'grace_remaining' => 0
+            ];
         }
-        
-        // Verificar si necesita validación remota (cada 24 horas)
+
+        $expires_at = $license_data['expires_at'] ?? null;
         $last_check = $license_data['last_check'] ?? 0;
-        if ((time() - $last_check) > 86400) { // 24 horas
+        if ($expires_at && time() > strtotime($expires_at)) {
+            return [
+                'status' => 'expired',
+                'message' => 'La licencia ha expirado',
+                'expires_at' => $expires_at,
+                'last_check' => $last_check,
+                'grace_remaining' => 0
+            ];
+        }
+
+        // Validar remotamente cada 24h
+        if ((time() - $last_check) > 86400) {
             return $this->validateWithServer($license_data);
         }
-        
-        return $license_data['status'] === 'active';
+
+        $grace_period = 7 * 24 * 3600;
+        $grace_remaining = max(0, $grace_period - (time() - $last_check));
+
+        return [
+            'status' => $license_data['status'] ?? 'invalid',
+            'message' => ($license_data['status'] ?? '') === 'active' ? 'Licencia válida' : 'Licencia inválida',
+            'expires_at' => $expires_at,
+            'last_check' => $last_check,
+            'grace_remaining' => $grace_remaining
+        ];
+    }
+
+    /**
+     * Verificar si la licencia es válida
+     */
+    public function isLicenseValid(&$details = null) {
+        $status = $this->getLicenseStatus();
+        if ($details !== null) {
+            $details = $status;
+        }
+        if ($status['status'] === 'active') {
+            return true;
+        }
+        if (in_array($status['status'], ['network_error', 'server_unreachable']) && ($status['grace_remaining'] ?? 0) > 0) {
+            return true;
+        }
+        return false;
     }
     
     /**
@@ -199,6 +265,7 @@ class ClientLicense {
             'domain' => $license_data['domain'] ?? '',
             'activated_at' => $license_data['activated_at'] ?? '',
             'status' => $license_data['status'] ?? 'unknown',
+            'expires_at' => $license_data['expires_at'] ?? null,
             'last_check' => date('Y-m-d H:i:s', $license_data['last_check'] ?? 0),
             'file_path' => $this->license_file
         ];
@@ -272,40 +339,78 @@ class ClientLicense {
                 'domain' => $_SERVER['HTTP_HOST'],
                 'current_domain' => $license_data['domain'] ?? ''
             ];
-            
+
             $response = $this->makeRequest($data);
-            
+
             if ($response && $response['success']) {
-                // Actualizar datos de licencia
                 $license_data['last_check'] = time();
                 $license_data['status'] = 'active';
+                if (!empty($response['expires_at'])) {
+                    $license_data['expires_at'] = $response['expires_at'];
+                }
                 $this->saveLicenseData($license_data);
-                return true;
+                return [
+                    'status' => 'active',
+                    'message' => $response['message'] ?? 'Licencia válida',
+                    'expires_at' => $license_data['expires_at'] ?? null,
+                    'last_check' => $license_data['last_check'],
+                    'grace_remaining' => 0
+                ];
             } else {
-                // Marcar como inválida pero conservar archivo para debugging
                 $license_data['last_check'] = time();
                 $license_data['status'] = 'invalid';
+                if (!empty($response['expires_at'])) {
+                    $license_data['expires_at'] = $response['expires_at'];
+                }
                 $this->saveLicenseData($license_data);
-                return false;
+
+                $status = 'invalid';
+                if (!empty($response['error_code']) && $response['error_code'] === 'expired') {
+                    $status = 'expired';
+                }
+
+                return [
+                    'status' => $status,
+                    'message' => $response['message'] ?? 'Licencia inválida',
+                    'expires_at' => $license_data['expires_at'] ?? null,
+                    'last_check' => $license_data['last_check'],
+                    'grace_remaining' => 0
+                ];
             }
         } catch (Exception $e) {
             error_log("Error validando licencia: " . $e->getMessage());
 
-            // Detectar si el mensaje de la excepción incluye un código HTTP
+            $status = 'network_error';
             if (preg_match('/HTTP Error:\s*(\d+)/', $e->getMessage(), $m)) {
                 $http = (int)$m[1];
                 if ($http >= 400 && $http < 500) {
-                    // Código 4xx => licencia inválida
                     $license_data['last_check'] = time();
                     $license_data['status'] = 'invalid';
                     $this->saveLicenseData($license_data);
-                    return false;
+                    return [
+                        'status' => 'invalid',
+                        'message' => 'HTTP ' . $http,
+                        'expires_at' => $license_data['expires_at'] ?? null,
+                        'last_check' => $license_data['last_check'],
+                        'grace_remaining' => 0
+                    ];
+                }
+                if ($http >= 500) {
+                    $status = 'server_unreachable';
                 }
             }
 
-            // Errores de red: mantener fecha anterior y aplicar periodo de gracia
-            $grace_period = 7 * 24 * 3600; // 7 días
-            return (time() - ($license_data['last_check'] ?? 0)) < $grace_period;
+            $last_check = $license_data['last_check'] ?? 0;
+            $grace_period = 7 * 24 * 3600;
+            $grace_remaining = max(0, $grace_period - (time() - $last_check));
+
+            return [
+                'status' => $status,
+                'message' => $e->getMessage(),
+                'expires_at' => $license_data['expires_at'] ?? null,
+                'last_check' => $last_check,
+                'grace_remaining' => $grace_remaining
+            ];
         }
     }
     
