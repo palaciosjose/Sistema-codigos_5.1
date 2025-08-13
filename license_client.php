@@ -213,7 +213,7 @@ class ClientLicense {
         }
 
         $grace_period = 7 * 24 * 3600;
-        $grace_remaining = max(0, $grace_period - (time() - $last_check));
+        $grace_remaining = (int) max(0, $grace_period - (time() - $last_check));
 
         return [
             'status' => $license_data['status'] ?? 'invalid',
@@ -402,7 +402,7 @@ class ClientLicense {
 
             $last_check = $license_data['last_check'] ?? 0;
             $grace_period = 7 * 24 * 3600;
-            $grace_remaining = max(0, $grace_period - (time() - $last_check));
+            $grace_remaining = (int) max(0, $grace_period - (time() - $last_check));
 
             return [
                 'status' => $status,
