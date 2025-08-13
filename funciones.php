@@ -15,21 +15,24 @@ require_once __DIR__ . '/license_client.php';
 require_once __DIR__ . '/config/config.php';
 
 // Verificar licencia automáticamente (excepto en instalador)
+$GLOBALS['license_overlay'] = '';
 if (!defined('INSTALLER_MODE')) {
     try {
         $license_client = new ClientLicense();
         $status = $license_client->getLicenseStatus();
 
-        if ($status['status'] === 'network_error' && ($status['grace_remaining'] ?? 0) > 0) {
-            showLicenseError($status);
-        }
-
         if (!$license_client->isLicenseValid()) {
-            showLicenseError($status);
+            $GLOBALS['license_overlay'] = showLicenseError($status);
         }
     } catch (Exception $e) {
         error_log("Error verificando licencia: " . $e->getMessage());
-        showLicenseError();
+        $GLOBALS['license_overlay'] = showLicenseError();
+    }
+
+    if (!empty($GLOBALS['license_overlay'])) {
+        register_shutdown_function(function () {
+            echo $GLOBALS['license_overlay'];
+        });
     }
 }
 
@@ -38,24 +41,6 @@ function showLicenseError($status = null) {
     if ($status === null) {
         $status = $license_client->getLicenseStatus();
     }
-    $diagnostic_info = $license_client->getDiagnosticInfo();
-
-    if ($status['status'] === 'network_error' && ($status['grace_remaining'] ?? 0) > 0) {
-        $days = ceil($status['grace_remaining'] / 86400);
-        echo '<div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;text-align:center;">Acceso temporal por ' . $days . ' día' . ($days !== 1 ? 's' : '') . ' restantes</div>';
-        return;
-    }
-
-    // Verificar si el sistema está instalado
-    $system_installed = is_installed();
-
-    // Limpiar cualquier salida previa
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
-
-    header('HTTP/1.1 403 Forbidden');
-    header('Content-Type: text/html; charset=utf-8');
 
     $status_messages = [
         'expired' => 'Licencia expirada',
@@ -63,231 +48,44 @@ function showLicenseError($status = null) {
         'network_error' => 'Error de red al verificar la licencia',
         'server_unreachable' => 'Servidor de licencias no alcanzable'
     ];
-    $status_message = $status_messages[$status['status']] ?? 'Licencia no válida';
+    $message = $status_messages[$status['status']] ?? 'Licencia no válida';
 
-    echo '<!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Licencia Requerida</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <style>
-            body {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .license-error-container {
-                background: white;
-                border-radius: 15px;
-                padding: 2rem;
-                max-width: 600px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                text-align: center;
-            }
-            .license-icon {
-                font-size: 4rem;
-                color: #dc3545;
-                margin-bottom: 1rem;
-            }
-            .diagnostic-info {
-                background: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 1rem;
-                margin-top: 1.5rem;
-                text-align: left;
-                font-family: monospace;
-                font-size: 0.9rem;
-            }
-            .btn-renew {
-                background: linear-gradient(45deg, #28a745, #20c997);
-                border: none;
-                color: white;
-                font-weight: 600;
-                padding: 12px 30px;
-                border-radius: 8px;
-                transition: all 0.3s ease;
-            }
-            .btn-renew:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
-                color: white;
-            }
-            .btn-install {
-                background: linear-gradient(45deg, #007bff, #0056b3);
-                border: none;
-                color: white;
-                font-weight: 600;
-                padding: 12px 30px;
-                border-radius: 8px;
-                transition: all 0.3s ease;
-            }
-            .btn-install:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
-                color: white;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="license-error-container">
-            <div class="license-icon">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <h1 class="h3 mb-3">Licencia Requerida</h1>
-            <p class="text-muted mb-4">
-                Este software requiere una licencia válida para funcionar correctamente.
-            </p>
-
-            <div class="alert alert-danger" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Estado:</strong> ' . $status_message . '
-            </div>';
-
-    if ($system_installed) {
-        switch ($status['status']) {
-            case 'expired':
-                echo '
-            <div class="mb-4">
-                <p class="mb-3">La licencia ha expirado. Puede verificarla manualmente o renovarla:</p>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="manual_license_check.php" class="btn btn-install btn-lg me-md-2">
-                        <i class="fas fa-sync-alt me-2"></i>Verificar Licencia Manualmente
-                    </a>
-                    <a href="renovar_licencia.php" class="btn btn-renew btn-lg">
-                        <i class="fas fa-credit-card me-2"></i>Renovar Licencia
-                    </a>
-                </div>
-            </div>';
-                break;
-            case 'network_error':
-            case 'server_unreachable':
-                $grace_label = '';
-                if (!empty($status['grace_remaining'])) {
-                    $days = floor($status['grace_remaining'] / 86400);
-                    $hours = floor(($status['grace_remaining'] % 86400) / 3600);
-                    $parts = [];
-                    if ($days > 0) { $parts[] = $days . ' día' . ($days > 1 ? 's' : ''); }
-                    if ($hours > 0) { $parts[] = $hours . ' hora' . ($hours > 1 ? 's' : ''); }
-                    $grace_label = 'Tiempo restante de gracia: ' . implode(' ', $parts) . '.';
-                }
-                echo '
-            <div class="mb-4">
-                <p class="mb-3">No se pudo contactar al servidor de licencias. ' . $grace_label . '</p>
-                <div id="verification-status" class="d-flex align-items-center justify-content-center mb-3">
-                    <div class="spinner-border text-primary me-2" role="status" style="display:none;"></div>
-                    <span id="status-text">Esperando reintento...</span>
-                </div>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <button id="retry-btn" class="btn btn-install btn-lg me-md-2">
-                        <i class="fas fa-sync-alt me-2"></i>Reintentar Verificación
-                    </button>
-                </div>
-            </div>';
-                break;
-            case 'invalid':
-            default:
-                echo '
-            <div class="mb-4">
-                <p class="mb-3">La licencia es inválida o no se encontró. Configure una nueva licencia o contacte soporte:</p>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="renovar_licencia.php" class="btn btn-install btn-lg me-md-2">
-                        <i class="fas fa-key me-2"></i>Configurar Nueva Licencia
-                    </a>
-                    <a href="mailto:soporte@tudominio.com" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-envelope me-2"></i>Contactar Soporte
-                    </a>
-                </div>
-            </div>';
-                break;
-        }
+    return <<<HTML
+<style>
+#license-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;}
+#license-overlay .license-modal{background:#fff;padding:20px;border-radius:8px;max-width:400px;width:90%;text-align:center;}
+#license-overlay .license-modal h2{margin-top:0;}
+#license-overlay .license-modal input{width:100%;padding:8px;margin-bottom:10px;}
+#license-overlay .license-modal button{width:100%;padding:8px;margin-top:5px;}
+</style>
+<div id="license-overlay">
+  <div class="license-modal">
+    <h2>$message</h2>
+    <button id="verify-license">Verificar Licencia</button>
+    <form id="renew-form" action="renovar_licencia.php" method="post" style="margin-top:10px;">
+      <input type="text" name="license_key" placeholder="Nueva licencia" required>
+      <input type="hidden" name="renew_license" value="1">
+      <button type="submit">Renovar</button>
+    </form>
+  </div>
+</div>
+<script>
+document.getElementById('verify-license').addEventListener('click', async function(){
+  try {
+    const resp = await fetch('manual_license_check.php');
+    const data = await resp.json();
+    if (data.success) {
+      document.getElementById('license-overlay').remove();
+      location.reload();
     } else {
-        echo '
-            <div class="alert alert-warning" role="alert">
-                <i class="fas fa-tools me-2"></i>
-                El sistema no está instalado completamente.
-            </div>
-
-            <div class="mb-4">
-                <p class="mb-3">Para comenzar a usar el sistema, debe completar la instalación:</p>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="instalacion/instalador.php" class="btn btn-install btn-lg me-md-2">
-                        <i class="fas fa-download me-2"></i>Ir al Instalador
-                    </a>
-                    <a href="mailto:soporte@tudominio.com" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-envelope me-2"></i>Contactar Soporte
-                    </a>
-                </div>
-            </div>';
+      alert(data.message || 'Licencia inválida');
     }
-
-    echo '
-            <div class="diagnostic-info">
-                <h6><i class="fas fa-wrench me-2"></i>Información de Diagnóstico:</h6>
-                <strong>Directorio existe:</strong> ' . ($diagnostic_info['directory_exists'] ? 'Sí' : 'No') . '<br>
-                <strong>Archivo existe:</strong> ' . ($diagnostic_info['file_exists'] ? 'Sí' : 'No') . '<br>
-                <strong>Archivo legible:</strong> ' . ($diagnostic_info['file_readable'] ? 'Sí' : 'No') . '<br>
-                <strong>Dominio actual:</strong> ' . htmlspecialchars($_SERVER['HTTP_HOST']) . '<br>
-                <strong>Última verificación:</strong> ' . ($status['last_check'] ? date('Y-m-d H:i:s', $status['last_check']) : 'N/A') . '<br>
-            </div>
-
-            <p class="text-muted mt-3">
-                <i class="fas fa-info-circle me-1"></i>
-                Contacte al administrador del sistema para resolver este problema.
-            </p>
-        </div>';
-
-    if (in_array($status['status'], ['network_error', 'server_unreachable'])) {
-        echo '
-        <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const statusBox = document.getElementById("verification-status");
-            const spinner = statusBox.querySelector(".spinner-border");
-            const statusText = document.getElementById("status-text");
-            const retryBtn = document.getElementById("retry-btn");
-            async function checkLicense() {
-                spinner.style.display = "inline-block";
-                statusText.textContent = "Verificando licencia...";
-                try {
-                    const resp = await fetch("manual_license_check.php");
-                    const data = await resp.json();
-                    if (data.success) {
-                        statusText.textContent = "Licencia válida. Recargando...";
-                        location.reload();
-                    } else {
-                        statusText.textContent = data.message || "No se pudo verificar la licencia.";
-                        if (data.status === "network_error") {
-                            setTimeout(checkLicense, 60000);
-                        }
-                    }
-                } catch (e) {
-                    statusText.textContent = "Error de red.";
-                    setTimeout(checkLicense, 60000);
-                } finally {
-                    spinner.style.display = "none";
-                }
-            }
-            retryBtn.addEventListener("click", checkLicense);
-            ';
-        if ($status['status'] === 'network_error') {
-            echo 'setTimeout(checkLicense, 60000);';
-        }
-        echo '
-        });
-        </script>';
-    }
-
-    echo '
-    </body>
-    </html>';
-
-    exit();
+  } catch (e) {
+    alert('Error de verificación');
+  }
+});
+</script>
+HTML;
 }
 
 // Incluir dependencias
