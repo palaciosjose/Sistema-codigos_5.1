@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // ===== INTEGRACIÓN DEL SISTEMA DE LICENCIAS CORREGIDA =====
 require_once __DIR__ . '/license_client.php';
+require_once __DIR__ . '/config/config.php';
 
 // Verificar licencia automáticamente (excepto en instalador)
 if (!defined('INSTALLER_MODE')) {
@@ -290,7 +291,6 @@ function showLicenseError($status = null) {
 }
 
 // Incluir dependencias
-require_once 'config/config.php';
 require_once 'decodificador.php';
 require_once 'instalacion/basededatos.php';
 require_once 'cache/cache_helper.php';
