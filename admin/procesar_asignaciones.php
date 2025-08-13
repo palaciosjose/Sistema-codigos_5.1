@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: admin.php?tab=asignaciones');
             }
             exit();
+        case 'add_emails_to_user':
+            addEmailsToUser($conn);
+            break;
         case 'remove_email_from_user':
             removeEmailFromUser($conn);
             break;
@@ -75,6 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'get_available_emails':
             getAvailableEmails($conn);
+            break;
+        case 'search_emails':
+            searchEmails($conn);
             break;
         default:
             header('Content-Type: application/json');
@@ -170,6 +176,45 @@ function assignEmailsToUser($conn) {
     return true;
 }
 
+function addEmailsToUser($conn) {
+    header('Content-Type: application/json');
+
+    $user_id   = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
+    $email_ids = $_POST['email_ids'] ?? [];
+    $assigned_by = $_SESSION['user_id'] ?? null;
+
+    if (!$user_id || !is_array($email_ids)) {
+        echo json_encode(['success' => false, 'error' => 'Datos incompletos para la asignación']);
+        exit();
+    }
+
+    if (empty($email_ids)) {
+        echo json_encode(['success' => true, 'inserted' => 0]);
+        exit();
+    }
+
+    $stmt = $conn->prepare("INSERT IGNORE INTO user_authorized_emails (user_id, authorized_email_id, assigned_by) VALUES (?, ?, ?)");
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Error al preparar inserción: ' . $conn->error]);
+        exit();
+    }
+
+    $inserted = 0;
+    foreach ($email_ids as $email_id) {
+        $email_id_int = filter_var($email_id, FILTER_VALIDATE_INT);
+        if ($email_id_int) {
+            $stmt->bind_param("iii", $user_id, $email_id_int, $assigned_by);
+            if ($stmt->execute() && $stmt->affected_rows > 0) {
+                $inserted++;
+            }
+        }
+    }
+    $stmt->close();
+
+    echo json_encode(['success' => true, 'inserted' => $inserted]);
+    exit();
+}
+
 function removeEmailFromUser($conn) {
     header('Content-Type: application/json');
     
@@ -231,10 +276,10 @@ function getUserEmails($conn) {
     }
     
     $stmt->bind_param("i", $user_id);
-    
+
     if ($stmt->execute()) {
         $result = $stmt->get_result();
-        
+
         $emails = [];
         while ($row = $result->fetch_assoc()) {
             $emails[] = [
@@ -243,12 +288,20 @@ function getUserEmails($conn) {
                 'assigned_at' => $row['assigned_at']
             ];
         }
-        
+
+        $total_result = $conn->query("SELECT COUNT(*) AS total FROM authorized_emails");
+        $total_row = $total_result ? $total_result->fetch_assoc() : ['total' => 0];
+        $total_available = (int)($total_row['total'] ?? 0);
+        if ($total_result instanceof mysqli_result) {
+            $total_result->close();
+        }
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'emails' => $emails,
             'count' => count($emails),
-            'user_id' => $user_id
+            'user_id' => $user_id,
+            'total_available' => $total_available
         ]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
@@ -297,6 +350,52 @@ function getAvailableEmails($conn) {
     }
 
     $stmt->close();
+    exit();
+}
+
+function searchEmails($conn) {
+    if (ob_get_level()) {
+        ob_clean();
+    }
+
+    header('Content-Type: application/json');
+
+    $query  = trim($_GET['query'] ?? '');
+    $offset = filter_var($_GET['offset'] ?? 0, FILTER_VALIDATE_INT);
+    $limit  = filter_var($_GET['limit'] ?? 50, FILTER_VALIDATE_INT);
+
+    $stmt = $conn->prepare("SELECT id, email FROM authorized_emails WHERE email LIKE CONCAT('%', ?, '%') ORDER BY email LIMIT ?, ?");
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Error al preparar la consulta: ' . $conn->error]);
+        exit();
+    }
+
+    $stmt->bind_param('sii', $query, $offset, $limit);
+
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        $emails = [];
+        while ($row = $result->fetch_assoc()) {
+            $emails[] = ['id' => $row['id'], 'email' => $row['email']];
+        }
+        $stmt->close();
+
+        $count_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM authorized_emails WHERE email LIKE CONCAT('%', ?, '%')");
+        if ($count_stmt) {
+            $count_stmt->bind_param('s', $query);
+            $count_stmt->execute();
+            $count_res = $count_stmt->get_result();
+            $total = (int)($count_res->fetch_assoc()['total'] ?? 0);
+            $count_stmt->close();
+        } else {
+            $total = 0;
+        }
+
+        echo json_encode(['success' => true, 'emails' => $emails, 'total' => $total]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Error al ejecutar la consulta: ' . $stmt->error]);
+        $stmt->close();
+    }
     exit();
 }
 
