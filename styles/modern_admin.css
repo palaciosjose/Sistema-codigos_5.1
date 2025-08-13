@@ -300,6 +300,22 @@ body.admin-page::after {
     opacity: 1;
 }
 
+/* Ajustes responsivos para modales */
+.modal-admin .modal-dialog {
+    max-width: 600px;
+    margin: 1.75rem auto;
+}
+
+@media (max-width: 576px) {
+    .modal-admin .modal-dialog {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+    .modal-admin .modal-content {
+        box-shadow: none;
+    }
+}
+
 /* --- CAMPOS DE BÚSQUEDA (NUEVOS ESTILOS NEÓN) --- */
 .search-box-admin {
     position: relative;
