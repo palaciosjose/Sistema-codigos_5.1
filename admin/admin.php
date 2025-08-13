@@ -3751,78 +3751,44 @@ document.head.appendChild(style);
 <div class="modal fade modal-admin" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form id="assignEmailsForm" method="POST" action="procesar_asignaciones.php">
-                <input type="hidden" name="action" value="assign_emails_to_user">
-                <input type="hidden" name="user_id" id="assign_user_id">
-                
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignEmailsModalLabel">
-                        <i class="fas fa-user-cog me-2"></i>
-                        Gestionar Correos para Usuario
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="alert-admin alert-info-admin mb-3">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            Selecciona los correos que <strong id="assign_username"></strong> puede consultar en el sistema.
-                            <br><small>Los cambios se aplicarán inmediatamente después de guardar.</small>
-                        </div>
+            <input type="hidden" id="assign_user_id">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignEmailsModalLabel">
+                    <i class="fas fa-user-cog me-2"></i>
+                    Gestionar Correos para Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="alert-admin alert-info-admin mb-3">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        Selecciona los correos que <strong id="assign_username"></strong> puede consultar en el sistema.
+                        <br><small>Los cambios se aplicarán inmediatamente después de guardar.</small>
                     </div>
-                    
-                    <div class="form-group-admin">
-                        <div class="form-check-admin">
-                            <input class="form-check-input-admin" type="checkbox" id="select_all_emails">
-                            <label class="form-check-label-admin" for="select_all_emails">
-                                <i class="fas fa-check-double me-2"></i>
-                                <strong>Seleccionar/Deseleccionar Todos</strong>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-3">
-                    
-                    <h6 class="mb-3">
-                        <i class="fas fa-envelope-open me-2"></i>
-                        Correos Disponibles:
-                    </h6>
-                    
-                    <?php if (!empty($emails_list)): ?>
-                        <div class="row">
-                            <?php foreach ($emails_list as $email): ?>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check-admin">
-                                        <input class="form-check-input-admin email-checkbox" type="checkbox" name="email_ids[]" value="<?= $email['id'] ?>" id="email_<?= $email['id'] ?>">
-                                        <label class="form-check-label-admin" for="email_<?= $email['id'] ?>">
-                                            <i class="fas fa-envelope me-2 text-muted"></i>
-                                            <?= htmlspecialchars($email['email']) ?>
-                                        </label>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="alert-admin alert-warning-admin">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <div>
-                                <strong>No hay correos autorizados configurados.</strong>
-                                <br>Primero debes añadir correos en la pestaña <strong>Correos Autorizados</strong>.
-                            </div>
-                        </div>
-                    <?php endif; ?>
                 </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button type="submit" class="btn-admin btn-primary-admin">
-                        <i class="fas fa-save"></i> Guardar Asignaciones
-                    </button>
+
+                <div class="form-group-admin mb-2">
+                    <input id="email-search" type="text" class="form-control" placeholder="Buscar correo...">
                 </div>
-            </form>
+
+                <div id="email-list" class="border rounded" style="height:300px; overflow-y:auto;"></div>
+
+                <div class="mt-2">
+                    <span id="selected-count">0 correos seleccionados</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" id="confirm-email-selection" class="btn-admin btn-primary-admin" onclick="confirmEmailSelection()">
+                    Asignar 0 correos seleccionados
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -3832,6 +3798,18 @@ document.head.appendChild(style);
 
 <script>
 // ===== DEFINICIÓN DE TODAS LAS FUNCIONES (SE DEFINEN ANTES DEL DOMContentLoaded) =====
+
+// Variables globales para gestión de correos en el modal de asignación
+let availableEmails = [];
+let selectedEmails = new Set();
+let assignedEmails = new Set();
+let currentUserId = null;
+let currentQuery = '';
+let emailOffset = 0;
+let isFetchingEmails = false;
+let hasMoreEmails = true;
+const EMAIL_PAGE_SIZE = 50;
+const EMAIL_ITEM_HEIGHT = 32;
 
 // Función para editar usuario
 function editUser(id, username, telegramId, status) {
@@ -4131,40 +4109,180 @@ function savePlatformOrder() {
     });
 }
 
+// Actualiza contador y texto del botón de confirmación
+function updateSelectedCount() {
+    const count = selectedEmails.size;
+    const counter = document.getElementById('selected-count');
+    if (counter) {
+        counter.textContent = `${count} correos seleccionados`;
+    }
+    const btn = document.getElementById('confirm-email-selection');
+    if (btn) {
+        btn.textContent = `Asignar ${count} correos seleccionados`;
+    }
+}
+
+// Renderiza lista virtualizada de correos disponibles
+function renderEmailList(clear = false) {
+    const container = document.getElementById('email-list');
+    if (!container) return;
+
+    const total = availableEmails.length;
+    const scrollTop = container.scrollTop;
+    const visibleCount = Math.ceil(container.clientHeight / EMAIL_ITEM_HEIGHT) + 5;
+    const start = Math.floor(scrollTop / EMAIL_ITEM_HEIGHT);
+    const end = Math.min(total, start + visibleCount);
+
+    const fragment = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+        const email = availableEmails[i];
+        const div = document.createElement('div');
+        div.className = 'form-check-admin';
+        div.innerHTML = `
+            <input type="checkbox" class="form-check-input-admin" id="email_${email.id}" ${selectedEmails.has(email.id) ? 'checked' : ''} onchange="toggleEmailSelection(${email.id})">
+            <label class="form-check-label-admin" for="email_${email.id}"><i class="fas fa-envelope me-2 text-muted"></i>${email.email}</label>`;
+        fragment.appendChild(div);
+    }
+
+    container.innerHTML = '';
+    container.style.paddingTop = (start * EMAIL_ITEM_HEIGHT) + 'px';
+    container.style.paddingBottom = ((total - end) * EMAIL_ITEM_HEIGHT) + 'px';
+    container.appendChild(fragment);
+}
+
+// Obtiene correos disponibles desde el servidor
+function fetchAvailableEmails(q = '', offset = 0) {
+    if (isFetchingEmails || !hasMoreEmails || currentUserId === null) return;
+    isFetchingEmails = true;
+
+    const params = new URLSearchParams({
+        action: 'get_available_emails',
+        user_id: currentUserId,
+        q: q,
+        offset: offset
+    });
+
+    fetch('procesar_asignaciones.php?' + params.toString(), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (offset === 0) {
+            availableEmails = [];
+            const container = document.getElementById('email-list');
+            if (container) {
+                container.scrollTop = 0;
+            }
+        }
+        if (data.success && Array.isArray(data.emails)) {
+            availableEmails = availableEmails.concat(data.emails);
+            emailOffset = availableEmails.length;
+            hasMoreEmails = data.has_more;
+            renderEmailList();
+        }
+    })
+    .catch(err => console.error('Error obteniendo correos:', err))
+    .finally(() => { isFetchingEmails = false; });
+}
+
+// Alterna selección de un correo
+function toggleEmailSelection(id) {
+    if (selectedEmails.has(id)) {
+        selectedEmails.delete(id);
+    } else {
+        selectedEmails.add(id);
+    }
+    updateSelectedCount();
+}
+
+// Manejo de scroll para virtualización e infinitas páginas
+function handleEmailScroll(e) {
+    const container = e.target;
+    renderEmailList();
+    if (container.scrollTop + container.clientHeight >= container.scrollHeight - (EMAIL_ITEM_HEIGHT * 5)) {
+        fetchAvailableEmails(currentQuery, emailOffset);
+    }
+}
+
+// Confirma selección de correos y envía al servidor
+function confirmEmailSelection() {
+    if (currentUserId === null) return;
+    const allIds = Array.from(new Set([...assignedEmails, ...selectedEmails]));
+    const params = new URLSearchParams();
+    params.append('action', 'assign_emails_to_user');
+    params.append('user_id', currentUserId);
+    allIds.forEach(id => params.append('email_ids[]', id));
+
+    fetch('procesar_asignaciones.php', {
+        method: 'POST',
+        body: params,
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            assignedEmails = new Set(allIds);
+            selectedEmails.clear();
+            updateSelectedCount();
+            loadUserEmails(currentUserId);
+            const modalEl = document.getElementById('assignEmailsModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        } else {
+            alert(data.error || 'Error al asignar correos');
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+
 // Función para abrir modal de asignar correos
 function openAssignEmailsModal(userId, username) {
     console.log('Abriendo modal para usuario:', userId, username);
-    
+
     if (!userId || !username) {
         alert('Error: Datos de usuario inválidos');
         return;
     }
-    
+
+    currentUserId = userId;
     document.getElementById('assign_user_id').value = userId;
     document.getElementById('assign_username').textContent = username;
-    
-    // Limpiar selecciones anteriores
-    document.querySelectorAll('.email-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    const selectAllCheckbox = document.getElementById('select_all_emails');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.checked = false;
-    }
-    
-    // Cargar emails actualmente asignados
+
+    // Reiniciar estados
+    selectedEmails.clear();
+    assignedEmails.clear();
+    availableEmails = [];
+    emailOffset = 0;
+    hasMoreEmails = true;
+    currentQuery = '';
+    const searchInput = document.getElementById('email-search');
+    if (searchInput) searchInput.value = '';
+    updateSelectedCount();
+    renderEmailList();
+
+    // Cargar emails actualmente asignados y primeros disponibles
     loadUserEmailsForAssignModal(userId);
-    
-    // Mostrar modal
+
     const modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'));
     modal.show();
+
+    const list = document.getElementById('email-list');
+    if (list) {
+        list.removeEventListener('scroll', handleEmailScroll);
+        list.addEventListener('scroll', handleEmailScroll);
+    }
 }
 
 // Función para cargar emails para modal de asignación
 function loadUserEmailsForAssignModal(userId) {
     console.log('Cargando emails para modal de usuario:', userId);
-    
+
     fetch('procesar_asignaciones.php?action=get_user_emails&user_id=' + userId, {
         method: 'GET',
         credentials: 'same-origin',
@@ -4177,32 +4295,24 @@ function loadUserEmailsForAssignModal(userId) {
         if (!response.ok) {
             throw new Error('HTTP ' + response.status + ': ' + response.statusText);
         }
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             throw new Error('Respuesta no es JSON válido');
         }
-        
+
         return response.json();
     })
     .then(data => {
-        console.log('Datos recibidos para modal:', data);
-        
         if (data.success && data.emails) {
-            data.emails.forEach(emailObj => {
-                const checkbox = document.getElementById('email_' + emailObj.id);
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            });
+            data.emails.forEach(emailObj => assignedEmails.add(emailObj.id));
         } else {
-            // Manejo de error si la respuesta AJAX indica un fallo
             throw new Error(data.error || 'Error desconocido al obtener correos para el modal');
         }
+        fetchAvailableEmails(currentQuery, 0);
     })
     .catch(error => {
         console.error('Error cargando emails para modal:', error);
-        // Alertar al usuario si la carga falla
         alert('Error cargando datos para el modal: ' + error.message);
     });
 }
@@ -4521,7 +4631,7 @@ function submitImportEmails() {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Iniciando panel de administración...');
-    
+
     // Configurar modal de edición de correos autorizados
     const editEmailModal = document.getElementById('editEmailModal');
     if (editEmailModal) {
@@ -4535,14 +4645,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Configurar seleccionar todos los emails en modal de asignación
-    const selectAllCheckbox = document.getElementById('select_all_emails');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
-            emailCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
+
+    // Buscar correos disponibles en modal de asignación
+    const emailSearch = document.getElementById('email-search');
+    if (emailSearch) {
+        emailSearch.addEventListener('input', function(e) {
+            currentQuery = e.target.value.trim();
+            emailOffset = 0;
+            hasMoreEmails = true;
+            fetchAvailableEmails(currentQuery, 0);
         });
     }
 
