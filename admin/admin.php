@@ -239,10 +239,11 @@ if ($result_auth) {
         $authorized_emails_list[] = $row_auth;
     }
     $result_auth->close();
-    $emails_list = $authorized_emails_list;
 } else {
     $auth_email_error = "Error al obtener la lista de correos autorizados: " . $conn->error;
 }
+$emails_list = $authorized_emails_list;
+$total_authorized_emails = count($emails_list);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     
@@ -2565,12 +2566,12 @@ $users = $users_list;
                                     </h5>
                                     <div class="user-meta-display">
                                     <i class="fas fa-envelope me-1"></i>
-                                    <span class="user-email-count" id="email-count-<?= $user['id'] ?>">
-                                        <?php
-                                            $email_count = $email_counts[$user['id']] ?? 0;
-                                            echo $email_count . ' correo' . ($email_count != 1 ? 's' : '');
-                                        ?>
-                                    </span>
+                <span class="user-email-count" id="email-count-header-<?= $user['id'] ?>">
+                    <?php
+                        $email_count = $email_counts[$user['id']] ?? 0;
+                        echo $email_count . ' correo' . ($email_count != 1 ? 's' : '');
+                    ?>
+                </span>
                                     <span class="mx-2">|</span>
                                     <i class="fas fa-tags me-1"></i>
                                     <span class="user-subject-count" id="subject-count-<?= $user['id'] ?>">
@@ -2599,39 +2600,24 @@ $users = $users_list;
                                         Correos Autorizados
                                     </h6>
                                     <div class="permission-actions">
-                                        <button class="btn-admin btn-outline-admin btn-sm-admin" onclick="selectAllUserEmails(<?= $user['id'] ?>)">
-                                            <i class="fas fa-check-double me-1"></i>Seleccionar Todo
-                                        </button>
                                         <button class="btn-admin btn-primary-admin btn-sm-admin" onclick="openAdvancedEmailModal(<?= $user['id'] ?>, '<?= htmlspecialchars(addslashes($user['username'])) ?>')">
-                                            <i class="fas fa-cog me-1"></i>Avanzado
+                                            <i class="fas fa-plus me-1"></i>Agregar Correos
                                         </button>
                                     </div>
                                 </div>
-                                
-                                <div class="emails-grid" id="emails-grid-<?= $user['id'] ?>">
-                                    <?php if (!empty($emails_list)): ?>
-                                        <?php foreach ($emails_list as $email): ?>
-                                            <div class="email-checkbox-card" onclick="toggleEmailForUser(<?= $user['id'] ?>, <?= $email['id'] ?>)">
-                                                <div class="form-check-admin">
-                                                    <input class="form-check-input-admin email-checkbox-user" 
-                                                           type="checkbox" 
-                                                           data-user-id="<?= $user['id'] ?>"
-                                                           data-email-id="<?= $email['id'] ?>"
-                                                           id="email_<?= $email['id'] ?>_user_<?= $user['id'] ?>">
-                                                    <label class="form-check-label-admin" for="email_<?= $email['id'] ?>_user_<?= $user['id'] ?>">
-                                                        <i class="fas fa-envelope me-2 text-primary"></i>
-                                                        <strong><?= htmlspecialchars($email['email']) ?></strong>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <div class="no-emails-message">
-                                            <i class="fas fa-exclamation-triangle text-warning"></i>
-                                            <span>No hay correos autorizados configurados. Ve a la pestaña <strong>Correos Autorizados</strong> para añadir algunos.</span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+
+                                <?php if (!empty($emails_list)): ?>
+                                    <?php $email_count = $email_counts[$user['id']] ?? 0; ?>
+                                    <span id="email-count-<?= $user['id'] ?>" data-total="<?= $total_authorized_emails ?>">
+                                        <?= $email_count ?> correo<?= $email_count != 1 ? 's' : '' ?> asignado<?= $email_count != 1 ? 's' : '' ?> de <?= $total_authorized_emails ?>
+                                    </span>
+                                    <div class="email-chips" id="user-email-chips-<?= $user['id'] ?>"></div>
+                                <?php else: ?>
+                                    <div class="no-emails-message">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                                        <span>No hay correos autorizados configurados. Ve a la pestaña <strong>Correos Autorizados</strong> para añadir algunos.</span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Sección de Asuntos por Plataforma -->
@@ -2879,31 +2865,32 @@ $users = $users_list;
     gap: 0.5rem;
 }
 
-/* Grid de correos */
-.emails-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+/* Chips de correos */
+.email-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     margin-top: 1rem;
 }
 
-.email-checkbox-card {
-    background: rgba(0,0,0,0.2);
-    border: 2px solid var(--glow-border);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.email-checkbox-card:hover {
-    border-color: var(--accent-green);
+.email-chip {
     background: rgba(50, 255, 181, 0.1);
+    border: 2px solid var(--accent-green);
+    border-radius: 20px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-primary);
 }
 
-.email-checkbox-card.selected {
-    border-color: var(--accent-green);
-    background: rgba(50, 255, 181, 0.15);
+.email-chip button.remove-email {
+    background: transparent;
+    border: none;
+    color: var(--danger-red);
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-weight: bold;
 }
 
 /* Mensaje cuando no hay correos */
@@ -2960,10 +2947,6 @@ $users = $users_list;
 
 /* Responsive */
 @media (max-width: 768px) {
-    .emails-grid {
-        grid-template-columns: 1fr;
-    }
-    
     .user-permission-header {
         flex-direction: column;
         gap: 1rem;
@@ -3044,85 +3027,79 @@ function collapseAllUsers() {
     });
 }
 
-// Función para alternar selección de email
-function toggleEmailForUser(userId, emailId) {
-    const checkbox = document.getElementById(`email_${emailId}_user_${userId}`);
-    const card = checkbox.closest('.email-checkbox-card');
-    
-    checkbox.checked = !checkbox.checked;
-    
-    if (checkbox.checked) {
-        card.classList.add('selected');
-    } else {
-        card.classList.remove('selected');
-    }
-    
-    updateEmailCount(userId);
-}
-
-// Función para seleccionar todos los correos de un usuario
-function selectAllUserEmails(userId) {
-    const emailsGrid = document.getElementById(`emails-grid-${userId}`);
-    const checkboxes = emailsGrid.querySelectorAll('.email-checkbox-user');
-    const cards = emailsGrid.querySelectorAll('.email-checkbox-card');
-    
-    let allSelected = true;
-    checkboxes.forEach(checkbox => {
-        if (!checkbox.checked) {
-            allSelected = false;
-        }
-    });
-    
-    cards.forEach((card, index) => {
-        const checkbox = checkboxes[index];
-        checkbox.checked = !allSelected;
-        
-        if (checkbox.checked) {
-            card.classList.add('selected');
-        } else {
-            card.classList.remove('selected');
-        }
-    });
-    
-    updateEmailCount(userId);
-}
-
-// Función para actualizar el contador de correos
-function updateEmailCount(userId) {
-    const emailsGrid = document.getElementById(`emails-grid-${userId}`);
-    const checkboxes = emailsGrid.querySelectorAll('.email-checkbox-user:checked');
-    const counter = document.getElementById(`email-count-${userId}`);
-    
-    const count = checkboxes.length;
-    counter.textContent = `${count} correo${count !== 1 ? 's' : ''} asignado${count !== 1 ? 's' : ''}`;
-}
-
-// Función para cargar asignaciones de correos del usuario
+// Cargar correos asignados del usuario
 function loadUserEmailAssignments(userId) {
-    fetch(`procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`,
-        {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
+    const container = document.getElementById(`user-email-chips-${userId}`);
+    if (!container) return;
+
+    container.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</span>';
+
+    fetch(`procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.emails) {
-                data.emails.forEach(email => {
-                    const checkbox = document.getElementById(`email_${email.id}_user_${userId}`);
-                    const card = checkbox ? checkbox.closest('.email-checkbox-card') : null;
-                    
-                    if (checkbox && card) {
-                        checkbox.checked = true;
-                        card.classList.add('selected');
-                    }
-                });
-                updateEmailCount(userId);
+            container.innerHTML = '';
+            if (data.success) {
+                if (data.emails.length > 0) {
+                    data.emails.forEach(email => {
+                        const chip = document.createElement('span');
+                        chip.className = 'email-chip';
+                        chip.id = `email-chip-${userId}-${email.id}`;
+                        chip.innerHTML = `<i class="fas fa-envelope me-1"></i>${escapeHtml(email.email)}<button type="button" class="remove-email" onclick="removeEmailFromUser(${userId}, ${email.id})">&times;</button>`;
+                        container.appendChild(chip);
+                    });
+                } else {
+                    container.innerHTML = '<span class="text-warning">Sin correos asignados</span>';
+                }
+                updateEmailDisplayCount(userId, data.count);
+            } else {
+                container.innerHTML = '<span class="text-danger">Error al cargar correos</span>';
             }
         })
         .catch(error => {
             console.error('Error cargando correos del usuario:', error);
+            container.innerHTML = '<span class="text-danger">Error al cargar</span>';
         });
+}
+
+// Eliminar correo asignado
+function removeEmailFromUser(userId, emailId) {
+    fetch('procesar_asignaciones.php?action=remove_email_from_user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams({ user_id: userId, email_id: emailId })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const chip = document.getElementById(`email-chip-${userId}-${emailId}`);
+                if (chip) chip.remove();
+                const count = document.querySelectorAll(`#user-email-chips-${userId} .email-chip`).length;
+                updateEmailDisplayCount(userId, count);
+            } else {
+                alert(data.error || 'Error al eliminar correo');
+            }
+        })
+        .catch(error => {
+            console.error('Error eliminando correo:', error);
+        });
+}
+
+function updateEmailDisplayCount(userId, count) {
+    const counter = document.getElementById(`email-count-${userId}`);
+    if (!counter) return;
+    const total = counter.dataset.total || 0;
+    counter.textContent = `${count} correo${count !== 1 ? 's' : ''} asignado${count !== 1 ? 's' : ''} de ${total}`;
+    const header = document.getElementById(`email-count-header-${userId}`);
+    if (header) {
+        header.textContent = `${count} correo${count !== 1 ? 's' : ''}`;
+    }
 }
 
 // Función para cargar asignaciones de asuntos del usuario
@@ -3208,103 +3185,57 @@ function updateSubjectCount(userId) {
 
 // Función para guardar todos los permisos de un usuario
 function saveAllUserPermissions(userId) {
-    // Guardar correos
-    const emailCheckboxes = document.querySelectorAll(`.email-checkbox-user[data-user-id="${userId}"]:checked`);
-    const emailIds = Array.from(emailCheckboxes).map(cb => cb.dataset.emailId);
-    
-    // Preparar datos de asuntos
     const subjectData = {};
     const platformContainers = document.querySelectorAll(`[id^="platform_"][id$="_user_${userId}"]`);
-    
+
     platformContainers.forEach(container => {
         const platformId = container.id.match(/platform_(\d+)_user_/)[1];
         const selectedSubjects = container.querySelectorAll('.subject-tag.selected');
-        subjectData[platformId] = Array.from(selectedSubjects).map(tag => 
-            tag.dataset.subject
-        );
+        subjectData[platformId] = Array.from(selectedSubjects).map(tag => tag.dataset.subject);
     });
-    
-    // Guardar correos
-    const formData = new FormData();
-    formData.append('action', 'assign_emails_to_user');
-    formData.append('user_id', userId);
-    emailIds.forEach(id => formData.append('email_ids[]', id));
-    
-    fetch('procesar_asignaciones.php', {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin',
-        body: formData
-    })
-    .then(async response => {
-        console.log('assign_emails_to_user status:', response.status);
-        if (response.ok) {
-            return response.json();
-        }
-        const text = await response.text();
-        throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
-    })
-    .then(data => {
-        if (data.success) {
-            // Guardar asuntos
-            const promises = Object.entries(subjectData).map(([platformId, subjects]) => {
-                return fetch('procesar_asuntos.php?action=save_assignment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        user_id: parseInt(userId),
-                        platform_id: parseInt(platformId),
-                        subjects: subjects
-                    })
-                })
-                .then(async response => {
-                    console.log('save_assignment status:', response.status);
-                    if (!response.ok) {
-                        const text = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
-                    }
-                });
-            });
-            
-            return Promise.all(promises);
-        } else {
-            throw new Error(data.message || 'Error guardando correos');
-        }
-    })
-    .then(() => {
-        // Mostrar mensaje de éxito con un alert
-        const card = document.querySelector(`[data-user-id="${userId}"]`);
-        const username = card.dataset.username;
-        alert(`Cambios guardados correctamente para ${username}`);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al guardar permisos: ' + error.message);
+
+    const promises = Object.entries(subjectData).map(([platformId, subjects]) => {
+        return fetch('procesar_asuntos.php?action=save_assignment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                platform_id: parseInt(platformId),
+                subjects: subjects
+            })
+        }).then(async response => {
+            console.log('save_assignment status:', response.status);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
+            }
+        });
     });
+
+    Promise.all(promises)
+        .then(() => {
+            const card = document.querySelector(`[data-user-id="${userId}"]`);
+            const username = card.dataset.username;
+            alert(`Cambios guardados correctamente para ${username}`);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al guardar permisos: ' + error.message);
+        });
 }
 
 // Función para resetear permisos de usuario
 function resetUserPermissions(userId) {
     if (confirm('¿Estás seguro de que quieres resetear todos los cambios para este usuario?')) {
-        // Desmarcar todos los correos
-        document.querySelectorAll(`.email-checkbox-user[data-user-id="${userId}"]`).forEach(checkbox => {
-            checkbox.checked = false;
-            checkbox.closest('.email-checkbox-card').classList.remove('selected');
-        });
-        
-        // Desmarcar todos los asuntos
         document.querySelectorAll(`#platforms-accordion-${userId} .subject-tag.selected`).forEach(tag => {
             tag.classList.remove('selected');
         });
-        
-        updateEmailCount(userId);
         updateSubjectCount(userId);
+        loadUserEmailAssignments(userId);
     }
 }
 
@@ -5466,9 +5397,9 @@ function loadAllUserEmails() {
     console.log('Cargando emails para sistema de tarjetas...');
     
     // Buscar elementos de conteo de emails (formato correcto)
-    const emailCounters = document.querySelectorAll('[id^="email-count-"]');
+    const emailCounters = Array.from(document.querySelectorAll('[id^="email-count-"]')).filter(c => !c.id.startsWith('email-count-header-'));
     console.log('Contadores de email encontrados:', emailCounters.length);
-    
+
     if (emailCounters.length === 0) {
         console.info('No hay contadores de email para cargar');
         return;
