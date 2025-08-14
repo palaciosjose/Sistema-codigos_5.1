@@ -3785,7 +3785,7 @@ document.head.appendChild(style);
                     <button type="button" class="btn-admin btn-secondary-admin ms-2" onclick="selectAllAvailableEmails()">Todos</button>
                 </div>
 
-                <div id="email-list" class="border rounded" style="height:300px; overflow-y:auto;"></div>
+                <div id="email-list" class="border rounded email-list-container"></div>
 
                 <div class="mt-2 d-flex justify-content-between align-items-center">
                     <span id="selected-count">0 correos seleccionados</span>

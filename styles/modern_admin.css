@@ -708,3 +708,7 @@ body.admin-page::after {
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
     }
 }
+.email-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
