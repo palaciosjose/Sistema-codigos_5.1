@@ -4139,15 +4139,8 @@ function renderEmailList(clear = false) {
     const container = document.getElementById('email-list');
     if (!container) return;
 
-    const total = availableEmails.length;
-    const scrollTop = container.scrollTop;
-    const visibleCount = Math.ceil(container.clientHeight / EMAIL_ITEM_HEIGHT) + 5;
-    const start = Math.floor(scrollTop / EMAIL_ITEM_HEIGHT);
-    const end = Math.min(total, start + visibleCount);
-
     const fragment = document.createDocumentFragment();
-    for (let i = start; i < end; i++) {
-        const email = availableEmails[i];
+    for (const email of availableEmails) {
         const div = document.createElement('div');
         div.className = 'form-check-admin';
         div.innerHTML = `
@@ -4157,8 +4150,6 @@ function renderEmailList(clear = false) {
     }
 
     container.innerHTML = '';
-    container.style.paddingTop = (start * EMAIL_ITEM_HEIGHT) + 'px';
-    container.style.paddingBottom = ((total - end) * EMAIL_ITEM_HEIGHT) + 'px';
     container.appendChild(fragment);
 }
 
@@ -4251,8 +4242,7 @@ function toggleEmailSelection(id) {
 // Manejo de scroll para virtualización e infinitas páginas
 function handleEmailScroll(e) {
     const container = e.target;
-    renderEmailList();
-    if (container.scrollTop + container.clientHeight >= container.scrollHeight - (EMAIL_ITEM_HEIGHT * 5)) {
+    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 50) {
         fetchAvailableEmails(currentQuery, emailOffset);
     }
 }
