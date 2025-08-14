@@ -1609,6 +1609,7 @@ document.addEventListener('visibilitychange', function() {
                         <?php 
                         $personalization_fields = [
                             'PAGE_TITLE' => ['Título SEO de la Página', 'fas fa-heading'],
+                            'ID_VENDEDOR' => ['ID Vendedor', 'fas fa-user-tag'],
                             'enlace_global_1' => ['Enlace del Botón 1', 'fas fa-link'],
                             'enlace_global_1_texto' => ['Texto del Botón 1', 'fas fa-text-width'],
                             'enlace_global_2' => ['Enlace del Botón 2', 'fas fa-link'],
@@ -3684,7 +3685,7 @@ document.head.appendChild(style);
                 <div class="modal-footer">
                     <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cerrar</button>
                     <button type="submit" class="btn-admin btn-primary-admin">
-                        <i class="fas fa-save"></i> Guardar Nombre Plataforma
+                        <i class="fas fa-save"></i> Guardar
                     </button>
                 </div>
             </form>
@@ -3781,7 +3782,7 @@ document.head.appendChild(style);
 
                 <div class="form-group-admin mb-2 d-flex">
                     <input id="email-search" type="text" class="form-control" placeholder="Buscar correo...">
-                    <button type="button" class="btn-admin btn-secondary-admin ms-2" onclick="selectAllAvailableEmails()">Seleccionar todos</button>
+                    <button type="button" class="btn-admin btn-secondary-admin ms-2" onclick="selectAllAvailableEmails()">Todos</button>
                 </div>
 
                 <div id="email-list" class="border rounded" style="height:300px; overflow-y:auto;"></div>
