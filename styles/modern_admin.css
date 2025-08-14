@@ -302,7 +302,7 @@ body.admin-page::after {
 
 /* Ajustes responsivos para modales */
 .modal-admin .modal-dialog {
-    max-width: 600px;
+    max-width: 500px;
     margin: 1.75rem auto;
 }
 
