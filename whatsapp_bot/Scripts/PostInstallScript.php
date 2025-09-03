@@ -1,5 +1,5 @@
 <?php
-namespace TelegramBot\Scripts;
+namespace WhatsappBot\Scripts;
 
 use Composer\Script\Event;
 
@@ -7,7 +7,7 @@ class PostInstallScript
 {
     public static function execute(Event $event = null)
     {
-        echo "\n🚀 Ejecutando post-instalación del Bot de Telegram...\n";
+        echo "\n🚀 Ejecutando post-instalación del Bot de WhatsApp...\n";
         
         $rootDir = self::getRootDirectory();
         
@@ -35,8 +35,8 @@ class PostInstallScript
     private static function ensureDirectoryStructure($rootDir)
     {
         $directories = [
-            "telegram_bot/logs",
-            "telegram_bot/cache", 
+            "whatsapp_bot/logs",
+            "whatsapp_bot/cache",
             "cache"
         ];
         
@@ -57,8 +57,8 @@ class PostInstallScript
         }
         
         $testClasses = [
-            "TelegramBot\\Services\\TelegramAuth",
-            "TelegramBot\\Services\\TelegramQuery"
+            "WhatsappBot\\Services\\WhatsappAuth",
+            "WhatsappBot\\Services\\WhatsappQuery"
         ];
         
         $allWorking = true;
@@ -77,15 +77,15 @@ class PostInstallScript
     private static function applyAutoloaderFix($rootDir)
     {
         $fixContent = '<?php
-if (!defined("TELEGRAM_BOT_AUTOLOADER_FIX")) {
-    define("TELEGRAM_BOT_AUTOLOADER_FIX", true);
+if (!defined("WHATSAPP_BOT_AUTOLOADER_FIX")) {
+    define("WHATSAPP_BOT_AUTOLOADER_FIX", true);
     
     spl_autoload_register(function ($className) {
         $projectRoot = __DIR__ . "/..";
         
-        if (strpos($className, "TelegramBot\\\\") === 0) {
-            $relativePath = substr($className, strlen("TelegramBot\\\\"));
-            $filePath = $projectRoot . "/telegram_bot/" . str_replace("\\\\", "/", $relativePath) . ".php";
+        if (strpos($className, "WhatsappBot\\\\") === 0) {
+            $relativePath = substr($className, strlen("WhatsappBot\\\\"));
+            $filePath = $projectRoot . "/whatsapp_bot/" . str_replace("\\\\", "/", $relativePath) . ".php";
             
             if (file_exists($filePath)) {
                 require_once $filePath;
@@ -115,8 +115,8 @@ if (!defined("TELEGRAM_BOT_AUTOLOADER_FIX")) {
         if (file_exists($mainAutoloader)) {
             $content = file_get_contents($mainAutoloader);
             
-            if (strpos($content, "autoload_fix.php") === false) {
-                $content .= "\n// TelegramBot autoloader fix\nif (file_exists(__DIR__ . '/autoload_fix.php')) { require_once __DIR__ . '/autoload_fix.php'; }\n";
+        if (strpos($content, "autoload_fix.php") === false) {
+                $content .= "\n// WhatsappBot autoloader fix\nif (file_exists(__DIR__ . '/autoload_fix.php')) { require_once __DIR__ . '/autoload_fix.php'; }\n";
                 file_put_contents($mainAutoloader, $content);
             }
         }
@@ -125,8 +125,8 @@ if (!defined("TELEGRAM_BOT_AUTOLOADER_FIX")) {
     private static function setCorrectPermissions($rootDir)
     {
         $permissions = [
-            "telegram_bot/logs" => 0755,
-            "telegram_bot/cache" => 0755,
+            "whatsapp_bot/logs" => 0755,
+            "whatsapp_bot/cache" => 0755,
             "cache" => 0755
         ];
         

@@ -15,13 +15,16 @@
     "scripts": {
         "lint": "find . -name '*.php' -exec php -l {} \\;",
         "post-autoload-dump": [
-            "TelegramBot\\Scripts\\PostInstallScript::execute"
+            "TelegramBot\\Scripts\\PostInstallScript::execute",
+            "WhatsappBot\\Scripts\\PostInstallScript::execute"
         ],
         "post-install-cmd": [
-            "TelegramBot\\Scripts\\PostInstallScript::execute"
+            "TelegramBot\\Scripts\\PostInstallScript::execute",
+            "WhatsappBot\\Scripts\\PostInstallScript::execute"
         ],
         "post-update-cmd": [
-            "TelegramBot\\Scripts\\PostInstallScript::execute"
+            "TelegramBot\\Scripts\\PostInstallScript::execute",
+            "WhatsappBot\\Scripts\\PostInstallScript::execute"
         ],
         "bot-install": [
             "php setup_web.php"
