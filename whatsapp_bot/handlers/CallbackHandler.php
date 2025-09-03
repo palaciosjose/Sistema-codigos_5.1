@@ -2,7 +2,6 @@
 // whatsapp_bot/handlers/CallbackHandler.php
 namespace WhatsappBot\Handlers;
 
-use Shared\ConfigService;
 use WhatsappBot\Services\WhatsappAuth;
 use WhatsappBot\Services\WhatsappQuery;
 use WhatsappBot\Utils\WhatsappAPI;
@@ -17,19 +16,12 @@ class CallbackHandler
 {
     private static ?WhatsappAuth $auth = null;
     private static ?WhatsappQuery $query = null;
-    private static ?WhatsappAPI $api = null;
 
     private static function init(): void
     {
         if (!self::$auth) {
             self::$auth = new WhatsappAuth();
             self::$query = new WhatsappQuery(self::$auth);
-
-            $config = ConfigService::getInstance();
-            self::$api = new WhatsappAPI(
-                $config->get('WHATSAPP_API_URL', ''),
-                $config->get('WHATSAPP_API_TOKEN', '')
-            );
         }
     }
 
@@ -99,7 +91,7 @@ class CallbackHandler
      */
     private static function sendMessage(string $chatId, string $text): void
     {
-        self::$api?->sendMessage($chatId, $text);
+        WhatsappAPI::sendMessage($chatId, $text);
     }
 }
 
