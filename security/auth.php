@@ -16,6 +16,7 @@ $ROLE_PERMISSIONS = [
         'manage_asuntos',
         'manage_asignaciones',
         'manage_telegram',
+        'manage_whatsapp',
         'manage_plataforma',
         'manage_importacion',
         'manage_users',
