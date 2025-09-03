@@ -32,3 +32,10 @@ Este bot está configurado para ser compatible con futuras instalaciones y actua
 ## 📋 Estado del Sistema
 
 El sistema ha sido integrado exitosamente y es compatible con futuras instalaciones.
+
+## 📱 Bot de WhatsApp
+
+El proyecto incluye scripts de Composer para instalar y probar el bot de WhatsApp:
+
+- `composer run whatsapp-install` - ejecuta `setup_whatsapp_web.php` para configurar el bot.
+- `composer run whatsapp-test` - ejecuta `test_whatsapp_web.php` para verificar la instalación.

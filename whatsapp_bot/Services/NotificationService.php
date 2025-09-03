@@ -1,7 +1,7 @@
 <?php
-namespace TelegramBot\Services;
+namespace WhatsappBot\Services;
 
-use TelegramBot\Utils\TelegramAPI;
+use WhatsappBot\Utils\TelegramAPI;
 
 class NotificationService
 {

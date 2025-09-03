@@ -10,8 +10,7 @@
             "TelegramBot\\": "telegram_bot/",
             "Shared\\": "shared/",
             "WhatsappBot\\": "whatsapp_bot/"
-        },
-        "classmap": ["whatsapp_bot/services"]
+        }
     },
     "scripts": {
         "lint": "find . -name '*.php' -exec php -l {} \\;",
