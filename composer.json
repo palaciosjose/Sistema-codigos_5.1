@@ -1,0 +1,41 @@
+{
+    "require": {
+        "guzzlehttp/guzzle": "^7.5",
+        "monolog/monolog": "^3.0",
+        "vlucas/phpdotenv": "^5.5",
+        "longman/telegram-bot": "^0.81"
+    },
+    "autoload": {
+        "psr-4": {
+            "TelegramBot\\": "telegram_bot/",
+            "Shared\\": "shared/"
+        }
+    },
+    "scripts": {
+        "lint": "find . -name '*.php' -exec php -l {} \\;",
+        "post-autoload-dump": [
+            "TelegramBot\\Scripts\\PostInstallScript::execute"
+        ],
+        "post-install-cmd": [
+            "TelegramBot\\Scripts\\PostInstallScript::execute"
+        ],
+        "post-update-cmd": [
+            "TelegramBot\\Scripts\\PostInstallScript::execute"
+        ],
+        "bot-install": [
+            "php setup_web.php"
+        ],
+        "bot-test": [
+            "php test_web.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true
+    },
+    "extra": {
+        "telegram-bot": {
+            "version": "2.0",
+            "auto-setup": true
+        }
+    }
+}
