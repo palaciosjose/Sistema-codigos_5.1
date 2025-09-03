@@ -35,6 +35,30 @@ class TelegramIntegration
             return false;
         }
     }
+
+    /**
+     * Marca un log de búsqueda como originado desde WhatsApp
+     */
+    public function markLogAsWhatsApp(int $logId, string $chatId): bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "
+                UPDATE search_logs
+                SET whatsapp_chat_id = ?, source = 'whatsapp'
+                WHERE id = ?
+                "
+            );
+            $stmt->bind_param('si', $chatId, $logId);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            return $result;
+        } catch (\Exception $e) {
+            error_log("Error marking log as WhatsApp: " . $e->getMessage());
+            return false;
+        }
+    }
     
     /**
      * Registra actividad de usuario en Telegram
