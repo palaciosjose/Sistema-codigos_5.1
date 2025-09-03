@@ -22,14 +22,16 @@ class WhatsappAuth
         $this->logger = new LogService();
     }
 
-    /** Limpia sesiones expiradas */
-    private function cleanupSessions()
+    /** Limpia sesiones temporales expiradas */
+    public function cleanExpiredSessions(): void
     {
         $this->db->query("DELETE FROM whatsapp_sessions WHERE expires_at < NOW() OR is_active = 0");
     }
 
-    /** Obtiene una sesión activa y la extiende */
-    private function getActiveSession($whatsappId)
+    /**
+     * Obtiene una sesión temporal activa y la extiende.
+     */
+    public function getTemporarySession(int $whatsappId): ?array
     {
         $stmt = $this->db->prepare(
             'SELECT ws.id as session_id, u.* FROM whatsapp_sessions ws JOIN users u ON ws.user_id = u.id
@@ -49,8 +51,10 @@ class WhatsappAuth
         return null;
     }
 
-    /** Crea una nueva sesión */
-    private function createSession($whatsappId, $userId)
+    /**
+     * Crea una nueva sesión temporal para un usuario.
+     */
+    public function createTemporarySession(int $whatsappId, int $userId): void
     {
         $token = bin2hex(random_bytes(16));
         $expires = date('Y-m-d H:i:s', time() + self::SESSION_LIFETIME);
@@ -154,7 +158,7 @@ class WhatsappAuth
             'user_id' => $user['id'],
         ]);
 
-        $this->createSession($whatsappId, (int)$user['id']);
+        $this->createTemporarySession($whatsappId, (int)$user['id']);
 
         $stmt = $this->db->prepare(
             'UPDATE users SET last_whatsapp_activity=NOW() WHERE id=?'
@@ -169,11 +173,11 @@ class WhatsappAuth
 
     public function authenticateUser($whatsappId)
     {
-        $this->cleanupSessions();
+        $this->cleanExpiredSessions();
 
         $user = $this->findUserByWhatsappId($whatsappId);
         if (!$user || (int)$user['status'] !== 1) {
-            $user = $this->getActiveSession($whatsappId);
+            $user = $this->getTemporarySession($whatsappId);
             if (!$user || (int)$user['status'] !== 1) {
                 return null;
             }

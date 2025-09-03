@@ -4,7 +4,7 @@ namespace WhatsappBot\Utils;
 /**
  * Cliente sencillo para interactuar con la API de WhatsApp.
  */
-class WhatsAppAPI
+class WhatsappAPI
 {
     private string $baseUrl;
     private string $token;
