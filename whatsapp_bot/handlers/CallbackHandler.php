@@ -1,57 +1,62 @@
 <?php
-// telegram_bot/handlers/CallbackHandler.php
-namespace TelegramBot\Handlers;
+// whatsapp_bot/handlers/CallbackHandler.php
+namespace WhatsappBot\Handlers;
 
-use Longman\TelegramBot\Entities\Update;
-use TelegramBot\Utils\TelegramAPI;
-use TelegramBot\Services\TelegramAuth;
-use TelegramBot\Services\TelegramQuery;
+use Shared\ConfigService;
+use WhatsappBot\Services\WhatsappAuth;
+use WhatsappBot\Services\WhatsappQuery;
+use WhatsappBot\Utils\WhatsappAPI;
 
 /**
- * Manejador de callbacks (botones inline) del bot
+ * Manejador de callbacks del bot de WhatsApp.
+ *
+ * Los callbacks provienen de interacciones de botones en Whaticket,
+ * las cuales envían un payload con `chat_id`, `whatsapp_id` y `data`.
  */
 class CallbackHandler
 {
-    private static ?TelegramAuth $auth = null;
-    private static ?TelegramQuery $query = null;
+    private static ?WhatsappAuth $auth = null;
+    private static ?WhatsappQuery $query = null;
+    private static ?WhatsappAPI $api = null;
 
     private static function init(): void
     {
         if (!self::$auth) {
-            self::$auth = new TelegramAuth();
-            self::$query = new TelegramQuery(self::$auth);
+            self::$auth = new WhatsappAuth();
+            self::$query = new WhatsappQuery(self::$auth);
+
+            $config = ConfigService::getInstance();
+            self::$api = new WhatsappAPI(
+                $config->get('WHATSAPP_API_URL', ''),
+                $config->get('WHATSAPP_API_TOKEN', '')
+            );
         }
     }
 
     /**
-     * Procesa callbacks de botones inline
+     * Procesa un callback adaptado desde Whaticket.
+     *
+     * @param array $payload Datos del callback: chat_id, whatsapp_id y data.
      */
-    public static function handle(Update $update): void
+    public static function handle(array $payload): void
     {
         self::init();
 
-        $callbackQuery = $update->getCallbackQuery();
-        if (!$callbackQuery) {
+        $chatId     = $payload['chat_id'] ?? null;
+        $data       = $payload['data'] ?? null;
+        $whatsappId = $payload['whatsapp_id'] ?? null;
+
+        if (!$chatId || !$whatsappId || !$data) {
             return;
         }
 
-        $chatId = $callbackQuery->getMessage()->getChat()->getId();
-        $data = $callbackQuery->getData();
-        $from = $callbackQuery->getFrom();
-        $telegramId = $from->getId();
-        $telegramUser = $from->getUsername() ?: '';
+        $user = self::$auth->authenticateUser((int)$whatsappId);
 
-        // Verificar autenticación para ciertas acciones
-        $user = self::$auth->authenticateUser($telegramId, $telegramUser);
-        
-        // Cargar mensajes y teclados
         $messages = include dirname(__DIR__) . '/templates/messages.php';
-        $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
 
-        // Procesar según el callback
         switch ($data) {
             case 'help':
-                self::sendMessage($chatId, $messages['help'], $keyboards['help_menu']);
+                self::sendMessage($chatId, $messages['help']);
                 break;
 
             case 'search_menu':
@@ -59,7 +64,7 @@ class CallbackHandler
                     self::sendMessage($chatId, $messages['unauthorized']);
                     break;
                 }
-                self::sendMessage($chatId, $messages['search_instructions'], $keyboards['search_menu']);
+                self::sendMessage($chatId, $messages['search_instructions']);
                 break;
 
             case 'start_menu':
@@ -67,15 +72,7 @@ class CallbackHandler
                     self::sendMessage($chatId, $messages['unauthorized']);
                     break;
                 }
-                self::sendMessage($chatId, $messages['welcome'], $keyboards['start']);
-                break;
-
-            case 'config':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleConfigCallback($chatId, $telegramId, $telegramUser);
+                self::sendMessage($chatId, $messages['welcome']);
                 break;
 
             case 'stats':
@@ -83,233 +80,26 @@ class CallbackHandler
                     self::sendMessage($chatId, $messages['unauthorized']);
                     break;
                 }
-                self::handleStatsCallback($chatId, $telegramId);
-                break;
-
-            case 'search_email':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::sendMessage($chatId, $messages['search_instructions'], $keyboards['back_to_start']);
-                break;
-
-            case 'search_id':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::sendMessage($chatId, $messages['code_instructions'], $keyboards['back_to_start']);
-                break;
-
-            case 'list_platforms':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleListPlatforms($chatId, $telegramId, $telegramUser);
-                break;
-
-            case 'help_commands':
-                self::sendMessage($chatId, $messages['help'], $keyboards['help_menu']);
-                break;
-
-            case 'help_search':
-                self::sendMessage($chatId, $messages['search_instructions'], $keyboards['help_menu']);
-                break;
-
-            case 'help_config':
-                self::sendMessage($chatId, $messages['config_info'], $keyboards['help_menu']);
-                break;
-
-            case 'admin_stats':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleStatsCallback($chatId, $telegramId);
-                break;
-
-            case 'admin_users':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleAdminUsers($chatId, $telegramId);
-                break;
-
-            case 'admin_config':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleAdminConfig($chatId, $telegramId);
-                break;
-
-            case 'admin_logs':
-                if (!$user) {
-                    self::sendMessage($chatId, $messages['unauthorized']);
-                    break;
-                }
-                self::handleAdminLogs($chatId, $telegramId);
+                $stats = self::$query->getStats();
+                $msg = "📊 *Estadísticas del Bot*\n\n" .
+                       "👥 Usuarios activos: *{$stats['active_users']}*\n" .
+                       "🔍 Búsquedas hoy: *{$stats['searches_today']}*\n" .
+                       "📈 Total búsquedas: *{$stats['total_searches']}*";
+                self::sendMessage($chatId, $msg);
                 break;
 
             default:
-                self::sendMessage($chatId, $messages['invalid_format'], $keyboards['start']);
+                self::sendMessage($chatId, $messages['invalid_format']);
                 break;
         }
-
-        // Confirmar el callback
-        TelegramAPI::answerCallbackQuery($callbackQuery->getId());
     }
 
     /**
-     * Envía un mensaje con teclado opcional
+     * Envía un mensaje a través de la API de WhatsApp.
      */
-    private static function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
+    private static function sendMessage(string $chatId, string $text): void
     {
-        $extra = [];
-        if ($keyboard) {
-            $extra['reply_markup'] = json_encode($keyboard);
-        }
-        TelegramAPI::sendMessage($chatId, $text, $extra);
-    }
-
-    /**
-     * Maneja el callback de configuración
-     */
-    private static function handleConfigCallback(int $chatId, int $telegramId, string $telegramUser): void
-    {
-        try {
-            $config = self::$query->getUserConfig($telegramId, $telegramUser);
-            if (isset($config['error'])) {
-                $messages = include dirname(__DIR__) . '/templates/messages.php';
-                self::sendMessage($chatId, $messages['error_prefix'] . $config['error']);
-                return;
-            }
-
-            $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-            
-            $message = "⚙️ *Tu Configuración*\n\n";
-            $message .= "👤 Usuario: `{$config['username']}`\n";
-            $message .= "🆔 Telegram ID: `{$config['telegram_id']}`\n";
-            $message .= "🎭 Rol: *{$config['role']}*\n";
-            $message .= "✅ Estado: " . ($config['status'] ? 'Activo' : 'Inactivo') . "\n\n";
-            
-            $emailCount = count($config['permissions']['emails'] ?? []);
-            $subjectCount = count($config['permissions']['subjects'] ?? []);
-            
-            $message .= "📧 Emails autorizados: *{$emailCount}*\n";
-            $message .= "🏷️ Plataformas disponibles: *{$subjectCount}*\n";
-            
-            if (isset($config['last_activity']) && $config['last_activity']) {
-                $message .= "🕒 Última actividad: `{$config['last_activity']}`";
-            }
-
-            self::sendMessage($chatId, $message, $keyboards['back_to_start']);
-        } catch (\Exception $e) {
-            error_log("Error en configuración callback: " . $e->getMessage());
-            $messages = include dirname(__DIR__) . '/templates/messages.php';
-            self::sendMessage($chatId, $messages['error_generic']);
-        }
-    }
-
-    /**
-     * Maneja el callback de estadísticas
-     */
-    private static function handleStatsCallback(int $chatId, int $telegramId): void
-    {
-        try {
-            $stats = self::$query->getUserStats($telegramId);
-            if (isset($stats['error'])) {
-                $messages = include dirname(__DIR__) . '/templates/messages.php';
-                self::sendMessage($chatId, $messages['error_prefix'] . $stats['error']);
-                return;
-            }
-
-            $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-
-            $message = "📊 *Estadísticas del Bot*\n\n";
-            $message .= "👥 Usuarios activos: *{$stats['active_users']}*\n";
-            $message .= "🔍 Búsquedas hoy: *{$stats['searches_today']}*\n";
-            $message .= "📈 Total búsquedas: *{$stats['total_searches']}*\n\n";
-            
-            if (!empty($stats['top_users'])) {
-                $message .= "🏆 *Top usuarios \\(7 días\\):*\n";
-                foreach ($stats['top_users'] as $i => $user) {
-                    $pos = $i + 1;
-                    $message .= "{$pos}\\. `{$user['username']}`: *{$user['searches']}* búsquedas\n";
-                }
-            }
-
-            self::sendMessage($chatId, $message, $keyboards['back_to_start']);
-        } catch (\Exception $e) {
-            error_log("Error en estadísticas callback: " . $e->getMessage());
-            $messages = include dirname(__DIR__) . '/templates/messages.php';
-            self::sendMessage($chatId, $messages['error_generic']);
-        }
-    }
-
-    /**
-     * Lista las plataformas disponibles
-     */
-    private static function handleListPlatforms(int $chatId, int $telegramId, string $telegramUser): void
-    {
-        try {
-            $result = self::$query->getAvailablePlatforms($telegramId, $telegramUser);
-            if (isset($result['error'])) {
-                $messages = include dirname(__DIR__) . '/templates/messages.php';
-                self::sendMessage($chatId, $messages['error_prefix'] . $result['error']);
-                return;
-            }
-
-            $platforms = $result['platforms'] ?? [];
-            $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-
-            $message = "🏷️ *Plataformas Disponibles:*\n\n";
-            foreach ($platforms as $platform) {
-                $message .= "• `{$platform['name']}`\n";
-            }
-            $message .= "\n💡 *Tip:* Usa exactamente estos nombres en tus búsquedas\\.";
-
-            self::sendMessage($chatId, $message, $keyboards['search_menu']);
-        } catch (\Exception $e) {
-            error_log("Error listando plataformas: " . $e->getMessage());
-            $messages = include dirname(__DIR__) . '/templates/messages.php';
-            self::sendMessage($chatId, $messages['error_generic']);
-        }
-    }
-
-    /**
-     * Maneja usuarios admin (solo para administradores)
-     */
-    private static function handleAdminUsers(int $chatId, int $telegramId): void
-    {
-        // Implementar funcionalidad de administración de usuarios
-        $messages = include dirname(__DIR__) . '/templates/messages.php';
-        $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-        self::sendMessage($chatId, "👥 *Gestión de Usuarios*\n\nFuncionalidad en desarrollo\\.", $keyboards['back_to_start']);
-    }
-
-    /**
-     * Configuración de administrador
-     */
-    private static function handleAdminConfig(int $chatId, int $telegramId): void
-    {
-        // Implementar configuración de admin
-        $messages = include dirname(__DIR__) . '/templates/messages.php';
-        $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-        self::sendMessage($chatId, "🔧 *Configuración del Sistema*\n\nFuncionalidad en desarrollo\\.", $keyboards['back_to_start']);
-    }
-
-    /**
-     * Logs del sistema para admin
-     */
-    private static function handleAdminLogs(int $chatId, int $telegramId): void
-    {
-        // Implementar visualización de logs
-        $messages = include dirname(__DIR__) . '/templates/messages.php';
-        $keyboards = include dirname(__DIR__) . '/templates/keyboards.php';
-        self::sendMessage($chatId, "📝 *Logs del Sistema*\n\nFuncionalidad en desarrollo\\.", $keyboards['back_to_start']);
+        self::$api?->sendMessage($chatId, $text);
     }
 }
+
