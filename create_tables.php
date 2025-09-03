@@ -41,11 +41,13 @@ if (isset($_POST['create_tables'])) {
             status ENUM('searching', 'found', 'not_found', 'error') DEFAULT 'searching',
             result_details TEXT,
             telegram_chat_id BIGINT NULL,
+            whatsapp_chat_id VARCHAR(255) NULL,
             source VARCHAR(50) DEFAULT 'web',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             completed_at TIMESTAMP NULL,
             INDEX idx_user_id (user_id),
             INDEX idx_telegram_chat_id (telegram_chat_id),
+            INDEX idx_whatsapp_chat_id (whatsapp_chat_id),
             INDEX idx_created_at (created_at),
             INDEX idx_source (source)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
@@ -55,6 +57,27 @@ if (isset($_POST['create_tables'])) {
         } else {
             $tables[] = "❌ search_logs: " . $conn->error;
         }
+
+        // Asegurar columnas whatsapp_chat_id y source
+        $result_ws = $conn->query("SHOW COLUMNS FROM search_logs LIKE 'whatsapp_chat_id'");
+        if ($result_ws && $result_ws->num_rows == 0) {
+            if ($conn->query("ALTER TABLE search_logs ADD COLUMN whatsapp_chat_id VARCHAR(255) NULL AFTER telegram_chat_id")) {
+                $tables[] = "✅ search_logs: columna whatsapp_chat_id agregada";
+            } else {
+                $tables[] = "❌ search_logs: error agregando whatsapp_chat_id: " . $conn->error;
+            }
+        }
+        if ($result_ws) { $result_ws->close(); }
+
+        $result_src = $conn->query("SHOW COLUMNS FROM search_logs LIKE 'source'");
+        if ($result_src && $result_src->num_rows == 0) {
+            if ($conn->query("ALTER TABLE search_logs ADD COLUMN source VARCHAR(50) DEFAULT 'web' AFTER whatsapp_chat_id")) {
+                $tables[] = "✅ search_logs: columna source agregada";
+            } else {
+                $tables[] = "❌ search_logs: error agregando columna source: " . $conn->error;
+            }
+        }
+        if ($result_src) { $result_src->close(); }
         
         // 2. Tabla telegram_activity_log (opcional)
         $sql2 = "CREATE TABLE IF NOT EXISTS telegram_activity_log (
@@ -66,14 +89,31 @@ if (isset($_POST['create_tables'])) {
             INDEX idx_telegram_id (telegram_id),
             INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-        
+
         if ($conn->query($sql2)) {
             $tables[] = "✅ telegram_activity_log";
         } else {
             $tables[] = "❌ telegram_activity_log: " . $conn->error;
         }
+
+        // 3. Tabla whatsapp_activity_log (opcional)
+        $sql2b = "CREATE TABLE IF NOT EXISTS whatsapp_activity_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            whatsapp_id BIGINT NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_whatsapp_id (whatsapp_id),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        if ($conn->query($sql2b)) {
+            $tables[] = "✅ whatsapp_activity_log";
+        } else {
+            $tables[] = "❌ whatsapp_activity_log: " . $conn->error;
+        }
         
-        // 3. Verificar y actualizar tabla users para telegram_id
+        // 4. Verificar y actualizar tabla users para telegram_id
         $sql3 = "SHOW COLUMNS FROM users LIKE 'telegram_id'";
         $result = $conn->query($sql3);
         
@@ -94,8 +134,29 @@ if (isset($_POST['create_tables'])) {
         } else {
             $tables[] = "✅ users: ya tiene columna telegram_id";
         }
+
+        // Verificar columnas para WhatsApp
+        $result = $conn->query("SHOW COLUMNS FROM users LIKE 'whatsapp_id'");
+        if ($result && $result->num_rows == 0) {
+            if ($conn->query("ALTER TABLE users ADD COLUMN whatsapp_id BIGINT NULL AFTER telegram_id")) {
+                $tables[] = "✅ users: columna whatsapp_id agregada";
+            } else {
+                $tables[] = "❌ users: error agregando whatsapp_id: " . $conn->error;
+            }
+        }
+        if ($result) { $result->close(); }
+
+        $result = $conn->query("SHOW COLUMNS FROM users LIKE 'last_whatsapp_activity'");
+        if ($result && $result->num_rows == 0) {
+            if ($conn->query("ALTER TABLE users ADD COLUMN last_whatsapp_activity TIMESTAMP NULL")) {
+                $tables[] = "✅ users: columna last_whatsapp_activity agregada";
+            } else {
+                $tables[] = "❌ users: error agregando last_whatsapp_activity: " . $conn->error;
+            }
+        }
+        if ($result) { $result->close(); }
         
-        // 4. Verificar tabla platforms
+        // 5. Verificar tabla platforms
         $sql4 = "CREATE TABLE IF NOT EXISTS platforms (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(100) NOT NULL UNIQUE,
@@ -137,7 +198,7 @@ if (isset($_POST['create_tables'])) {
         }
         $tables[] = "✅ Plataformas básicas insertadas";
         
-        // 5. Verificar tabla servers
+        // 6. Verificar tabla servers
         $sql5 = "CREATE TABLE IF NOT EXISTS servers (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
@@ -156,7 +217,7 @@ if (isset($_POST['create_tables'])) {
             $tables[] = "✅ servers";
         }
 
-        // 6. Tabla audit_log
+        // 7. Tabla audit_log
         $sql6 = "CREATE TABLE IF NOT EXISTS audit_log (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NULL,
@@ -171,6 +232,42 @@ if (isset($_POST['create_tables'])) {
             $tables[] = "✅ audit_log";
         } else {
             $tables[] = "❌ audit_log: " . $conn->error;
+        }
+
+        // 8. Tabla whatsapp_temp_data
+        $sql7 = "CREATE TABLE IF NOT EXISTS whatsapp_temp_data (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            data_type VARCHAR(100) NOT NULL,
+            data_content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_user_type (user_id, data_type),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        if ($conn->query($sql7)) {
+            $tables[] = "✅ whatsapp_temp_data";
+        } else {
+            $tables[] = "❌ whatsapp_temp_data: " . $conn->error;
+        }
+
+        // 9. Tabla whatsapp_sessions
+        $sql8 = "CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            whatsapp_id BIGINT NOT NULL,
+            user_id INT NOT NULL,
+            session_token VARCHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_whatsapp_id (whatsapp_id),
+            INDEX idx_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        if ($conn->query($sql8)) {
+            $tables[] = "✅ whatsapp_sessions";
+        } else {
+            $tables[] = "❌ whatsapp_sessions: " . $conn->error;
         }
 
         $conn->close();
@@ -200,12 +297,15 @@ if (isset($_POST['create_tables'])) {
     echo "<div style='background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0;'>";
     echo "<h3>📋 Tablas que se crearán:</h3>";
     echo "<ul>";
-    echo "<li><strong>search_logs:</strong> Para registrar búsquedas del bot</li>";
-    echo "<li><strong>telegram_activity_log:</strong> Para actividad de usuarios</li>";
+    echo "<li><strong>search_logs:</strong> Registro de búsquedas (incluye whatsapp_chat_id y source)</li>";
+    echo "<li><strong>telegram_activity_log:</strong> Para actividad de usuarios en Telegram</li>";
+    echo "<li><strong>whatsapp_activity_log:</strong> Para actividad de usuarios en WhatsApp</li>";
     echo "<li><strong>platforms:</strong> Plataformas disponibles (si no existe)</li>";
     echo "<li><strong>servers:</strong> Servidores de email (si no existe)</li>";
-    echo "<li><strong>users:</strong> Agregar columnas telegram_id (si no existe)</li>";
+    echo "<li><strong>users:</strong> Agregar columnas telegram_id y whatsapp_id (si no existen)</li>";
     echo "<li><strong>audit_log:</strong> Registro de acciones críticas</li>";
+    echo "<li><strong>whatsapp_temp_data:</strong> Datos temporales para autenticación</li>";
+    echo "<li><strong>whatsapp_sessions:</strong> Sesiones activas de WhatsApp</li>";
     echo "</ul>";
     echo "</div>";
     
