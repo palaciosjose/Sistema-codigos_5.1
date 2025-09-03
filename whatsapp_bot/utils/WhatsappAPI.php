@@ -1,28 +1,23 @@
 <?php
 namespace WhatsappBot\Utils;
 
+require_once __DIR__ . '/../config/whatsapp_config.php';
+
+use RuntimeException;
+
 /**
- * Cliente sencillo para interactuar con la API de WhatsApp.
+ * Cliente estático para interactuar con la API de WhatsApp.
  */
 class WhatsappAPI
 {
-    private string $baseUrl;
-    private string $token;
-
-    public function __construct(string $baseUrl, string $token)
-    {
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->token = $token;
-    }
-
     /**
      * Envía un mensaje de texto a un chat.
      */
-    public function sendMessage(string $chatId, string $text): array
+    public static function sendMessage(string $chatId, string $text): array
     {
-        return $this->makeRequest('/sendMessage', [
+        return self::makeRequest('/sendMessage', [
             'chatId' => $chatId,
-            'body'   => $text
+            'body'   => $text,
         ]);
     }
 
@@ -30,38 +25,38 @@ class WhatsappAPI
      * Envía una acción de chat (ej. typing).
      * No lanza excepción en caso de fallo.
      */
-    public function sendChatAction(string $chatId, string $action): ?array
+    public static function sendChatAction(string $chatId, string $action): ?array
     {
-        return $this->makeRequest('/sendChatAction', [
+        return self::makeRequest('/sendChatAction', [
             'chatId' => $chatId,
-            'action' => $action
+            'action' => $action,
         ], false);
     }
 
     /**
      * Verifica si un número existe en WhatsApp.
      */
-    public function checkNumber(string $phone): array
+    public static function checkNumber(string $phone): array
     {
-        return $this->makeRequest('/checkNumber', ['phone' => $phone]);
+        return self::makeRequest('/checkNumber', ['phone' => $phone]);
     }
 
     /**
      * Configura el webhook de la instancia.
      * Errores no críticos.
      */
-    public function setWebhook(string $url): ?array
+    public static function setWebhook(string $url): ?array
     {
-        return $this->makeRequest('/setWebhook', ['url' => $url], false);
+        return self::makeRequest('/setWebhook', ['url' => $url], false);
     }
 
     /**
      * Obtiene información de la instancia.
      * Errores no críticos.
      */
-    public function getInstanceInfo(): ?array
+    public static function getInstanceInfo(): ?array
     {
-        return $this->makeRequest('/getInstanceInfo', [], false);
+        return self::makeRequest('/getInstanceInfo', [], false);
     }
 
     /**
@@ -71,22 +66,25 @@ class WhatsappAPI
      * @param array  $payload  Datos a enviar en JSON.
      * @param bool   $critical Si es true, lanza excepción ante errores.
      * @return array|null      Respuesta decodificada o null en fallo no crítico.
-     * @throws \RuntimeException Si la petición falla en modo crítico.
+     * @throws RuntimeException Si la petición falla en modo crítico.
      */
-    private function makeRequest(string $endpoint, array $payload = [], bool $critical = true): ?array
+    private static function makeRequest(string $endpoint, array $payload = [], bool $critical = true): ?array
     {
-        $url = $this->baseUrl . $endpoint;
-        $ch = curl_init($url);
+        $baseUrl = rtrim(\WhatsappBot\Config\WHATSAPP_API_URL, '/');
+        $token   = \WhatsappBot\Config\WHATSAPP_API_TOKEN;
+
+        $url = $baseUrl . $endpoint;
+        $ch  = curl_init($url);
 
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . $this->token
+            'Authorization: Bearer ' . $token,
         ];
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_HTTPHEADER => $headers
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => $headers,
         ]);
 
         if (!empty($payload)) {
@@ -95,14 +93,14 @@ class WhatsappAPI
         }
 
         $response = curl_exec($ch);
-        $error = curl_error($ch);
+        $error    = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($response === false || $httpCode >= 400) {
             if ($critical) {
                 $message = $error ?: 'HTTP ' . $httpCode;
-                throw new \RuntimeException('Request failed: ' . $message);
+                throw new RuntimeException('Request failed: ' . $message);
             }
             return null;
         }
@@ -110,7 +108,7 @@ class WhatsappAPI
         $decoded = json_decode($response, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             if ($critical) {
-                throw new \RuntimeException('Invalid JSON response');
+                throw new RuntimeException('Invalid JSON response');
             }
             return null;
         }
@@ -118,3 +116,4 @@ class WhatsappAPI
         return $decoded;
     }
 }
+
