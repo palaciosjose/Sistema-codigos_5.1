@@ -34,11 +34,11 @@ if (file_exists(PROJECT_ROOT . "/vendor/autoload.php")) {
 }
 
 echo "<h2>2️⃣ Test de webhook</h2>";
-if (file_exists(PROJECT_ROOT . "/whatsapp_bot/whaticket_webhook.php")) {
-    echo "<p>✅ whaticket_webhook.php encontrado</p>";
+if (file_exists(PROJECT_ROOT . "/whatsapp_bot/webhook.php")) {
+    echo "<p>✅ webhook.php encontrado</p>";
 } else {
-    echo "<p>❌ whaticket_webhook.php no encontrado</p>";
-    $errors[] = "whaticket_webhook.php no encontrado";
+    echo "<p>❌ webhook.php no encontrado</p>";
+    $errors[] = "webhook.php no encontrado";
 }
 
 echo "<h2>3️⃣ Test de base de datos</h2>";
