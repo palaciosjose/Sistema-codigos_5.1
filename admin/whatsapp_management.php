@@ -29,20 +29,103 @@ function set_setting($conn, $name, $value) {
     }
 }
 
+
+function test_api_connection($url, $token, $instance) {
+    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+    $payload = json_encode(['instance' => $instance]);
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
+    ]);
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $code >= 400) {
+        return [false, 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code)];
+    }
+    return [true, 'Conexión a la API exitosa'];
+}
+
+function register_webhook($url, $token, $instance, $webhook_url, $secret) {
+    if (empty($webhook_url)) {
+        return [false, 'URL de webhook no configurada'];
+    }
+    $endpoint = rtrim($url, '/') . '/setWebhook';
+    $payload = json_encode([
+        'url' => $webhook_url,
+        'secret' => $secret,
+        'instance' => $instance
+    ]);
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
+    ]);
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $code >= 400) {
+        return [false, 'Error al registrar webhook: ' . ($error ?: 'HTTP ' . $code)];
+    }
+    return [true, 'Webhook registrado correctamente'];
+}
+
 $message = '';
+$error_message = '';
+$api_result = null;
+$webhook_result = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $api_url = trim($_POST['api_url'] ?? '');
     $token = trim($_POST['token'] ?? '');
     $instance = trim($_POST['instance'] ?? '');
-    set_setting($conn, 'WHATSAPP_API_URL', $api_url);
-    set_setting($conn, 'WHATSAPP_TOKEN', $token);
-    set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
-    $message = 'Configuración guardada correctamente.';
+    $webhook_secret = trim($_POST['webhook_secret'] ?? '');
+
+    $errors = [];
+    if (!filter_var($api_url, FILTER_VALIDATE_URL)) {
+        $errors[] = 'API URL inválida';
+    }
+    if ($token === '') {
+        $errors[] = 'El token es obligatorio';
+    }
+    if ($instance === '') {
+        $errors[] = 'La instancia es obligatoria';
+    }
+    if ($webhook_secret === '') {
+        $errors[] = 'El secreto del webhook es obligatorio';
+    }
+
+    if (empty($errors)) {
+        set_setting($conn, 'WHATSAPP_API_URL', $api_url);
+        set_setting($conn, 'WHATSAPP_TOKEN', $token);
+        set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
+        set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
+        $message = 'Configuración guardada correctamente. Tras guardar, ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.';
+        $api_result = test_api_connection($api_url, $token, $instance);
+        $webhook_result = register_webhook($api_url, $token, $instance, get_setting($conn, 'WHATSAPP_WEBHOOK_URL'), $webhook_secret);
+    } else {
+        $error_message = implode('<br>', $errors);
+    }
 }
 
 $api_url = get_setting($conn, 'WHATSAPP_API_URL');
 $token = get_setting($conn, 'WHATSAPP_TOKEN');
 $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
+$webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
 $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
 $webhook_status = $webhook_url ? 'Configurado' : 'No configurado';
 
@@ -74,8 +157,17 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
 <body class="bg-dark text-white">
 <div class="container py-4">
     <h1 class="mb-4">Gestión Bot WhatsApp</h1>
+    <?php if (!empty($error_message)): ?>
+        <div class="alert alert-danger"><?php echo $error_message; ?></div>
+    <?php endif; ?>
     <?php if (!empty($message)): ?>
-        <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
+        <div class="alert alert-success"><?php echo $message; ?></div>
+    <?php endif; ?>
+    <?php if ($api_result): ?>
+        <div class="alert alert-<?php echo $api_result[0] ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($api_result[1]); ?></div>
+    <?php endif; ?>
+    <?php if ($webhook_result): ?>
+        <div class="alert alert-<?php echo $webhook_result[0] ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($webhook_result[1]); ?></div>
     <?php endif; ?>
     <form method="post" class="mb-4">
         <div class="mb-3">
@@ -90,7 +182,12 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
             <label class="form-label">Instancia</label>
             <input type="text" name="instance" class="form-control" value="<?php echo htmlspecialchars($instance); ?>">
         </div>
+        <div class="mb-3">
+            <label class="form-label">Webhook Secret</label>
+            <input type="text" name="webhook_secret" class="form-control" value="<?php echo htmlspecialchars($webhook_secret); ?>">
+        </div>
         <button type="submit" class="btn btn-primary">Guardar</button>
+        <p class="mt-3">Tras guardar los valores ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.</p>
     </form>
 
     <div class="mb-4">
