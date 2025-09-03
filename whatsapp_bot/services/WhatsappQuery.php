@@ -180,4 +180,46 @@ class WhatsappQuery
             'message' => 'Código encontrado'
         ];
     }
+
+    /**
+     * Obtiene estadísticas de uso del bot de WhatsApp.
+     */
+    public function getStats(): array
+    {
+        $stats = [
+            'active_users' => 0,
+            'searches_today' => 0,
+            'total_searches' => 0,
+        ];
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(DISTINCT whatsapp_id) AS active FROM users WHERE whatsapp_id IS NOT NULL AND status=1 AND last_whatsapp_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            );
+            $stmt->execute();
+            $res = $stmt->get_result()->fetch_assoc();
+            $stats['active_users'] = (int)($res['active'] ?? 0);
+            $stmt->close();
+
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) AS c FROM search_logs WHERE source='whatsapp' AND DATE(created_at)=CURDATE()"
+            );
+            $stmt->execute();
+            $res = $stmt->get_result()->fetch_assoc();
+            $stats['searches_today'] = (int)($res['c'] ?? 0);
+            $stmt->close();
+
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) AS c FROM search_logs WHERE source='whatsapp'"
+            );
+            $stmt->execute();
+            $res = $stmt->get_result()->fetch_assoc();
+            $stats['total_searches'] = (int)($res['c'] ?? 0);
+            $stmt->close();
+        } catch (\Throwable $e) {
+            // ignore DB errors and return zeros
+        }
+
+        return $stats;
+    }
 }

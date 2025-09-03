@@ -43,15 +43,30 @@ $text = $payload['text'];
 $auth = new WhatsappAuth();
 $query = new WhatsappQuery($auth);
 
-if (preg_match('/^login\s+(\S+)\s+(\S+)/i', $text, $m)) {
+if (preg_match('/^\/login\s+(\S+)\s+(\S+)/i', $text, $m)) {
     $user = $auth->loginWithCredentials((int)$whatsappId, $m[1], $m[2]);
     $response = $user ? ['success' => true, 'message' => 'Sesión iniciada'] : ['error' => 'Credenciales inválidas'];
-} elseif (preg_match('/^buscar\s+(\S+)\s+(\S+)/i', $text, $m)) {
+    $logger->logCommand((int)$whatsappId, 'login', ['username' => $m[1]]);
+} elseif (preg_match('/^\/buscar\s+(\S+)\s+(\S+)/i', $text, $m)) {
     $response = $query->processSearchRequest((int)$whatsappId, (int)$chatId, $m[1], $m[2]);
-} elseif (preg_match('/^codigo\s+(\d+)/i', $text, $m)) {
+    $logger->logCommand((int)$whatsappId, 'buscar', ['email' => $m[1], 'platform' => $m[2]]);
+} elseif (preg_match('/^\/codigo\s+(\d+)/i', $text, $m)) {
     $response = $query->getCodeById((int)$whatsappId, (int)$m[1]);
+    $logger->logCommand((int)$whatsappId, 'codigo', ['id' => (int)$m[1]]);
+} elseif (preg_match('/^\/stats$/i', $text)) {
+    $response = $query->getStats();
+    $logger->logCommand((int)$whatsappId, 'stats');
+} elseif (preg_match('/^\/ayuda$/i', $text)) {
+    $response = ['message' => 'Comandos: /start, /login usuario clave, /buscar email plataforma, /codigo id, /stats, /ayuda'];
+    $logger->logCommand((int)$whatsappId, 'ayuda');
+} elseif (preg_match('/^\/start$/i', $text)) {
+    $user = $auth->authenticateUser((int)$whatsappId);
+    $msg = $user ? 'Hola ' . $user['username'] . ', usa /ayuda para más info.' : 'Bienvenido. Usa /login usuario clave para iniciar sesión.';
+    $response = ['message' => $msg];
+    $logger->logCommand((int)$whatsappId, 'start');
 } else {
     $response = ['error' => 'Comando no reconocido'];
+    $logger->logCommand((int)$whatsappId, 'unknown', ['text' => $text]);
 }
 
 $logger->info('Message processed', ['payload' => $payload, 'response' => $response]);
@@ -60,16 +75,25 @@ echo json_encode($response);
 
 function adaptWhaticketPayload(array $data): ?array
 {
-    $message = $data['message'] ?? ($data['messages'][0] ?? $data);
-    $text = $message['body'] ?? $message['text'] ?? null;
-    $from = $message['from'] ?? $message['sender'] ?? $message['chatId'] ?? null;
-    if (!$text || !$from) {
+    $message = $data['message'] ?? ($data['messages'][0] ?? null);
+    if (!$message) {
         return null;
     }
-    $whatsappId = (int)preg_replace('/\D/', '', $from);
+
+    $from = $message['from'] ?? ($message['contact']['number'] ?? ($message['chatId'] ?? null));
+    $body = $message['body'] ?? ($message['text'] ?? null);
+    if (is_array($body)) {
+        $body = $body['text'] ?? ($body['content'] ?? null);
+    }
+
+    if (!$from || !$body) {
+        return null;
+    }
+
+    $whatsappId = (int)preg_replace('/\D/', '', (string)$from);
     return [
         'chat_id' => $from,
         'whatsapp_id' => $whatsappId,
-        'text' => trim($text)
+        'text' => trim((string)$body)
     ];
 }

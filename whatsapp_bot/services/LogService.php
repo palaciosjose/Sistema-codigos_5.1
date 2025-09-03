@@ -8,16 +8,28 @@ class LogService
 {
     private Logger $logger;
 
-    public function __construct(int $maxFiles = 7)
+    public function __construct(int $maxFiles = 30)
     {
-        $logDir = __DIR__ . '/../logs';
+        $root = defined('PROJECT_ROOT') ? PROJECT_ROOT : dirname(__DIR__, 2);
+        $logFile = $root . '/logs/whatsapp_bot.log';
+        $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        $handler = new RotatingFileHandler($logDir . '/bot.log', $maxFiles, Logger::DEBUG);
-        $handler->setFilenameFormat('{date}-{filename}', 'Ymd');
+        $handler = new RotatingFileHandler($logFile, $maxFiles, Logger::DEBUG);
+        $handler->setFilenameFormat('{filename}-{date}', 'Y-m-d');
         $this->logger = new Logger('whatsapp_bot');
         $this->logger->pushHandler($handler);
+        $this->cleanupOldLogs($logDir, $maxFiles);
+    }
+
+    private function cleanupOldLogs(string $dir, int $maxDays): void
+    {
+        foreach (glob($dir . '/whatsapp_bot-*.log') as $file) {
+            if (filemtime($file) < strtotime("-{$maxDays} days")) {
+                @unlink($file);
+            }
+        }
     }
 
     /**
