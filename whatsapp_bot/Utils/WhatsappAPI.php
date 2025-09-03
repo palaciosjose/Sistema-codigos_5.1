@@ -73,6 +73,10 @@ class WhatsappAPI
         $baseUrl = rtrim(\WhatsappBot\Config\WHATSAPP_API_URL, '/');
         $token   = \WhatsappBot\Config\WHATSAPP_API_TOKEN;
 
+        if (empty($baseUrl) || empty($token)) {
+            throw new RuntimeException('WhatsApp API credentials not configured');
+        }
+
         $url = $baseUrl . $endpoint;
         $ch  = curl_init($url);
 

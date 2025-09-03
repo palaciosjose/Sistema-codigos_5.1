@@ -45,12 +45,21 @@ El proyecto incluye scripts de Composer para instalar y probar el bot de WhatsAp
 El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se obtienen desde tu panel de Whaticket:
 
 - **`WHATSAPP_API_URL`**: URL base de la API de Whaticket (por ejemplo `https://midominio.com/api`).
-- **`WHATSAPP_TOKEN`**: token de acceso generado en Whaticket → Configuración → API.
+- **`WHATSAPP_API_TOKEN`**: token de acceso generado en Whaticket → Configuración → API.
 - **`WHATSAPP_INSTANCE_ID`**: identificador de la instancia visible en Whaticket → Instancias.
 - **`WHATSAPP_WEBHOOK_SECRET`**: cadena usada para validar los webhooks recibidos; debe coincidir con el secreto configurado en Whaticket.
 - **`WHATSAPP_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
 
-### Ejemplo de `.env`
+#### Definir variables en el entorno
+
+```bash
+export WHATSAPP_API_URL="https://midominio.com/api"
+export WHATSAPP_API_TOKEN="token_generado_en_whaticket"
+export WHATSAPP_INSTANCE_ID="123"
+export WHATSAPP_WEBHOOK_SECRET="secreto_webhook"
+```
+
+#### Uso de archivo `.env`
 
 Crea un archivo `.env` en la raíz del proyecto con valores similares a:
 
@@ -63,7 +72,7 @@ DB_NAME=nombre_db
 
 # Configuración del Bot de WhatsApp
 WHATSAPP_API_URL=https://midominio.com/api
-WHATSAPP_TOKEN=token_generado_en_whaticket
+WHATSAPP_API_TOKEN=token_generado_en_whaticket
 WHATSAPP_INSTANCE_ID=123
 WHATSAPP_WEBHOOK_SECRET=secreto_webhook
 WHATSAPP_LOG_LEVEL=info
