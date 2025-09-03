@@ -3,7 +3,7 @@ namespace WhatsappBot\Services;
 
 use Shared\DatabaseManager;
 use Shared\AuditLogger;
-use TelegramBot\Services\LogService;
+use WhatsappBot\Services\LogService;
 
 /**
  * Manejo de autenticación de usuarios mediante WhatsApp.

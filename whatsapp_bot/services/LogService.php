@@ -1,19 +1,23 @@
 <?php
-namespace TelegramBot\Services;
+namespace WhatsappBot\Services;
 
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
+use Monolog\Handler\RotatingFileHandler;
 
 class LogService
 {
     private Logger $logger;
 
-    public function __construct()
+    public function __construct(int $maxFiles = 7)
     {
-        $this->logger = new Logger('telegram_bot');
-        $this->logger->pushHandler(
-            new StreamHandler(__DIR__ . '/../logs/bot.log', Logger::DEBUG)
-        );
+        $logDir = __DIR__ . '/../logs';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        $handler = new RotatingFileHandler($logDir . '/bot.log', $maxFiles, Logger::DEBUG);
+        $handler->setFilenameFormat('{date}-{filename}', 'Ymd');
+        $this->logger = new Logger('whatsapp_bot');
+        $this->logger->pushHandler($handler);
     }
 
     /**
@@ -49,10 +53,10 @@ class LogService
         $this->logger->error($message, $this->sanitize($context));
     }
 
-    public function logCommand(int $telegramId, string $command, array $context = []): void
+    public function logCommand(int $whatsappId, string $command, array $context = []): void
     {
         $this->info('Command executed', [
-            'telegram_id' => $telegramId,
+            'whatsapp_id' => $whatsappId,
             'command' => $command,
             'context' => $context
         ]);
