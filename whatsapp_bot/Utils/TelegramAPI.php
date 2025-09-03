@@ -1,5 +1,5 @@
 <?php
-namespace TelegramBot\Utils;
+namespace WhatsappBot\Utils;
 
 use Longman\TelegramBot\Request;
 

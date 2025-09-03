@@ -1,5 +1,5 @@
 <?php
-namespace TelegramBot\Services;
+namespace WhatsappBot\Services;
 
 use TelegramBot\Config\TelegramBotConfig;
 
