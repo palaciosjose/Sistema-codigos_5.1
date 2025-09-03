@@ -8,7 +8,8 @@
     "autoload": {
         "psr-4": {
             "TelegramBot\\": "telegram_bot/",
-            "Shared\\": "shared/"
+            "Shared\\": "shared/",
+            "WhatsappBot\\": "whatsapp_bot/"
         }
     },
     "scripts": {
@@ -27,6 +28,12 @@
         ],
         "bot-test": [
             "php test_web.php"
+        ],
+        "whatsapp-install": [
+            "php setup_whatsapp_web.php"
+        ],
+        "whatsapp-test": [
+            "php test_whatsapp_web.php"
         ]
     },
     "config": {
@@ -35,6 +42,10 @@
     "extra": {
         "telegram-bot": {
             "version": "2.0",
+            "auto-setup": true
+        },
+        "whatsapp-bot": {
+            "version": "1.0",
             "auto-setup": true
         }
     }
