@@ -1,6 +1,8 @@
 <?php
 namespace WhatsappBot\Config;
 
+require_once __DIR__ . '/../../config/env_helper.php';
+
 /**
  * Helper to obtain an environment variable with default value.
  */
@@ -21,15 +23,15 @@ if (!filter_var($url, FILTER_VALIDATE_URL)) {
 }
 define(__NAMESPACE__ . '\\WHATSAPP_API_URL', $url);
 
-$rawToken = getenv('WHATSAPP_API_TOKEN');
+$rawToken = getenv('WHATSAPP_TOKEN');
 if ($rawToken === false || $rawToken === '') {
-    error_log('WHATSAPP_API_TOKEN not found in environment, using default');
+    error_log('WHATSAPP_TOKEN not found in environment, using default');
 }
-$token = env('WHATSAPP_API_TOKEN', 'your-api-token');
+$token = env('WHATSAPP_TOKEN', 'your-api-token');
 if ($token === null || $token === '') {
     $token = 'your-api-token';
 }
-define(__NAMESPACE__ . '\\WHATSAPP_API_TOKEN', $token);
+define(__NAMESPACE__ . '\\WHATSAPP_TOKEN', $token);
 
 $instance = env('WHATSAPP_INSTANCE_ID', '');
 $instance = $instance ? trim($instance) : '';
