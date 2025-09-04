@@ -85,6 +85,127 @@ function register_webhook($url, $token, $instance, $webhook_url, $secret) {
     return [true, 'Webhook registrado correctamente'];
 }
 
+function validateWhatsAppInstance($url, $token, $instance) {
+    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+    $payload = json_encode(['instance' => $instance]);
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
+    ]);
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $code >= 400) {
+        return [false, 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code)];
+    }
+    $data = json_decode($response, true);
+    if (!is_array($data) || empty($data['instance'])) {
+        return [false, 'Respuesta inválida de la API'];
+    }
+    return [true, 'Instancia válida'];
+}
+
+function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret) {
+    if (empty($webhook_url)) {
+        return [false, 'URL de webhook no configurada'];
+    }
+    $endpoint = rtrim($url, '/') . '/testWebhook';
+    $payload = json_encode([
+        'url' => $webhook_url,
+        'secret' => $secret,
+        'instance' => $instance
+    ]);
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
+    ]);
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $code >= 400) {
+        return [false, 'Error al probar webhook: ' . ($error ?: 'HTTP ' . $code)];
+    }
+    return [true, 'Webhook verificado correctamente'];
+}
+
+function checkWhatsAppBotStatus($conn) {
+    $api_url = get_setting($conn, 'WHATSAPP_API_URL');
+    $token = get_setting($conn, 'WHATSAPP_TOKEN');
+    $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
+    $webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
+    $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
+
+    $status = [
+        'configured' => ($api_url && $token && $instance && $webhook_secret),
+        'api' => [false, 'Configuración incompleta'],
+        'webhook' => [false, 'Configuración incompleta'],
+        'tables' => []
+    ];
+
+    if ($status['configured']) {
+        $status['api'] = validateWhatsAppInstance($api_url, $token, $instance);
+        $status['webhook'] = testWebhookConfiguration($api_url, $token, $instance, $webhook_url, $webhook_secret);
+    }
+
+    $required = ['whatsapp_temp_data', 'whatsapp_activity_log', 'whatsapp_sessions'];
+    foreach ($required as $table) {
+        $res = $conn->query("SHOW TABLES LIKE '$table'");
+        $exists = $res && $res->num_rows > 0;
+        if ($res) {
+            $res->close();
+        }
+        $status['tables'][$table] = $exists;
+    }
+    return $status;
+}
+
+function getWhatsAppStats($conn) {
+    $stats = [
+        'messages_logged' => 0,
+        'active_users_30d' => 0,
+        'active_sessions' => 0
+    ];
+
+    $res = $conn->query('SELECT COUNT(*) AS c FROM whatsapp_activity_log');
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $stats['messages_logged'] = (int)$row['c'];
+        $res->close();
+    }
+
+    $res = $conn->query("SELECT COUNT(DISTINCT whatsapp_id) AS c FROM users WHERE whatsapp_id IS NOT NULL AND last_whatsapp_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $stats['active_users_30d'] = (int)$row['c'];
+        $res->close();
+    }
+
+    $res = $conn->query('SELECT COUNT(*) AS c FROM whatsapp_sessions WHERE is_active = 1');
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $stats['active_sessions'] = (int)$row['c'];
+        $res->close();
+    }
+
+    return $stats;
+}
+
 $message = '';
 $error_message = '';
 $api_result = null;
