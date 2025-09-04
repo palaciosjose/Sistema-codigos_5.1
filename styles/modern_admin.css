@@ -714,6 +714,24 @@ body.admin-page::after {
     overflow-y: auto;
 }
 
+/* --- INDICADORES DE ESTADO --- */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-active {
+    background: var(--accent-green);
+    box-shadow: 0 0 4px var(--accent-green);
+}
+
+.status-inactive {
+    background: var(--danger-red);
+}
+
 /* --- LOGOS DE PLATAFORMAS --- */
 .platform-logo-preview {
     width: 120px;
@@ -738,7 +756,7 @@ body.admin-page::after {
 }
 
 @media (max-width: 768px) {
-    #editPlatformModal .modal-dialog {
-        max-width: 95% !important;
-    }
+#editPlatformModal .modal-dialog {
+    max-width: 95% !important;
+}
 }

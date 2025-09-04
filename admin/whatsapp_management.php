@@ -250,6 +250,15 @@ $webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
 $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
 $webhook_status = $webhook_url ? 'Configurado' : 'No configurado';
 
+$bot_status = checkWhatsAppBotStatus($conn);
+$last_activity = '';
+$activity_res = $conn->query("SELECT MAX(created_at) AS last_activity FROM whatsapp_activity_log");
+if ($activity_res) {
+    $row = $activity_res->fetch_assoc();
+    $last_activity = $row['last_activity'] ?? '';
+    $activity_res->close();
+}
+
 $authorized_users = [];
 $auth_res = $conn->query("SELECT u.username, ae.email FROM user_authorized_emails uae JOIN users u ON uae.user_id = u.id JOIN authorized_emails ae ON uae.authorized_email_id = ae.id ORDER BY u.username");
 if ($auth_res) {
@@ -293,6 +302,22 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
     <?php if ($webhook_result): ?>
         <div class="alert alert-<?php echo $webhook_result[0] ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($webhook_result[1]); ?></div>
     <?php endif; ?>
+    <div class="admin-card">
+        <h2>Estado del Bot y API</h2>
+        <div class="d-flex align-items-center mb-2">
+            <span class="me-2">Bot:</span>
+            <span class="status-indicator <?php echo $bot_status['webhook'][0] ? 'status-active' : 'status-inactive'; ?>"></span>
+            <span><?php echo htmlspecialchars($bot_status['webhook'][1]); ?></span>
+        </div>
+        <div class="d-flex align-items-center mb-2">
+            <span class="me-2">API:</span>
+            <span class="status-indicator <?php echo $bot_status['api'][0] ? 'status-active' : 'status-inactive'; ?>"></span>
+            <span><?php echo htmlspecialchars($bot_status['api'][1]); ?></span>
+        </div>
+        <p>ID de Instancia: <?php echo htmlspecialchars($instance); ?></p>
+        <p>Última actividad: <?php echo htmlspecialchars($last_activity ?: 'Sin registros'); ?></p>
+    </div>
+
     <div class="admin-card">
     <form method="post" class="mb-4">
         <div class="mb-3">
