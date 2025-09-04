@@ -5,6 +5,11 @@ require_once PROJECT_ROOT . '/shared/DatabaseManager.php';
 require_once SECURITY_DIR . '/auth.php';
 use Shared\DatabaseManager;
 
+// Default endpoint for checking WhatsApp instance status
+if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
+    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/getInstanceInfo');
+}
+
 authorize('manage_whatsapp', '../index.php', false);
 
 $conn = DatabaseManager::getInstance()->getConnection();
@@ -54,6 +59,7 @@ function checkWhatsAppBotStatus($conn) {
     $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
     $webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
     $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
+    $status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
 
     $status = [
         'overall' => 'error',
@@ -80,7 +86,7 @@ function checkWhatsAppBotStatus($conn) {
     }
 
     // 2. Verificar conexión API
-    $apiTest = testApiConnection($api_url, $token, $instance);
+    $apiTest = testApiConnection($api_url, $token, $instance, $status_endpoint);
     $status['checks']['api'] = [
         'status' => $apiTest['success'] ? 'ok' : 'error',
         'message' => $apiTest['message'],
@@ -89,7 +95,7 @@ function checkWhatsAppBotStatus($conn) {
 
     // 3. Verificar vinculación WhatsApp
     if ($apiTest['success']) {
-        $instanceInfo = validateWhatsAppInstance($api_url, $token, $instance);
+        $instanceInfo = validateWhatsAppInstance($api_url, $token, $instance, $status_endpoint);
         $status['linked'] = $instanceInfo['linked'];
         $status['qr_url'] = $instanceInfo['qr_url'];
         
@@ -159,14 +165,15 @@ function checkWhatsAppBotStatus($conn) {
     return $status;
 }
 
-function testApiConnection($url, $token, $instance) {
+function testApiConnection($url, $token, $instance, $statusEndpoint) {
     if (empty($url) || empty($token) || empty($instance)) {
         return ['success' => false, 'message' => 'Configuración incompleta'];
     }
-    
-    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+
+    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
+    log_action('POST ' . $endpoint);
     $payload = json_encode(['instance' => $instance]);
-    
+
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -178,23 +185,24 @@ function testApiConnection($url, $token, $instance) {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $payload
     ]);
-    
+
     $response = curl_exec($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($response === false || $code >= 400) {
         return ['success' => false, 'message' => 'Error de conexión: ' . ($error ?: 'HTTP ' . $code)];
     }
-    
+
     return ['success' => true, 'message' => 'Conexión exitosa con la API'];
 }
 
-function validateWhatsAppInstance($url, $token, $instance) {
-    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
+    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
+    log_action('POST ' . $endpoint);
     $payload = json_encode(['instance' => $instance]);
-    
+
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -206,24 +214,24 @@ function validateWhatsAppInstance($url, $token, $instance) {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $payload
     ]);
-    
+
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($response === false || $code >= 400) {
         return ['success' => false, 'message' => 'Error al validar instancia', 'linked' => false, 'qr_url' => null];
     }
-    
+
     $data = json_decode($response, true);
     if (!is_array($data) || empty($data['instance'])) {
         return ['success' => false, 'message' => 'Respuesta inválida', 'linked' => false, 'qr_url' => null];
     }
-    
+
     $info = $data['instance'];
     $linked = $info['connected'] ?? $info['isLinked'] ?? $info['is_linked'] ?? false;
     $qr_url = $linked ? null : ($info['qr'] ?? $info['qrCode'] ?? $info['qr_url'] ?? null);
-    
+
     return [
         'success' => true,
         'message' => $linked ? 'Instancia vinculada' : 'Instancia no vinculada',
@@ -376,12 +384,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
         $webhook_secret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $webhook_url = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
-        
+        $status_endpoint = filter_var(trim($_POST['status_endpoint'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        if ($status_endpoint === '') { $status_endpoint = DEFAULT_WHATSAPP_STATUS_ENDPOINT; }
+
         set_setting($conn, 'WHATSAPP_API_URL', $api_url);
         set_setting($conn, 'WHATSAPP_TOKEN', $token);
         set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
         set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
         set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
+        set_setting($conn, 'WHATSAPP_STATUS_ENDPOINT', $status_endpoint);
         
         $message = 'Configuración guardada correctamente';
         $message_type = 'success';
@@ -398,8 +409,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $api_url = get_setting($conn, 'WHATSAPP_API_URL');
         $token = get_setting($conn, 'WHATSAPP_TOKEN');
         $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
-        
-        $result = testApiConnection($api_url, $token, $instance);
+        $status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
+
+        $result = testApiConnection($api_url, $token, $instance, $status_endpoint);
         echo json_encode($result);
         exit;
     }
@@ -419,6 +431,7 @@ $token = get_setting($conn, 'WHATSAPP_TOKEN');
 $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
 $webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
 $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
+$status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
 
 // Última actividad
 $last_activity = '';
@@ -1040,9 +1053,18 @@ try {
                             <label class="form-label-admin">
                                 <i class="fas fa-link me-2"></i>API URL
                             </label>
-                            <input type="url" name="api_url" id="api_url" class="form-control-admin" 
-                                   value="<?= htmlspecialchars($api_url) ?>" 
+                            <input type="url" name="api_url" id="api_url" class="form-control-admin"
+                                   value="<?= htmlspecialchars($api_url) ?>"
                                    placeholder="https://api.whatsapp.example.com" required>
+                        </div>
+
+                        <div class="form-group-admin">
+                            <label class="form-label-admin">
+                                <i class="fas fa-route me-2"></i>Endpoint de Estado
+                            </label>
+                            <input type="text" name="status_endpoint" id="status_endpoint" class="form-control-admin"
+                                   value="<?= htmlspecialchars($status_endpoint) ?>"
+                                   placeholder="/getInstanceInfo" required>
                         </div>
                         
                         <div class="form-group-admin">

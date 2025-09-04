@@ -22,15 +22,21 @@ function log_action($message) {
     error_log("[$timestamp] $message\n", 3, $logFile);
 }
 
+if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
+    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/getInstanceInfo');
+}
+
 $action = filter_var($_POST['action'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $apiUrl = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
 $token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
 $webhookUrl = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
 $webhookSecret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+$statusEndpoint = filter_var(trim($_POST['status_endpoint'] ?? DEFAULT_WHATSAPP_STATUS_ENDPOINT), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-function testWhatsAppConnection($url, $token, $instance) {
-    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+function testWhatsAppConnection($url, $token, $instance, $statusEndpoint) {
+    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
+    log_action('POST ' . $endpoint);
     $payload = json_encode(['instance' => $instance]);
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
@@ -55,8 +61,9 @@ function testWhatsAppConnection($url, $token, $instance) {
     return [true, 'Conexión a la API exitosa'];
 }
 
-function validateWhatsAppInstance($url, $token, $instance) {
-    $endpoint = rtrim($url, '/') . '/getInstanceInfo';
+function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
+    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
+    log_action('POST ' . $endpoint);
     $payload = json_encode(['instance' => $instance]);
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
@@ -92,6 +99,7 @@ function sendTestMessage($url, $token, $instance, $phone) {
         return [false, 'Número de teléfono requerido'];
     }
     $endpoint = rtrim($url, '/') . '/sendMessage';
+    log_action('POST ' . $endpoint);
     $payload = json_encode([
         'instance' => $instance,
         'to' => $phone,
@@ -125,6 +133,7 @@ function verifyWebhook($url, $token, $instance, $webhookUrl, $secret) {
         return [false, 'URL de webhook no configurada'];
     }
     $endpoint = rtrim($url, '/') . '/testWebhook';
+    log_action('POST ' . $endpoint);
     $payload = json_encode([
         'url' => $webhookUrl,
         'secret' => $secret,
@@ -155,10 +164,10 @@ function verifyWebhook($url, $token, $instance, $webhookUrl, $secret) {
 
 switch ($action) {
     case 'test_api':
-        $result = testWhatsAppConnection($apiUrl, $token, $instance);
+        $result = testWhatsAppConnection($apiUrl, $token, $instance, $statusEndpoint);
         break;
     case 'validate_instance':
-        $result = validateWhatsAppInstance($apiUrl, $token, $instance);
+        $result = validateWhatsAppInstance($apiUrl, $token, $instance, $statusEndpoint);
         break;
     case 'send_message':
         $phone = filter_var(trim($_POST['phone'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
