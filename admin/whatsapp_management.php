@@ -153,10 +153,13 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
     <title>Gestión Bot WhatsApp</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../styles/modern_global.css">
+    <link rel="stylesheet" href="../styles/modern_admin.css">
 </head>
-<body class="bg-dark text-white">
-<div class="container py-4">
-    <h1 class="mb-4">Gestión Bot WhatsApp</h1>
+<body class="admin-page">
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Gestión Bot WhatsApp</h1>
+    </div>
     <?php if (!empty($error_message)): ?>
         <div class="alert alert-danger"><?php echo $error_message; ?></div>
     <?php endif; ?>
@@ -169,6 +172,7 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
     <?php if ($webhook_result): ?>
         <div class="alert alert-<?php echo $webhook_result[0] ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($webhook_result[1]); ?></div>
     <?php endif; ?>
+    <div class="admin-card">
     <form method="post" class="mb-4">
         <div class="mb-3">
             <label class="form-label">API URL</label>
@@ -186,16 +190,17 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
             <label class="form-label">Webhook Secret</label>
             <input type="text" name="webhook_secret" class="form-control" value="<?php echo htmlspecialchars($webhook_secret); ?>">
         </div>
-        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="submit" class="btn-admin btn-primary-admin">Guardar</button>
         <p class="mt-3">Tras guardar los valores ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.</p>
     </form>
-
-    <div class="mb-4">
+    </div>
+    
+    <div class="admin-card">
         <h2>Estado del Webhook</h2>
         <p><?php echo htmlspecialchars($webhook_status); ?><?php if ($webhook_url) echo ': ' . htmlspecialchars($webhook_url); ?></p>
     </div>
 
-    <div class="mb-4">
+    <div class="admin-card">
         <h2>Usuarios Autorizados</h2>
         <?php if (empty($authorized_users)): ?>
             <p>No hay usuarios autorizados.</p>
@@ -208,7 +213,7 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
         <?php endif; ?>
     </div>
 
-    <div class="mb-4">
+    <div class="admin-card">
         <h2>Logs Recientes</h2>
         <?php if (!$error_log && !$bot_log): ?>
             <p>No hay logs disponibles.</p>
@@ -224,7 +229,7 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
         <?php endif; ?>
     </div>
 
-    <a href="admin.php" class="btn btn-secondary">Volver</a>
+    <a href="admin.php" class="btn-admin btn-info-admin">Volver</a>
 </div>
 </body>
 </html>
