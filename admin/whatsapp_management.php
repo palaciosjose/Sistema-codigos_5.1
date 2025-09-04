@@ -355,7 +355,18 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
         <p class="mt-3">Tras guardar los valores ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.</p>
     </form>
     </div>
-    
+
+    <div class="admin-card">
+        <h2>Pruebas de Conexión</h2>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" id="btnTestApi" class="btn-admin btn-primary-admin">Probar Conexión API</button>
+            <button type="button" id="btnValidateInstance" class="btn-admin btn-secondary-admin">Validar Instancia</button>
+            <button type="button" id="btnSendTest" class="btn-admin btn-info-admin">Enviar Mensaje de Prueba</button>
+            <button type="button" id="btnVerifyWebhook" class="btn-admin btn-warning-admin">Verificar Webhook</button>
+        </div>
+        <div id="testResults" class="mt-2"></div>
+    </div>
+
     <div class="admin-card">
         <h2>Estado del Webhook</h2>
         <p><?php echo htmlspecialchars($webhook_status); ?><?php if ($webhook_url) echo ': ' . htmlspecialchars($webhook_url); ?></p>
@@ -404,6 +415,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateSecretBtn = document.getElementById('generateSecret');
     const form = document.querySelector('form');
     const submitBtn = form.querySelector('button[type="submit"]');
+    const testResults = document.getElementById('testResults');
+    const btnTestApi = document.getElementById('btnTestApi');
+    const btnValidateInstance = document.getElementById('btnValidateInstance');
+    const btnSendTest = document.getElementById('btnSendTest');
+    const btnVerifyWebhook = document.getElementById('btnVerifyWebhook');
 
     function isValidUrl(value) {
         try { new URL(value); return true; } catch { return false; }
@@ -471,8 +487,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    function showTestResult(success, message) {
+        const cls = success ? 'alert-success-admin' : 'alert-danger-admin';
+        testResults.innerHTML = `<div class="alert-admin ${cls}">${message}</div>`;
+    }
+
+    function runTest(action, extra = {}) {
+        const params = new URLSearchParams({
+            action,
+            api_url: apiUrlInput.value,
+            token: tokenInput.value,
+            instance: instanceInput.value,
+            webhook_url: webhookUrlInput.value,
+            webhook_secret: webhookSecretInput.value,
+            ...extra
+        });
+        fetch('test_whatsapp_connection.php', {
+            method: 'POST',
+            body: params
+        })
+        .then(r => r.json())
+        .then(data => {
+            showTestResult(data.success, data.message || data.error || 'Respuesta inválida');
+        })
+        .catch(err => {
+            showTestResult(false, 'Error de red: ' + err.message);
+        });
+    }
+
+    btnTestApi.addEventListener('click', () => runTest('test_api'));
+    btnValidateInstance.addEventListener('click', () => runTest('validate_instance'));
+    btnSendTest.addEventListener('click', () => {
+        const phone = prompt('Número de WhatsApp (incluye código de país):');
+        if (phone) runTest('send_message', { phone });
+    });
+    btnVerifyWebhook.addEventListener('click', () => runTest('verify_webhook'));
+
     validateForm();
 });
 </script>
+<style>
+.alert-success-admin {
+    background: rgba(50, 255, 181, 0.1);
+    border: 1px solid var(--accent-green);
+    color: var(--accent-green);
+}
+.alert-danger-admin {
+    background: rgba(255, 77, 77, 0.1);
+    border: 1px solid var(--danger-red);
+    color: var(--danger-red);
+}
+.alert-info-admin {
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid #06b6d4;
+    color: #06b6d4;
+}
+.alert-warning-admin {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffc107;
+}
+</style>
 </body>
 </html>
