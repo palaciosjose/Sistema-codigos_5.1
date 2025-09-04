@@ -2,8 +2,10 @@
 require_once __DIR__ . '/../config/path_constants.php';
 session_start();
 require_once PROJECT_ROOT . '/shared/DatabaseManager.php';
+require_once PROJECT_ROOT . '/shared/WhatsAppUrlHelper.php';
 require_once SECURITY_DIR . '/auth.php';
 use Shared\DatabaseManager;
+use Shared\WhatsAppUrlHelper;
 
 // Default endpoint for checking WhatsApp instance status
 if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
@@ -403,7 +405,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_STRING);
     
     if ($action === 'save_config') {
-        $api_url = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
+        $api_url_input = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
         $token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
         $webhook_secret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -411,15 +413,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status_endpoint = filter_var(trim($_POST['status_endpoint'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         if ($status_endpoint === '') { $status_endpoint = DEFAULT_WHATSAPP_STATUS_ENDPOINT; }
 
+        $warning = null;
+        $api_url = WhatsAppUrlHelper::sanitizeBaseUrl($api_url_input, $warning);
+
         set_setting($conn, 'WHATSAPP_API_URL', $api_url);
         set_setting($conn, 'WHATSAPP_TOKEN', $token);
         set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
         set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
         set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
         set_setting($conn, 'WHATSAPP_STATUS_ENDPOINT', $status_endpoint);
-        
-        $message = 'Configuración guardada correctamente';
-        $message_type = 'success';
+
+        if ($warning) {
+            $message = $warning;
+            $message_type = 'warning';
+        } else {
+            $message = 'Configuración guardada correctamente';
+            $message_type = 'success';
+        }
     }
     
     elseif ($action === 'create_tables') {
