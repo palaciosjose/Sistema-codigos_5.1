@@ -2824,22 +2824,6 @@ $users = $users_list;
     margin-top: 0.25rem;
 }
 
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.status-active {
-    background: var(--accent-green);
-    box-shadow: 0 0 4px var(--accent-green);
-}
-
-.status-inactive {
-    background: var(--danger-red);
-}
-
 .expand-toggle-btn {
     background: var(--accent-green);
     color: var(--bg-purple-dark);

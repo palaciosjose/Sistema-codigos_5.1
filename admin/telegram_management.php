@@ -1487,21 +1487,6 @@ if ($user_id) {
     transform: translateY(-1px);
 }
 
-.btn-info-admin {
-    background: transparent;
-    color: var(--accent-green);
-    border: 1px solid var(--accent-green);
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.btn-info-admin:hover {
-    background: var(--glow-green);
-    transform: translateY(-1px);
-}
-
 /* Variables de colores que faltaban */
 :root {
     --text-info-light: #C4B5FD;
