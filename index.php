@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['user_role'] = 'admin';
                 $_SESSION['last_activity'] = time();
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 AuditLogger::log($user['id'], 'login');
                 header("Location: inicio.php");
                 exit();
@@ -68,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['user_role'] = 'usuario';
                 $_SESSION['last_activity'] = time();
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 AuditLogger::log($user['id'], 'login');
                 header("Location: inicio.php");
                 exit();
