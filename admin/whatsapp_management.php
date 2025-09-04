@@ -152,7 +152,7 @@ function checkWhatsAppBotStatus($conn) {
     $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
 
     $status = [
-        'configured' => ($api_url && $token && $instance && $webhook_secret),
+        'configured' => ($api_url && $token && $instance && $webhook_secret && $webhook_url),
         'api' => [false, 'Configuración incompleta'],
         'webhook' => [false, 'Configuración incompleta'],
         'tables' => []
@@ -215,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = trim($_POST['token'] ?? '');
     $instance = trim($_POST['instance'] ?? '');
     $webhook_secret = trim($_POST['webhook_secret'] ?? '');
+    $webhook_url = trim($_POST['webhook_url'] ?? '');
 
     $errors = [];
     if (!filter_var($api_url, FILTER_VALIDATE_URL)) {
@@ -229,15 +230,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($webhook_secret === '') {
         $errors[] = 'El secreto del webhook es obligatorio';
     }
+    if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
+        $errors[] = 'Webhook URL inválida';
+    }
 
     if (empty($errors)) {
         set_setting($conn, 'WHATSAPP_API_URL', $api_url);
         set_setting($conn, 'WHATSAPP_TOKEN', $token);
         set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
         set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
+        set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
         $message = 'Configuración guardada correctamente. Tras guardar, ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.';
         $api_result = test_api_connection($api_url, $token, $instance);
-        $webhook_result = register_webhook($api_url, $token, $instance, get_setting($conn, 'WHATSAPP_WEBHOOK_URL'), $webhook_secret);
+        $webhook_result = register_webhook($api_url, $token, $instance, $webhook_url, $webhook_secret);
     } else {
         $error_message = implode('<br>', $errors);
     }
@@ -319,22 +324,32 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
     </div>
 
     <div class="admin-card">
-    <form method="post" class="mb-4">
-        <div class="mb-3">
-            <label class="form-label">API URL</label>
-            <input type="text" name="api_url" class="form-control" value="<?php echo htmlspecialchars($api_url); ?>">
+    <form method="post" class="mb-4" novalidate>
+        <div class="form-group-admin">
+            <label class="form-label-admin">API URL</label>
+            <input type="text" name="api_url" id="api_url" class="form-control-admin" value="<?php echo htmlspecialchars($api_url); ?>" required>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Token</label>
-            <input type="text" name="token" class="form-control" value="<?php echo htmlspecialchars($token); ?>">
+        <div class="form-group-admin">
+            <label class="form-label-admin">Token</label>
+            <div class="input-group">
+                <input type="password" name="token" id="token" class="form-control-admin" value="<?php echo htmlspecialchars($token); ?>" required>
+                <button type="button" id="toggleToken" class="btn-admin btn-primary-admin btn-sm">Mostrar</button>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Instancia</label>
-            <input type="text" name="instance" class="form-control" value="<?php echo htmlspecialchars($instance); ?>">
+        <div class="form-group-admin">
+            <label class="form-label-admin">ID de Instancia</label>
+            <input type="text" name="instance" id="instance" class="form-control-admin" value="<?php echo htmlspecialchars($instance); ?>" inputmode="numeric" required>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Webhook Secret</label>
-            <input type="text" name="webhook_secret" class="form-control" value="<?php echo htmlspecialchars($webhook_secret); ?>">
+        <div class="form-group-admin">
+            <label class="form-label-admin">Webhook Secret</label>
+            <div class="input-group">
+                <input type="text" name="webhook_secret" id="webhook_secret" class="form-control-admin" value="<?php echo htmlspecialchars($webhook_secret); ?>" required>
+                <button type="button" id="generateSecret" class="btn-admin btn-primary-admin btn-sm">Generar</button>
+            </div>
+        </div>
+        <div class="form-group-admin">
+            <label class="form-label-admin">Webhook URL</label>
+            <input type="text" name="webhook_url" id="webhook_url" class="form-control-admin" value="<?php echo htmlspecialchars($webhook_url); ?>" required>
         </div>
         <button type="submit" class="btn-admin btn-primary-admin">Guardar</button>
         <p class="mt-3">Tras guardar los valores ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.</p>
@@ -377,5 +392,87 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
 
     <a href="admin.php" class="btn-admin btn-info-admin">Volver</a>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const apiUrlInput = document.getElementById('api_url');
+    const tokenInput = document.getElementById('token');
+    const instanceInput = document.getElementById('instance');
+    const webhookSecretInput = document.getElementById('webhook_secret');
+    const webhookUrlInput = document.getElementById('webhook_url');
+    const toggleTokenBtn = document.getElementById('toggleToken');
+    const generateSecretBtn = document.getElementById('generateSecret');
+    const form = document.querySelector('form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    function isValidUrl(value) {
+        try { new URL(value); return true; } catch { return false; }
+    }
+
+    function validateInput(input, condition) {
+        if (condition) {
+            input.classList.remove('is-invalid');
+            return true;
+        } else {
+            input.classList.add('is-invalid');
+            return false;
+        }
+    }
+
+    function validateForm() {
+        const urlValid = validateInput(apiUrlInput, isValidUrl(apiUrlInput.value));
+        const tokenValid = validateInput(tokenInput, tokenInput.value.trim() !== '');
+        const instanceValid = validateInput(instanceInput, /^\d+$/.test(instanceInput.value));
+        const secretValid = validateInput(webhookSecretInput, webhookSecretInput.value.trim() !== '');
+        const webhookUrlValid = validateInput(webhookUrlInput, isValidUrl(webhookUrlInput.value));
+        const valid = urlValid && tokenValid && instanceValid && secretValid && webhookUrlValid;
+        submitBtn.disabled = !valid;
+        return valid;
+    }
+
+    toggleTokenBtn.addEventListener('click', () => {
+        if (tokenInput.type === 'password') {
+            tokenInput.type = 'text';
+            toggleTokenBtn.textContent = 'Ocultar';
+        } else {
+            tokenInput.type = 'password';
+            toggleTokenBtn.textContent = 'Mostrar';
+        }
+    });
+
+    function generateSecret(len = 32) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < len; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    generateSecretBtn.addEventListener('click', () => {
+        webhookSecretInput.value = generateSecret();
+        validateForm();
+    });
+
+    if (!webhookUrlInput.value) {
+        const currentDomain = window.location.hostname;
+        const basePath = window.location.pathname.split('/admin/')[0];
+        const finalPath = (basePath === '/' ? '' : basePath);
+        webhookUrlInput.value = `https://${currentDomain}${finalPath}/whatsapp_bot/webhook.php`;
+    }
+
+    [apiUrlInput, tokenInput, instanceInput, webhookSecretInput, webhookUrlInput].forEach(input => {
+        input.addEventListener('input', validateForm);
+    });
+
+    form.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+
+    validateForm();
+});
+</script>
 </body>
 </html>
