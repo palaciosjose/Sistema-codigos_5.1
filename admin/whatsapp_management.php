@@ -101,34 +101,70 @@ function register_webhook($url, $token, $instance, $webhook_url, $secret) {
 
 function validateWhatsAppInstance($url, $token, $instance) {
     $endpoint = rtrim($url, '/') . '/getInstanceInfo';
-    $payload = json_encode(['instance' => $instance]);
-    $ch = curl_init($endpoint);
+    $payload  = json_encode(['instance' => $instance]);
+    $ch       = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER => [
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $token
         ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload
     ]);
     $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error    = curl_error($ch);
+    $code     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+
     if ($response === false || $code >= 400) {
         $msg = 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code);
         log_action($msg);
-        return [false, $msg];
+        return [
+            'success' => false,
+            'message' => $msg,
+            'linked'  => null,
+            'qr_url'  => null
+        ];
     }
+
     $data = json_decode($response, true);
     if (!is_array($data) || empty($data['instance'])) {
         $msg = 'Respuesta inválida de la API al validar instancia';
         log_action($msg);
-        return [false, 'Respuesta inválida de la API'];
+        return [
+            'success' => false,
+            'message' => 'Respuesta inválida de la API',
+            'linked'  => null,
+            'qr_url'  => null
+        ];
     }
-    return [true, 'Instancia válida'];
+
+    $info   = $data['instance'];
+    $linked = null;
+
+    if (isset($info['connected'])) {
+        $linked = (bool)$info['connected'];
+    } elseif (isset($info['isLinked'])) {
+        $linked = (bool)$info['isLinked'];
+    } elseif (isset($info['is_linked'])) {
+        $linked = (bool)$info['is_linked'];
+    } elseif (isset($info['state'])) {
+        $linked = in_array(strtolower($info['state']), ['open', 'connected', 'authenticated']);
+    }
+
+    $qr_url = null;
+    if ($linked === false) {
+        $qr_url = $info['qr'] ?? $info['qrCode'] ?? $info['qr_url'] ?? $info['qrUrl'] ?? null;
+    }
+
+    return [
+        'success' => (bool)$linked,
+        'message' => $linked ? 'Instancia vinculada' : 'Instancia no vinculada',
+        'linked'  => $linked,
+        'qr_url'  => $qr_url
+    ];
 }
 
 function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret) {
@@ -173,13 +209,18 @@ function checkWhatsAppBotStatus($conn) {
 
     $status = [
         'configured' => ($api_url && $token && $instance && $webhook_secret && $webhook_url),
-        'api' => [false, 'Configuración incompleta'],
-        'webhook' => [false, 'Configuración incompleta'],
-        'tables' => []
+        'api'        => [false, 'Configuración incompleta'],
+        'webhook'    => [false, 'Configuración incompleta'],
+        'linked'     => null,
+        'qr_url'     => null,
+        'tables'     => []
     ];
 
     if ($status['configured']) {
-        $status['api'] = validateWhatsAppInstance($api_url, $token, $instance);
+        $instanceInfo    = validateWhatsAppInstance($api_url, $token, $instance);
+        $status['api']   = [$instanceInfo['success'], $instanceInfo['message']];
+        $status['linked'] = $instanceInfo['linked'];
+        $status['qr_url'] = $instanceInfo['qr_url'];
         $status['webhook'] = testWebhookConfiguration($api_url, $token, $instance, $webhook_url, $webhook_secret);
     }
 
@@ -365,6 +406,14 @@ $whatsapp_stats = getWhatsAppStats($conn);
             <span class="status-indicator <?php echo $bot_status['api'][0] ? 'status-active' : 'status-inactive'; ?>"></span>
             <span><?php echo htmlspecialchars($bot_status['api'][1]); ?></span>
         </div>
+        <div class="d-flex align-items-center mb-2">
+            <span class="me-2">Vinculación:</span>
+            <span class="status-indicator <?php echo $bot_status['linked'] ? 'status-active' : 'status-inactive'; ?>"></span>
+            <span><?php echo $bot_status['linked'] ? 'Conectado' : 'No conectado'; ?></span>
+            <?php if (!$bot_status['linked'] && !empty($bot_status['qr_url'])): ?>
+                <button type="button" id="btnGetQr" class="btn-admin btn-primary-admin btn-sm ms-2">Obtener QR</button>
+            <?php endif; ?>
+        </div>
         <p>ID de Instancia: <?php echo htmlspecialchars($instance); ?></p>
         <p>Última actividad: <?php echo htmlspecialchars($last_activity ?: 'Sin registros'); ?></p>
     </div>
@@ -461,6 +510,24 @@ $whatsapp_stats = getWhatsAppStats($conn);
 
     <a href="admin.php" class="btn-admin btn-info-admin">Volver</a>
 </div>
+
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Código QR</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="qrImage" src="" alt="QR" class="img-fluid">
+                <div class="mt-3">
+                    <a id="qrDownload" href="#" download="whatsapp_qr.png" class="btn btn-secondary">Descargar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -483,6 +550,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const statMessagesToday = document.getElementById('statMessagesToday');
     const statTotalMessages = document.getElementById('statTotalMessages');
     const statSearches = document.getElementById('statSearches');
+    const btnGetQr = document.getElementById('btnGetQr');
+    const qrImage = document.getElementById('qrImage');
+    const qrDownload = document.getElementById('qrDownload');
+    const qrData = <?php echo json_encode($bot_status['qr_url']); ?>;
+
+    if (btnGetQr && qrData) {
+        const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
+        btnGetQr.addEventListener('click', () => {
+            qrImage.src = qrData;
+            qrDownload.href = qrData;
+            qrModal.show();
+        });
+    }
 
     function isValidUrl(value) {
         try { new URL(value); return true; } catch { return false; }
