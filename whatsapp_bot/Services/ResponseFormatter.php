@@ -1,13 +1,13 @@
 <?php
 namespace WhatsappBot\Services;
 
-use TelegramBot\Config\TelegramBotConfig;
-
 /**
  * Formateador de mensajes para respuestas del bot.
  */
 class ResponseFormatter
 {
+    private const MAX_MESSAGE_LENGTH = 4096;
+
     /**
      * Formatea los resultados de búsqueda y los divide en múltiples mensajes si es necesario.
      *
@@ -29,19 +29,19 @@ class ResponseFormatter
                     $lines[] = "De: {$from}\nAsunto: {$subject}\nDato: {$code}";
                 }
                 $count = count($result['emails']);
-                $text = "*Éxito:* {$count} emails encontrados.\n\n" . implode("\n\n", $lines);
+                $text = "Éxito: {$count} emails encontrados.\n\n" . implode("\n\n", $lines);
                 if ($count > count($emails)) {
                     $text .= "\n\n...y más.";
                 }
             } else {
-                $text = "*Éxito:* " . ($result['content'] ?? '');
+                $text = "Éxito: " . ($result['content'] ?? '');
             }
         } else {
             $text = $result['message'] ?? 'Sin resultados.';
         }
 
-        $text = self::escapeMarkdown($text);
-        $chunks = self::paginate($text, TelegramBotConfig::MAX_MESSAGE_LENGTH - 50);
+        $text = self::sanitizeText($text);
+        $chunks = self::paginate($text, self::MAX_MESSAGE_LENGTH);
         return $chunks;
     }
 
@@ -55,8 +55,8 @@ class ResponseFormatter
             $text = 'Sin resultados.';
         }
 
-        $text = self::escapeMarkdown($text);
-        return self::paginate($text, TelegramBotConfig::MAX_MESSAGE_LENGTH - 50);
+        $text = self::sanitizeText($text);
+        return self::paginate($text, self::MAX_MESSAGE_LENGTH);
     }
 
     /**
@@ -74,14 +74,12 @@ class ResponseFormatter
     }
 
     /**
-     * Escapa caracteres de Markdown para Telegram.
+     * Limpia texto eliminando formato no soportado por WhatsApp.
      */
-    public static function escapeMarkdown(string $text): string
+    public static function sanitizeText(string $text): string
     {
-        $escape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        foreach ($escape as $char) {
-            $text = str_replace($char, '\\' . $char, $text);
-        }
+        $text = strip_tags($text);
+        $text = str_replace(['*', '_', '`'], '', $text);
         return $text;
     }
 }
