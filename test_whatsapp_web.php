@@ -79,13 +79,13 @@ if ($apiToken) {
 echo "<h2>5️⃣ Test de formato de payload</h2>";
 try {
     $apiClass = new \ReflectionClass('WhatsappBot\\Utils\\WhatsappAPI');
-    $tests = [
-        'sendMessage'    => ['phone', 'body'],
-        'sendChatAction' => ['phone', 'action'],
-        'checkNumber'    => ['phone']
+    $operations = [
+        'sendMessage'    => ['number', 'body'],
+        'sendChatAction' => ['number', 'action'],
+        'checkNumber'    => ['number']
     ];
 
-    foreach ($tests as $method => $fields) {
+    foreach ($operations as $method => $fields) {
         $file = file(PROJECT_ROOT . '/whatsapp_bot/Utils/WhatsappAPI.php');
         $ref  = $apiClass->getMethod($method);
         $code = implode('', array_slice($file, $ref->getStartLine() - 1, $ref->getEndLine() - $ref->getStartLine() + 1));

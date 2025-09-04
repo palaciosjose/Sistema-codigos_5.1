@@ -16,7 +16,7 @@ class WhatsappAPI
     public static function sendMessage(string $number, string $text): array
     {
         $payload = [
-            'phone' => $number,
+            'number' => $number,
             'body'  => $text,
         ];
 
@@ -34,7 +34,7 @@ class WhatsappAPI
     public static function sendChatAction(string $number, string $action): ?array
     {
         $payload = [
-            'phone'  => $number,
+            'number'  => $number,
             'action' => $action,
         ];
 
@@ -48,10 +48,10 @@ class WhatsappAPI
     /**
      * Verifica si un número existe en WhatsApp.
      */
-    public static function checkNumber(string $phone): array
+    public static function checkNumber(string $number): array
     {
         return self::makeRequest('/api/messages/check', [
-            'phone' => $phone,
+            'number' => $number,
         ]);
     }
 
