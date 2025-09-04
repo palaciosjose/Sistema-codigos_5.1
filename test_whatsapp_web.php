@@ -76,6 +76,31 @@ if ($apiToken) {
     $errors[] = 'WHATSAPP_TOKEN no configurado';
 }
 
+echo "<h2>5️⃣ Test de formato de payload</h2>";
+try {
+    $apiClass = new \ReflectionClass('WhatsappBot\\Utils\\WhatsappAPI');
+    $tests = [
+        'sendMessage'    => ['phone', 'body'],
+        'sendChatAction' => ['phone', 'action'],
+        'checkNumber'    => ['phone']
+    ];
+
+    foreach ($tests as $method => $fields) {
+        $file = file(PROJECT_ROOT . '/whatsapp_bot/Utils/WhatsappAPI.php');
+        $ref  = $apiClass->getMethod($method);
+        $code = implode('', array_slice($file, $ref->getStartLine() - 1, $ref->getEndLine() - $ref->getStartLine() + 1));
+        $missing = array_filter($fields, fn($f) => strpos($code, "'{$f}'") === false);
+        if ($missing) {
+            echo "<p>❌ $method sin campos: " . implode(', ', $missing) . "</p>";
+            $errors[] = "$method payload incorrecto";
+        } else {
+            echo "<p>✅ $method con campos correctos</p>";
+        }
+    }
+} catch (\Throwable $e) {
+    echo "<p>⚠️ Test de payload omitido: " . htmlspecialchars($e->getMessage()) . "</p>";
+}
+
 $runInstanceInfo = (PHP_SAPI === 'cli' && in_array('--instance-info', $argv ?? [])) || isset($_GET['instance_info']);
 if ($runInstanceInfo) {
     echo "<h2>🧪 Información de la instancia</h2>";

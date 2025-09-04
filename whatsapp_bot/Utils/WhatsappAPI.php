@@ -16,8 +16,8 @@ class WhatsappAPI
     public static function sendMessage(string $number, string $text): array
     {
         $payload = [
-            'number' => $number,
-            'body'   => $text,
+            'phone' => $number,
+            'body'  => $text,
         ];
 
         if (\WhatsappBot\Config\WHATSAPP_INSTANCE_ID !== '') {
@@ -34,7 +34,7 @@ class WhatsappAPI
     public static function sendChatAction(string $number, string $action): ?array
     {
         $payload = [
-            'number' => $number,
+            'phone'  => $number,
             'action' => $action,
         ];
 
@@ -51,7 +51,7 @@ class WhatsappAPI
     public static function checkNumber(string $phone): array
     {
         return self::makeRequest('/api/messages/check', [
-            'number' => $phone,
+            'phone' => $phone,
         ]);
     }
 
