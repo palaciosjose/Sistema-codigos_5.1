@@ -1121,6 +1121,7 @@ try {
                                 <i class="fas fa-check-circle"></i> Verificar Webhook
                             </button>
                         </div>
+                        <div id="webhookFeedback" class="mt-3"></div>
                     </form>
                 </div>
             </div>
@@ -1320,7 +1321,45 @@ try {
             const basePath = window.location.pathname.split('/admin/')[0];
             webhookUrl.value = `https://${currentDomain}${basePath}/whatsapp_bot/webhook.php`;
         }
-        
+
+        // Verify Webhook
+        const btnVerifyWebhook = document.getElementById('btnVerifyWebhook');
+        const webhookFeedback = document.getElementById('webhookFeedback');
+        if (btnVerifyWebhook && webhookFeedback) {
+            btnVerifyWebhook.addEventListener('click', async () => {
+                webhookFeedback.textContent = 'Verificando...';
+                const api_url = document.getElementById('api_url').value;
+                const token = document.getElementById('token').value;
+                const instance = document.getElementById('instance').value;
+                const webhook_url = document.getElementById('webhook_url').value;
+                const webhook_secret = document.getElementById('webhook_secret').value;
+                const params = new URLSearchParams({
+                    action: 'verify_webhook',
+                    api_url,
+                    token,
+                    instance,
+                    webhook_url,
+                    webhook_secret,
+                    csrf_token: csrf
+                });
+
+                try {
+                    const response = await fetch('test_whatsapp_connection.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: params.toString()
+                    });
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    const data = await response.json();
+                    webhookFeedback.textContent = (data.success ? '✅ ' : '❌ ') + data.message;
+                } catch (error) {
+                    webhookFeedback.textContent = '❌ Error de red: ' + error.message;
+                }
+            });
+        }
+
         // Show QR Modal
         const btnShowQR = document.getElementById('btnShowQR');
         if (btnShowQR) {
