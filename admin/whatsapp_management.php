@@ -110,8 +110,8 @@ function checkWhatsAppBotStatus($conn) {
     if ($webhook_url) {
         $webhookTest = testWebhookConfiguration($api_url, $token, $instance, $webhook_url, $webhook_secret);
         $status['checks']['webhook'] = [
-            'status' => $webhookTest[0] ? 'ok' : 'warning',
-            'message' => $webhookTest[1],
+            'status' => $webhookTest['success'] ? 'ok' : 'warning',
+            'message' => $webhookTest['message'],
             'icon' => 'fa-globe'
         ];
     }
@@ -242,11 +242,41 @@ function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
 
 function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret) {
     if (empty($webhook_url)) {
-        return [false, 'URL de webhook no configurada'];
+        return ['success' => false, 'message' => 'URL de webhook no configurada'];
     }
-    
-    // Simulamos un test exitoso por ahora
-    return [true, 'Webhook configurado correctamente'];
+
+    $endpoint = rtrim($url, '/') . '/testWebhook';
+    log_action('POST ' . $endpoint);
+    $payload = json_encode([
+        'url' => $webhook_url,
+        'secret' => $secret,
+        'instance' => $instance
+    ]);
+
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
+    ]);
+
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false || $code >= 400) {
+        $msg = 'Error al verificar webhook: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return ['success' => false, 'message' => $msg];
+    }
+
+    return ['success' => true, 'message' => 'Webhook verificado correctamente'];
 }
 
 function getWhatsAppStats($conn) {
