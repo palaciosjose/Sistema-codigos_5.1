@@ -1229,9 +1229,6 @@ try {
                         <button type="button" class="btn-admin btn-secondary-admin" data-accion="purge_audit_logs">
                             <i class="fas fa-trash"></i> Purgar registros
                         </button>
-                        <button type="button" class="btn-admin btn-secondary-admin" data-accion="migrate_telegram_tokens">
-                            <i class="fas fa-exchange-alt"></i> Migrar tokens Telegram
-                        </button>
                     </div>
                     <pre id="cli-output" class="mt-3"></pre>
                 </div>
