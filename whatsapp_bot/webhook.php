@@ -41,6 +41,7 @@ $chatId = $payload['chat_id'];
 $text = $payload['text'];
 
 $auth = new WhatsappAuth();
+$auth->cleanupExpiredData();
 $query = new WhatsappQuery($auth);
 
 if (preg_match('/^\/login\s+(\S+)\s+(\S+)/i', $text, $m)) {
