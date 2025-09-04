@@ -2,30 +2,24 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Shared\ConfigService;
+use WhatsappBot\Utils\WhatsappAPI;
 
-class TelegramBotSetup {
-    public static function configureWebhook() {
+class WhatsappBotSetup
+{
+    public static function configureWebhook()
+    {
         $config = ConfigService::getInstance();
 
-        $token = $config->get('TELEGRAM_BOT_TOKEN', '');
-        $url = "https://api.telegram.org/bot" . $token . "/setWebhook";
-        $data = [
-            'url' => $config->get('TELEGRAM_WEBHOOK_URL', ''),
-            'secret_token' => $config->get('TELEGRAM_WEBHOOK_SECRET', ''),
-            'allowed_updates' => json_encode(['message', 'callback_query'])
-        ];
+        $apiUrl = $config->get('WHATSAPP_API_URL', '');
+        $token = $config->get('WHATSAPP_TOKEN', '');
+        $instanceId = $config->get('WHATSAPP_INSTANCE_ID', '');
 
-        return self::makeRequest($url, $data);
-    }
+        putenv('WHATSAPP_API_URL=' . $apiUrl);
+        putenv('WHATSAPP_TOKEN=' . $token);
+        putenv('WHATSAPP_INSTANCE_ID=' . $instanceId);
 
-    private static function makeRequest($url, $data) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        curl_close($ch);
-        return json_decode($result, true);
+        $webhookUrl = $config->get('WHATSAPP_WEBHOOK_URL', '');
+
+        return WhatsappAPI::setWebhook($webhookUrl);
     }
 }
