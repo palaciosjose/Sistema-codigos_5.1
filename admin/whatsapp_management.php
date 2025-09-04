@@ -177,33 +177,51 @@ function checkWhatsAppBotStatus($conn) {
 
 function getWhatsAppStats($conn) {
     $stats = [
-        'messages_logged' => 0,
-        'active_users_30d' => 0,
-        'active_sessions' => 0
+        'active_users'    => 0,
+        'messages_today'  => 0,
+        'total_messages'  => 0,
+        'total_searches'  => 0,
     ];
 
+    // Usuarios con actividad reciente (últimos 30 días)
+    $res = $conn->query("SELECT COUNT(DISTINCT whatsapp_id) AS c FROM users WHERE whatsapp_id IS NOT NULL AND status=1 AND last_whatsapp_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $stats['active_users'] = (int)($row['c'] ?? 0);
+        $res->close();
+    }
+
+    // Mensajes registrados hoy
+    $res = $conn->query("SELECT COUNT(*) AS c FROM whatsapp_activity_log WHERE DATE(created_at)=CURDATE()");
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $stats['messages_today'] = (int)($row['c'] ?? 0);
+        $res->close();
+    }
+
+    // Total de mensajes registrados
     $res = $conn->query('SELECT COUNT(*) AS c FROM whatsapp_activity_log');
     if ($res) {
         $row = $res->fetch_assoc();
-        $stats['messages_logged'] = (int)$row['c'];
+        $stats['total_messages'] = (int)($row['c'] ?? 0);
         $res->close();
     }
 
-    $res = $conn->query("SELECT COUNT(DISTINCT whatsapp_id) AS c FROM users WHERE whatsapp_id IS NOT NULL AND last_whatsapp_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    // Total de búsquedas realizadas vía WhatsApp
+    $res = $conn->query("SELECT COUNT(*) AS c FROM search_logs WHERE source='whatsapp'");
     if ($res) {
         $row = $res->fetch_assoc();
-        $stats['active_users_30d'] = (int)$row['c'];
-        $res->close();
-    }
-
-    $res = $conn->query('SELECT COUNT(*) AS c FROM whatsapp_sessions WHERE is_active = 1');
-    if ($res) {
-        $row = $res->fetch_assoc();
-        $stats['active_sessions'] = (int)$row['c'];
+        $stats['total_searches'] = (int)($row['c'] ?? 0);
         $res->close();
     }
 
     return $stats;
+}
+
+if (($_GET['action'] ?? '') === 'stats') {
+    header('Content-Type: application/json');
+    echo json_encode(getWhatsAppStats($conn));
+    exit;
 }
 
 $message = '';
@@ -280,6 +298,7 @@ function get_recent_logs($file, $lines = 20) {
 
 $error_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/error.log');
 $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
+$whatsapp_stats = getWhatsAppStats($conn);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -321,6 +340,17 @@ $bot_log = get_recent_logs(PROJECT_ROOT . '/whatsapp_bot/logs/bot.log');
         </div>
         <p>ID de Instancia: <?php echo htmlspecialchars($instance); ?></p>
         <p>Última actividad: <?php echo htmlspecialchars($last_activity ?: 'Sin registros'); ?></p>
+    </div>
+
+    <div class="admin-card" id="statsCard">
+        <h2>Estadísticas</h2>
+        <ul class="list-unstyled mb-3">
+            <li>Usuarios activos: <span id="statActiveUsers"><?php echo (int)$whatsapp_stats['active_users']; ?></span></li>
+            <li>Mensajes de hoy: <span id="statMessagesToday"><?php echo (int)$whatsapp_stats['messages_today']; ?></span></li>
+            <li>Total mensajes: <span id="statTotalMessages"><?php echo (int)$whatsapp_stats['total_messages']; ?></span></li>
+            <li>Búsquedas: <span id="statSearches"><?php echo (int)$whatsapp_stats['total_searches']; ?></span></li>
+        </ul>
+        <button type="button" id="refreshStats" class="btn-admin btn-secondary-admin btn-sm">Refrescar</button>
     </div>
 
     <div class="admin-card">
@@ -420,6 +450,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnValidateInstance = document.getElementById('btnValidateInstance');
     const btnSendTest = document.getElementById('btnSendTest');
     const btnVerifyWebhook = document.getElementById('btnVerifyWebhook');
+    const refreshStatsBtn = document.getElementById('refreshStats');
+    const statActiveUsers = document.getElementById('statActiveUsers');
+    const statMessagesToday = document.getElementById('statMessagesToday');
+    const statTotalMessages = document.getElementById('statTotalMessages');
+    const statSearches = document.getElementById('statSearches');
 
     function isValidUrl(value) {
         try { new URL(value); return true; } catch { return false; }
@@ -522,6 +557,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (phone) runTest('send_message', { phone });
     });
     btnVerifyWebhook.addEventListener('click', () => runTest('verify_webhook'));
+
+    function loadStats() {
+        fetch('whatsapp_management.php?action=stats')
+            .then(r => r.json())
+            .then(data => {
+                statActiveUsers.textContent = data.active_users ?? 0;
+                statMessagesToday.textContent = data.messages_today ?? 0;
+                statTotalMessages.textContent = data.total_messages ?? 0;
+                statSearches.textContent = data.total_searches ?? 0;
+            });
+    }
+
+    refreshStatsBtn.addEventListener('click', loadStats);
 
     validateForm();
 });
