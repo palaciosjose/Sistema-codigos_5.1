@@ -1,8 +1,6 @@
 <?php
 namespace WhatsappBot\Services;
 
-use WhatsappBot\Utils\TelegramAPI;
-
 class NotificationService
 {
     private \mysqli $db;
@@ -14,13 +12,7 @@ class NotificationService
 
     public function notifyAdmins(string $message): void
     {
-        $stmt = $this->db->prepare('SELECT telegram_id FROM users WHERE (role = "admin" OR role = "superadmin") AND telegram_id IS NOT NULL');
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            TelegramAPI::sendMessage($row['telegram_id'], "\xF0\x9F\x94\x94 *Notificaci\xC3\xB3n Admin*\n\n" . $message);
-        }
-        $stmt->close();
+        // Integración con Telegram eliminada; método dejado como marcador de posición.
     }
 
     public function scheduleNotification(int $userId, string $message, \DateTime $when): void
