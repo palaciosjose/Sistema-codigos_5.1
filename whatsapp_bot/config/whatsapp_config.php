@@ -2,7 +2,7 @@
 namespace WhatsappBot\Config;
 
 /**
- * Obtiene una variable de entorno con valor por defecto.
+ * Helper to obtain an environment variable with default value.
  */
 function env(string $key, ?string $default = null): ?string
 {
@@ -10,35 +10,43 @@ function env(string $key, ?string $default = null): ?string
     return ($val === false || $val === '') ? $default : $val;
 }
 
-// Configuración de la API de WhatsApp
+// WhatsApp API configuration
+$rawUrl = getenv('WHATSAPP_API_URL');
+if ($rawUrl === false || $rawUrl === '') {
+    error_log('WHATSAPP_API_URL not found in environment, using default');
+}
 $url = env('WHATSAPP_API_URL', 'https://api.example.com');
 if (!filter_var($url, FILTER_VALIDATE_URL)) {
     $url = 'https://api.example.com';
 }
-const WHATSAPP_API_URL = $url;
+define(__NAMESPACE__ . '\\WHATSAPP_API_URL', $url);
 
+$rawToken = getenv('WHATSAPP_API_TOKEN');
+if ($rawToken === false || $rawToken === '') {
+    error_log('WHATSAPP_API_TOKEN not found in environment, using default');
+}
 $token = env('WHATSAPP_API_TOKEN', 'your-api-token');
 if ($token === null || $token === '') {
     $token = 'your-api-token';
 }
-const WHATSAPP_API_TOKEN = $token;
+define(__NAMESPACE__ . '\\WHATSAPP_API_TOKEN', $token);
 
 $instance = env('WHATSAPP_INSTANCE_ID', '');
 $instance = $instance ? trim($instance) : '';
-const WHATSAPP_INSTANCE_ID = $instance;
+define(__NAMESPACE__ . '\\WHATSAPP_INSTANCE_ID', $instance);
 
 $webhookUrl = env('WHATSAPP_WEBHOOK_URL', 'https://yourdomain.com/whatsapp/webhook');
 if (!filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
     $webhookUrl = 'https://yourdomain.com/whatsapp/webhook';
 }
-const WHATSAPP_WEBHOOK_URL = $webhookUrl;
+define(__NAMESPACE__ . '\\WHATSAPP_WEBHOOK_URL', $webhookUrl);
 
 $webhookSecret = env('WHATSAPP_WEBHOOK_SECRET', '');
 $webhookSecret = $webhookSecret ? trim($webhookSecret) : '';
-const WHATSAPP_WEBHOOK_SECRET = $webhookSecret;
+define(__NAMESPACE__ . '\\WHATSAPP_WEBHOOK_SECRET', $webhookSecret);
 
-// Configuración de logs
-const WHATSAPP_LOG_CHANNEL = 'whatsapp';
-const WHATSAPP_LOG_PATH = __DIR__ . '/../logs/whatsapp.log';
-const WHATSAPP_LOG_LEVEL = env('WHATSAPP_LOG_LEVEL', 'info');
+// Logging configuration
 
+define(__NAMESPACE__ . '\\WHATSAPP_LOG_CHANNEL', 'whatsapp');
+define(__NAMESPACE__ . '\\WHATSAPP_LOG_PATH', __DIR__ . '/../logs/whatsapp.log');
+define(__NAMESPACE__ . '\\WHATSAPP_LOG_LEVEL', env('WHATSAPP_LOG_LEVEL', 'info'));
