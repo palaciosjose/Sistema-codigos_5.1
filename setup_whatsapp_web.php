@@ -104,6 +104,28 @@ try {
     }
     if ($result) { $result->close(); }
 
+    // Configuraciones iniciales para el bot de WhatsApp
+    $settings = [
+        ['WHATSAPP_API_URL', getenv('WHATSAPP_API_URL') ?: '', 'URL base de la API de WhatsApp', 'whatsapp'],
+        ['WHATSAPP_API_TOKEN', getenv('WHATSAPP_API_TOKEN') ?: '', 'Token de la API de WhatsApp', 'whatsapp'],
+        ['WHATSAPP_INSTANCE_ID', getenv('WHATSAPP_INSTANCE_ID') ?: '', 'ID de la instancia de WhatsApp', 'whatsapp'],
+        ['WHATSAPP_BOT_WEBHOOK', getenv('WHATSAPP_BOT_WEBHOOK') ?: '', 'URL del webhook del bot de WhatsApp', 'whatsapp'],
+        ['WHATSAPP_BOT_ENABLED', getenv('WHATSAPP_BOT_ENABLED') ?: '0', 'Bot de WhatsApp habilitado (1=Sí,0=No)', 'whatsapp'],
+        ['WHATSAPP_WEBHOOK_SECRET', getenv('WHATSAPP_WEBHOOK_SECRET') ?: '', 'Secreto para validar webhooks de WhatsApp', 'whatsapp']
+    ];
+
+    $stmt = $db->prepare("INSERT INTO settings (name, value, description, category) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+    if ($stmt) {
+        foreach ($settings as $setting) {
+            $stmt->bind_param('ssss', $setting[0], $setting[1], $setting[2], $setting[3]);
+            $stmt->execute();
+        }
+        $stmt->close();
+        echo "<p style='color: green;'>✅ Configuración de WhatsApp guardada</p>";
+    } else {
+        echo "<p style='color: red;'>❌ No se pudo preparar la consulta de configuración</p>";
+    }
+
     echo "<p style='color: green;'>✅ Verificación de tablas y columnas completada</p>";
 } catch (\Throwable $e) {
     echo "<p style='color: red;'>❌ Error de base de datos: " . htmlspecialchars($e->getMessage()) . "</p>";
