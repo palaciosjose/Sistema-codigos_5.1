@@ -593,9 +593,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         <li class="nav-item" role="presentation">
             <a class="nav-link" href="telegram_management.php"><i class="fab fa-telegram me-2"></i>Bot Telegram</a>
         </li>
+        <?php if (in_array($_SESSION['user_role'], ['admin','superadmin'])): ?>
         <li class="nav-item" role="presentation">
             <a class="nav-link" href="whatsapp_management.php"><i class="fab fa-whatsapp me-2"></i>Bot WhatsApp</a>
         </li>
+        <?php endif; ?>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="licencia-tab" data-bs-toggle="tab" data-bs-target="#licencia" type="button" role="tab">
                 <i class="fas fa-certificate me-2"></i>Licencia
