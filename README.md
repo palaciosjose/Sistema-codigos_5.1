@@ -188,3 +188,46 @@ From version 5.0.1 these valores pueden modificarse desde la pesta0Š9a **Bot 
 
 
 Once configured, you can query codes via /codigo <id> or search with /buscar <palabras>. The bot uses the same database as the website, so results are consistent across both platforms.
+
+## Bot de WhatsApp
+
+Este proyecto también integra un bot de WhatsApp que se comunica con Whaticket para ofrecer búsquedas de códigos desde la aplicación de mensajería.
+
+### Campos configurables
+
+La configuración se obtiene de variables de entorno:
+
+- `WHATSAPP_API_URL`: URL base de la API de Whaticket (por ejemplo `https://midominio.com/api`).
+- `WHATSAPP_TOKEN`: token generado en Whaticket → **Configuración → API**.
+- `WHATSAPP_INSTANCE_ID`: identificador de la instancia visible en **Instancias**.
+- `WHATSAPP_WEBHOOK_SECRET`: secreto para validar los webhooks recibidos.
+- `WHATSAPP_LOG_LEVEL`: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
+
+Puedes definir estos valores en tu entorno o copiando `.env.example` a `.env` y ajustando los campos anteriores.
+
+### Instalación
+
+1. Configura las variables de entorno mencionadas.
+2. Ejecuta `composer run whatsapp-install` para instalar el bot.
+3. Ejecuta `composer run whatsapp-test` para verificar la configuración.
+4. Configura en Whaticket el webhook apuntando a `whatsapp_bot/webhook.php`.
+
+### Comandos disponibles
+
+El bot responde a los siguientes comandos enviados por chat:
+
+- `/start` – mensaje de bienvenida.
+- `/login usuario clave` – inicia sesión con credenciales.
+- `/buscar email plataforma` – busca códigos por correo y plataforma.
+- `/codigo id` – obtiene un código por su identificador numérico.
+- `/stats` – muestra estadísticas del bot.
+- `/ayuda` – lista todos los comandos disponibles.
+
+### Ejemplo de uso
+
+```
+/login usuario@example.com clave123
+/buscar usuario@example.com netflix
+```
+
+Los comandos deben enviarse al número de WhatsApp vinculado con tu instancia de Whaticket.
