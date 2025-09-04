@@ -9,6 +9,16 @@ authorize('manage_whatsapp', '../index.php', false);
 
 $conn = DatabaseManager::getInstance()->getConnection();
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+function log_action($message) {
+    $logFile = __DIR__ . '/whatsapp_management.log';
+    $timestamp = date('Y-m-d H:i:s');
+    error_log("[$timestamp] $message\n", 3, $logFile);
+}
+
 function get_setting($conn, $name) {
     $stmt = $conn->prepare("SELECT value FROM settings WHERE name = ? LIMIT 1");
     if (!$stmt) return '';
@@ -49,7 +59,9 @@ function test_api_connection($url, $token, $instance) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Conexión a la API exitosa'];
 }
@@ -80,7 +92,9 @@ function register_webhook($url, $token, $instance, $webhook_url, $secret) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al registrar webhook: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al registrar webhook: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Webhook registrado correctamente'];
 }
@@ -104,10 +118,14 @@ function validateWhatsAppInstance($url, $token, $instance) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     $data = json_decode($response, true);
     if (!is_array($data) || empty($data['instance'])) {
+        $msg = 'Respuesta inválida de la API al validar instancia';
+        log_action($msg);
         return [false, 'Respuesta inválida de la API'];
     }
     return [true, 'Instancia válida'];
@@ -139,7 +157,9 @@ function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al probar webhook: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al probar webhook: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Webhook verificado correctamente'];
 }
@@ -229,40 +249,47 @@ $error_message = '';
 $api_result = null;
 $webhook_result = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $api_url = trim($_POST['api_url'] ?? '');
-    $token = trim($_POST['token'] ?? '');
-    $instance = trim($_POST['instance'] ?? '');
-    $webhook_secret = trim($_POST['webhook_secret'] ?? '');
-    $webhook_url = trim($_POST['webhook_url'] ?? '');
-
-    $errors = [];
-    if (!filter_var($api_url, FILTER_VALIDATE_URL)) {
-        $errors[] = 'API URL inválida';
-    }
-    if ($token === '') {
-        $errors[] = 'El token es obligatorio';
-    }
-    if ($instance === '') {
-        $errors[] = 'La instancia es obligatoria';
-    }
-    if ($webhook_secret === '') {
-        $errors[] = 'El secreto del webhook es obligatorio';
-    }
-    if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
-        $errors[] = 'Webhook URL inválida';
-    }
-
-    if (empty($errors)) {
-        set_setting($conn, 'WHATSAPP_API_URL', $api_url);
-        set_setting($conn, 'WHATSAPP_TOKEN', $token);
-        set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
-        set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
-        set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
-        $message = 'Configuración guardada correctamente. Tras guardar, ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.';
-        $api_result = test_api_connection($api_url, $token, $instance);
-        $webhook_result = register_webhook($api_url, $token, $instance, $webhook_url, $webhook_secret);
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error_message = 'Token CSRF inválido';
     } else {
-        $error_message = implode('<br>', $errors);
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $api_url = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
+        $token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
+        $webhook_secret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $webhook_url = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
+
+        $errors = [];
+        if (!filter_var($api_url, FILTER_VALIDATE_URL)) {
+            $errors[] = 'API URL inválida';
+        }
+        if ($token === '') {
+            $errors[] = 'El token es obligatorio';
+        }
+        if ($instance === '') {
+            $errors[] = 'La instancia es obligatoria';
+        }
+        if ($webhook_secret === '') {
+            $errors[] = 'El secreto del webhook es obligatorio';
+        }
+        if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
+            $errors[] = 'Webhook URL inválida';
+        }
+
+        if (empty($errors)) {
+            set_setting($conn, 'WHATSAPP_API_URL', $api_url);
+            set_setting($conn, 'WHATSAPP_TOKEN', $token);
+            set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
+            set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
+            set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
+            log_action('Configuración actualizada');
+            $message = 'Configuración guardada correctamente. Tras guardar, ejecuta <code>composer run whatsapp-test</code> para confirmar la integración.';
+            $api_result = test_api_connection($api_url, $token, $instance);
+            $webhook_result = register_webhook($api_url, $token, $instance, $webhook_url, $webhook_secret);
+        } else {
+            $error_message = implode('<br>', $errors);
+            log_action('Error al guardar configuración: ' . implode('; ', $errors));
+        }
     }
 }
 
@@ -355,6 +382,7 @@ $whatsapp_stats = getWhatsAppStats($conn);
 
     <div class="admin-card">
     <form method="post" class="mb-4" novalidate>
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
         <div class="form-group-admin">
             <label class="form-label-admin">API URL</label>
             <input type="text" name="api_url" id="api_url" class="form-control-admin" value="<?php echo htmlspecialchars($api_url); ?>" required>

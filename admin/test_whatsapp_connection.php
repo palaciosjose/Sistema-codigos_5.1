@@ -16,12 +16,18 @@ if (!is_admin()) {
     exit;
 }
 
-$action = $_POST['action'] ?? '';
-$apiUrl = trim($_POST['api_url'] ?? '');
-$token = trim($_POST['token'] ?? '');
-$instance = trim($_POST['instance'] ?? '');
-$webhookUrl = trim($_POST['webhook_url'] ?? '');
-$webhookSecret = trim($_POST['webhook_secret'] ?? '');
+function log_action($message) {
+    $logFile = __DIR__ . '/whatsapp_management.log';
+    $timestamp = date('Y-m-d H:i:s');
+    error_log("[$timestamp] $message\n", 3, $logFile);
+}
+
+$action = filter_var($_POST['action'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+$apiUrl = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
+$token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+$instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
+$webhookUrl = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
+$webhookSecret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 function testWhatsAppConnection($url, $token, $instance) {
     $endpoint = rtrim($url, '/') . '/getInstanceInfo';
@@ -42,7 +48,9 @@ function testWhatsAppConnection($url, $token, $instance) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Conexión a la API exitosa'];
 }
@@ -66,11 +74,15 @@ function validateWhatsAppInstance($url, $token, $instance) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     $data = json_decode($response, true);
     if (!is_array($data) || empty($data['instance'])) {
-        return [false, 'Respuesta inválida de la API'];
+        $msg = 'Respuesta inválida de la API';
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Instancia válida'];
 }
@@ -101,7 +113,9 @@ function sendTestMessage($url, $token, $instance, $phone) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al enviar mensaje: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al enviar mensaje: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Mensaje de prueba enviado'];
 }
@@ -132,7 +146,9 @@ function verifyWebhook($url, $token, $instance, $webhookUrl, $secret) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false || $code >= 400) {
-        return [false, 'Error al verificar webhook: ' . ($error ?: 'HTTP ' . $code)];
+        $msg = 'Error al verificar webhook: ' . ($error ?: 'HTTP ' . $code);
+        log_action($msg);
+        return [false, $msg];
     }
     return [true, 'Webhook verificado correctamente'];
 }
@@ -145,7 +161,7 @@ switch ($action) {
         $result = validateWhatsAppInstance($apiUrl, $token, $instance);
         break;
     case 'send_message':
-        $phone = trim($_POST['phone'] ?? '');
+        $phone = filter_var(trim($_POST['phone'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
         $result = sendTestMessage($apiUrl, $token, $instance, $phone);
         break;
     case 'verify_webhook':
