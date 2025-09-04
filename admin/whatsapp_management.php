@@ -1253,7 +1253,7 @@ try {
                             <i class="fas fa-trash"></i> Purgar registros
                         </button>
                     </div>
-                    <pre id="cli-output" class="mt-3"></pre>
+                    <div id="cli-output" class="mt-3"></div>
                 </div>
             </div>
         </div>
@@ -1437,12 +1437,15 @@ try {
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: `accion=${encodeURIComponent(accion)}&csrf_token=${encodeURIComponent(csrf)}`
                 })
-                .then(res => res.text())
-                .then(text => {
-                    cliOutput.textContent = text.replace(/<\/?pre>/g, '');
+                .then(async res => {
+                    const text = await res.text();
+                    if (!res.ok) {
+                        throw new Error(text || `Error ${res.status}`);
+                    }
+                    cliOutput.textContent = text;
                 })
                 .catch(err => {
-                    cliOutput.textContent = 'Error: ' + err;
+                    cliOutput.textContent = 'Error: ' + err.message;
                 })
                 .finally(() => {
                     btn.disabled = false;
