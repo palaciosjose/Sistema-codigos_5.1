@@ -11,28 +11,38 @@ use RuntimeException;
 class WhatsappAPI
 {
     /**
-     * Envía un mensaje de texto a un chat.
+     * Envía un mensaje de texto a un número de WhatsApp.
      */
-    public static function sendMessage(string $chatId, string $text): array
+    public static function sendMessage(string $number, string $text): array
     {
-        return self::makeRequest('/sendMessage', [
-            'chatId'   => $chatId,
-            'body'     => $text,
-            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
-        ]);
+        $payload = [
+            'number' => $number,
+            'body'   => $text,
+        ];
+
+        if (\WhatsappBot\Config\WHATSAPP_INSTANCE_ID !== '') {
+            $payload['whatsappId'] = \WhatsappBot\Config\WHATSAPP_INSTANCE_ID;
+        }
+
+        return self::makeRequest('/api/messages/send', $payload);
     }
 
     /**
      * Envía una acción de chat (ej. typing).
      * No lanza excepción en caso de fallo.
      */
-    public static function sendChatAction(string $chatId, string $action): ?array
+    public static function sendChatAction(string $number, string $action): ?array
     {
-        return self::makeRequest('/sendChatAction', [
-            'chatId'   => $chatId,
-            'action'   => $action,
-            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
-        ], false);
+        $payload = [
+            'number' => $number,
+            'action' => $action,
+        ];
+
+        if (\WhatsappBot\Config\WHATSAPP_INSTANCE_ID !== '') {
+            $payload['whatsappId'] = \WhatsappBot\Config\WHATSAPP_INSTANCE_ID;
+        }
+
+        return self::makeRequest('/api/messages/action', $payload, false);
     }
 
     /**
@@ -40,9 +50,8 @@ class WhatsappAPI
      */
     public static function checkNumber(string $phone): array
     {
-        return self::makeRequest('/checkNumber', [
-            'phone'    => $phone,
-            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
+        return self::makeRequest('/api/messages/check', [
+            'number' => $phone,
         ]);
     }
 
@@ -52,10 +61,11 @@ class WhatsappAPI
      */
     public static function setWebhook(string $url): ?array
     {
-        return self::makeRequest('/setWebhook', [
-            'url'      => $url,
-            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
-        ], false);
+        $payload = ['url' => $url];
+        if (\WhatsappBot\Config\WHATSAPP_INSTANCE_ID !== '') {
+            $payload['whatsappId'] = \WhatsappBot\Config\WHATSAPP_INSTANCE_ID;
+        }
+        return self::makeRequest('/api/messages/webhook', $payload, false);
     }
 
     /**
@@ -64,9 +74,13 @@ class WhatsappAPI
      */
     public static function getInstanceInfo(): ?array
     {
-        return self::makeRequest('/getInstanceInfo', [
-            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
-        ], false);
+        $endpoint = '/api/messages/instance';
+        if (\WhatsappBot\Config\WHATSAPP_INSTANCE_ID !== '') {
+            $endpoint .= '?' . http_build_query([
+                'whatsappId' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
+            ]);
+        }
+        return self::makeRequest($endpoint, [], false);
     }
 
     /**
@@ -82,7 +96,6 @@ class WhatsappAPI
     {
         $baseUrl = rtrim(\WhatsappBot\Config\WHATSAPP_API_URL, '/');
         $token   = \WhatsappBot\Config\WHATSAPP_TOKEN;
-        $payload['instance'] = \WhatsappBot\Config\WHATSAPP_INSTANCE_ID;
 
         if (empty($baseUrl) || empty($token)) {
             throw new RuntimeException('WhatsApp API credentials not configured');
