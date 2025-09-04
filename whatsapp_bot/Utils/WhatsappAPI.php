@@ -71,7 +71,7 @@ class WhatsappAPI
     private static function makeRequest(string $endpoint, array $payload = [], bool $critical = true): ?array
     {
         $baseUrl = rtrim(\WhatsappBot\Config\WHATSAPP_API_URL, '/');
-        $token   = \WhatsappBot\Config\WHATSAPP_API_TOKEN;
+        $token   = \WhatsappBot\Config\WHATSAPP_TOKEN;
 
         if (empty($baseUrl) || empty($token)) {
             throw new RuntimeException('WhatsApp API credentials not configured');

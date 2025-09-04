@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/path_constants.php';
+require_once PROJECT_ROOT . '/config/env_helper.php';
 /**
  * Pruebas web del Bot de WhatsApp
  */
@@ -59,7 +60,7 @@ if (extension_loaded('mysqli')) {
 echo "<h2>4️⃣ Test de variables de entorno</h2>";
 
 $apiUrl   = getenv('WHATSAPP_API_URL');
-$apiToken = getenv('WHATSAPP_API_TOKEN');
+$apiToken = getenv('WHATSAPP_TOKEN');
 
 if ($apiUrl) {
     echo "<p>✅ WHATSAPP_API_URL: " . htmlspecialchars($apiUrl) . "</p>";
@@ -69,10 +70,10 @@ if ($apiUrl) {
 }
 
 if ($apiToken) {
-    echo "<p>✅ WHATSAPP_API_TOKEN establecido (" . strlen($apiToken) . " caracteres)</p>";
+    echo "<p>✅ WHATSAPP_TOKEN establecido (" . strlen($apiToken) . " caracteres)</p>";
 } else {
-    echo "<p>❌ WHATSAPP_API_TOKEN no configurado</p>";
-    $errors[] = 'WHATSAPP_API_TOKEN no configurado';
+    echo "<p>❌ WHATSAPP_TOKEN no configurado</p>";
+    $errors[] = 'WHATSAPP_TOKEN no configurado';
 }
 
 $runInstanceInfo = (PHP_SAPI === 'cli' && in_array('--instance-info', $argv ?? [])) || isset($_GET['instance_info']);
