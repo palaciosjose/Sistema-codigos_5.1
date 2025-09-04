@@ -519,6 +519,31 @@ function createCompleteDatabase($pdo) {
             INDEX idx_user_id (user_id),
             INDEX idx_data_type (data_type),
             INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci",
+
+        // --- Tablas de soporte para WhatsApp ---
+        "CREATE TABLE IF NOT EXISTS `whatsapp_temp_data` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            data_type VARCHAR(50) NOT NULL,
+            data_content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_user_type (user_id, data_type),
+            INDEX idx_user_id (user_id),
+            INDEX idx_data_type (data_type),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci",
+
+        "CREATE TABLE IF NOT EXISTS `whatsapp_activity_log` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            whatsapp_id BIGINT NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_whatsapp_id (whatsapp_id),
+            INDEX idx_created_at (created_at),
+            INDEX idx_action (action)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci"
     ];
     
@@ -548,6 +573,44 @@ function createCompleteDatabase($pdo) {
         }
     } catch (Exception $e) {
         error_log("Error asegurando columna sort_order: " . $e->getMessage());
+    }
+
+    // Agregar columnas de soporte para WhatsApp en users
+    try {
+        $checkWhatsappId = $pdo->query("SHOW COLUMNS FROM users LIKE 'whatsapp_id'");
+        if ($checkWhatsappId && $checkWhatsappId->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN whatsapp_id BIGINT NULL UNIQUE AFTER last_telegram_activity");
+        }
+    } catch (Exception $e) {
+        error_log("Error agregando whatsapp_id: " . $e->getMessage());
+    }
+
+    try {
+        $checkWhatsappUsername = $pdo->query("SHOW COLUMNS FROM users LIKE 'whatsapp_username'");
+        if ($checkWhatsappUsername && $checkWhatsappUsername->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN whatsapp_username VARCHAR(255) NULL AFTER whatsapp_id");
+        }
+    } catch (Exception $e) {
+        error_log("Error agregando whatsapp_username: " . $e->getMessage());
+    }
+
+    try {
+        $checkLastWhatsapp = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_whatsapp_activity'");
+        if ($checkLastWhatsapp && $checkLastWhatsapp->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN last_whatsapp_activity TIMESTAMP NULL AFTER whatsapp_username");
+        }
+    } catch (Exception $e) {
+        error_log("Error agregando last_whatsapp_activity: " . $e->getMessage());
+    }
+
+    // Agregar columna whatsapp_chat_id en search_logs
+    try {
+        $checkWhatsappChat = $pdo->query("SHOW COLUMNS FROM search_logs LIKE 'whatsapp_chat_id'");
+        if ($checkWhatsappChat && $checkWhatsappChat->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE search_logs ADD COLUMN whatsapp_chat_id BIGINT NULL AFTER telegram_chat_id, ADD INDEX idx_whatsapp_chat (whatsapp_chat_id)");
+        }
+    } catch (Exception $e) {
+        error_log("Error agregando whatsapp_chat_id: " . $e->getMessage());
     }
 }
 
