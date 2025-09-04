@@ -962,9 +962,11 @@ try {
             <!-- Diagnóstico Tab -->
             <div class="tab-pane fade show active" id="diagnostico">
                 <div class="admin-card">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-heartbeat"></i> Estado del Bot
-                    </h3>
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-heartbeat"></i> Estado del Bot
+                        </h3>
+                    </div>
                     
                     <!-- Estado General -->
                     <div class="alert-modern alert-<?= $status['overall'] === 'ok' ? 'success' : ($status['overall'] === 'warning' ? 'warning' : 'danger') ?>-modern">
@@ -1024,9 +1026,11 @@ try {
             <!-- Configuración Tab -->
             <div class="tab-pane fade" id="configuracion">
                 <div class="admin-card">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-tools"></i> Configuración del Bot
-                    </h3>
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-tools"></i> Configuración del Bot
+                        </h3>
+                    </div>
                     
                     <form method="post" novalidate>
                         <input type="hidden" name="action" value="save_config">
@@ -1102,9 +1106,11 @@ try {
             <!-- Estadísticas Tab -->
             <div class="tab-pane fade" id="estadisticas">
                 <div class="admin-card">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-chart-line"></i> Estadísticas
-                    </h3>
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-chart-line"></i> Estadísticas
+                        </h3>
+                    </div>
                     
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -1134,9 +1140,11 @@ try {
             <!-- Usuarios Vinculados Tab -->
             <div class="tab-pane fade" id="usuarios">
                 <div class="admin-card">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-users-cog"></i> Usuarios Vinculados (<?= count($linked_users) ?>)
-                    </h3>
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-users-cog"></i> Usuarios Vinculados (<?= count($linked_users) ?>)
+                        </h3>
+                    </div>
                     
                     <?php if (empty($linked_users)): ?>
                     <div class="text-center py-5">
@@ -1175,9 +1183,11 @@ try {
             <!-- Sistema Tab -->
             <div class="tab-pane fade" id="sistema">
                 <div class="admin-card">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-server"></i> Sistema
-                    </h3>
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-server"></i> Sistema
+                        </h3>
+                    </div>
                     
                     <div class="row">
                         <div class="col-md-6">
@@ -1215,6 +1225,15 @@ try {
                             <code style="color: var(--wa-green);">php whatsapp_bot/test.php</code> - Probar conexión directamente
                         </div>
                     </div>
+                    <div class="mt-4 d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn-admin btn-secondary-admin" data-accion="purge_audit_logs">
+                            <i class="fas fa-trash"></i> Purgar registros
+                        </button>
+                        <button type="button" class="btn-admin btn-secondary-admin" data-accion="migrate_telegram_tokens">
+                            <i class="fas fa-exchange-alt"></i> Migrar tokens Telegram
+                        </button>
+                    </div>
+                    <pre id="cli-output" class="mt-3"></pre>
                 </div>
             </div>
         </div>
@@ -1244,6 +1263,7 @@ try {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    const csrf = '<?= htmlspecialchars($_SESSION['csrf_token']) ?>';
     document.addEventListener('DOMContentLoaded', function() {
         // Toggle Token Visibility
         const toggleToken = document.getElementById('toggleToken');
@@ -1345,6 +1365,30 @@ try {
                 const newUrl = new URL(window.location);
                 newUrl.searchParams.set('tab', newTabId);
                 window.history.pushState({path: newUrl.href}, '', newUrl.href);
+            });
+        });
+
+        // CLI buttons
+        const cliOutput = document.getElementById('cli-output');
+        document.querySelectorAll('button[data-accion]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const accion = btn.dataset.accion;
+                btn.disabled = true;
+                fetch('run_cli.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `accion=${encodeURIComponent(accion)}&csrf_token=${encodeURIComponent(csrf)}`
+                })
+                .then(res => res.text())
+                .then(text => {
+                    cliOutput.textContent = text.replace(/<\/?pre>/g, '');
+                })
+                .catch(err => {
+                    cliOutput.textContent = 'Error: ' + err;
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                });
             });
         });
     });
