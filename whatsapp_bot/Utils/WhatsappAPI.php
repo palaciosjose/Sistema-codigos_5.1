@@ -16,8 +16,9 @@ class WhatsappAPI
     public static function sendMessage(string $chatId, string $text): array
     {
         return self::makeRequest('/sendMessage', [
-            'chatId' => $chatId,
-            'body'   => $text,
+            'chatId'   => $chatId,
+            'body'     => $text,
+            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
         ]);
     }
 
@@ -28,8 +29,9 @@ class WhatsappAPI
     public static function sendChatAction(string $chatId, string $action): ?array
     {
         return self::makeRequest('/sendChatAction', [
-            'chatId' => $chatId,
-            'action' => $action,
+            'chatId'   => $chatId,
+            'action'   => $action,
+            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
         ], false);
     }
 
@@ -38,7 +40,10 @@ class WhatsappAPI
      */
     public static function checkNumber(string $phone): array
     {
-        return self::makeRequest('/checkNumber', ['phone' => $phone]);
+        return self::makeRequest('/checkNumber', [
+            'phone'    => $phone,
+            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
+        ]);
     }
 
     /**
@@ -47,7 +52,10 @@ class WhatsappAPI
      */
     public static function setWebhook(string $url): ?array
     {
-        return self::makeRequest('/setWebhook', ['url' => $url], false);
+        return self::makeRequest('/setWebhook', [
+            'url'      => $url,
+            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
+        ], false);
     }
 
     /**
@@ -56,7 +64,9 @@ class WhatsappAPI
      */
     public static function getInstanceInfo(): ?array
     {
-        return self::makeRequest('/getInstanceInfo', [], false);
+        return self::makeRequest('/getInstanceInfo', [
+            'instance' => \WhatsappBot\Config\WHATSAPP_INSTANCE_ID,
+        ], false);
     }
 
     /**
@@ -72,6 +82,7 @@ class WhatsappAPI
     {
         $baseUrl = rtrim(\WhatsappBot\Config\WHATSAPP_API_URL, '/');
         $token   = \WhatsappBot\Config\WHATSAPP_TOKEN;
+        $payload['instance'] = \WhatsappBot\Config\WHATSAPP_INSTANCE_ID;
 
         if (empty($baseUrl) || empty($token)) {
             throw new RuntimeException('WhatsApp API credentials not configured');
