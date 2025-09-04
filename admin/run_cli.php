@@ -19,8 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Definir acciones permitidas
     $acciones = [
-        'purge_audit_logs' => 'php ../scripts/purge_audit_logs.php',
-        'migrate_telegram_tokens' => 'php ../scripts/migrate_telegram_tokens.php'
+        'purge_audit_logs' => 'php ../scripts/purge_audit_logs.php'
     ];
 
     $accion = $_POST['accion'] ?? '';
@@ -58,7 +57,6 @@ $csrf_token = $_SESSION['csrf_token'] ?? '';
 <form method="POST">
     <select name="accion">
         <option value="purge_audit_logs">Purgar registros de auditoría</option>
-        <option value="migrate_telegram_tokens">Migrar tokens de Telegram</option>
     </select>
     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
     <button type="submit">Ejecutar</button>
