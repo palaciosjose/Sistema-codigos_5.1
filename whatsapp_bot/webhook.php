@@ -7,6 +7,7 @@ use WhatsappBot\Services\WhatsappAuth;
 use WhatsappBot\Services\WhatsappQuery;
 use WhatsappBot\Services\LogService;
 use WhatsappBot\Utils\PayloadHelper;
+use WhatsappBot\Utils\WhatsappAPI;
 
 header('Content-Type: application/json');
 
@@ -72,5 +73,12 @@ if (preg_match('/^\/login\s+(\S+)\s+(\S+)/i', $text, $m)) {
 }
 
 $logger->info('Message processed', ['payload' => $payload, 'response' => $response]);
+if (isset($response['message'])) {
+    try {
+        WhatsappAPI::sendMessage($chatId, $response['message']);
+    } catch (\Throwable $e) {
+        $logger->error('Failed to send message', ['exception' => $e]);
+    }
+}
 
 echo json_encode($response);
