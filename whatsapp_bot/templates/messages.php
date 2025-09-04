@@ -1,32 +1,33 @@
 <?php
-// telegram_bot/templates/messages.php
-// Todos los mensajes de texto del bot
+// whatsapp_bot/templates/messages.php
+// Todos los mensajes de texto del bot de WhatsApp
 
 return [
-    'welcome' => "🤖 *¡Bienvenido al Bot de Códigos\\!*\n\n" .
-                 "Soy tu asistente para buscar códigos de verificación\\.\n" .
-                 "Puedes usarme para consultar códigos de diferentes plataformas\\.\n\n" .
-                 "🔹 Usa /buscar <email> <plataforma> para buscar\n" .
-                 "🔹 Usa /codigo <id> para obtener un código específico\n" .
-                 "🔹 Usa /ayuda para ver todos los comandos\n\n" .
+    'welcome' => "🤖 *¡Bienvenido al Bot de Códigos en WhatsApp\\!*\n\n" .
+                 "Estoy aquí para ayudarte a buscar códigos de verificación\\.\n" .
+                 "Envía cualquiera de estos comandos:\n\n" .
+                 "🔹 `/login usuario clave` \\- Iniciar sesión\n" .
+                 "🔹 `/buscar <email> <plataforma>` \\- Buscar códigos\n" .
+                 "🔹 `/codigo <id>` \\- Obtener un código específico\n" .
+                 "🔹 `/ayuda` \\- Ver todos los comandos\n\n" .
                  "¡Empecemos\\! 🚀",
 
-    'help' => "📚 *Manual de Comandos*\n\n" .
-              "*Comandos Principales:*\n" .
-              "• `/start` \\- Iniciar el bot\n" .
+    'help' => "📚 *Comandos Disponibles*\n\n" .
+              "*Comandos principales:*\n" .
+              "• `/start` \\- Mostrar mensaje de bienvenida\n" .
+              "• `/login usuario clave` \\- Iniciar sesión\n" .
               "• `/buscar <email> <plataforma>` \\- Buscar códigos\n" .
               "• `/codigo <id>` \\- Obtener código por ID\n" .
-              "• `/ayuda` \\- Mostrar esta ayuda\n" .
-              "• `/config` \\- Ver tu configuración\n\n" .
-              "*Comandos de Admin:*\n" .
-              "• `/stats` \\- Ver estadísticas del sistema\n\n" .
-              "*Ejemplos de uso:*\n" .
+              "• `/stats` \\- Ver estadísticas del sistema\n" .
+              "• `/ayuda` \\- Mostrar esta ayuda\n\n" .
+              "*Ejemplos:*\n" .
+              "• `/login miusuario miclave`\n" .
               "• `/buscar usuario@gmail\\.com Netflix`\n" .
               "• `/codigo 12345`\n\n" .
-              "💡 *Tip:* Usa los botones del menú para una navegación más fácil\\!",
+              "💡 *Tip:* Envía los comandos exactamente como se muestran\\!",
 
-    'unauthorized' => "🚫 *Acceso Denegado*\n\n" .
-                      "Lo siento, no estás autorizado para usar este bot\\.\n\n" .
+    'unauthorized' => "🚫 *Acceso denegado*\n\n" .
+                      "Lo siento, no estás autorizado para usar este bot de WhatsApp\\.\n\n" .
                       "Si crees que esto es un error, contacta al administrador del sistema\\.",
 
     'search_instructions' => "🔍 *Cómo buscar códigos:*\n\n" .
@@ -36,7 +37,7 @@ return [
                             "• `/buscar maria@hotmail\\.com Amazon`\n" .
                             "• `/buscar carlos@yahoo\\.com PayPal`\n\n" .
                             "*Plataformas disponibles:*\n" .
-                            "Netflix, Amazon, PayPal, Steam, Epic Games, Spotify, y más\\.\n\n" .
+                            "Netflix, Amazon, PayPal, Steam, Epic Games, Spotify y más\\.\n\n" .
                             "💡 *Tip:* El email debe ser exacto y la plataforma sin espacios\\.",
 
     'code_instructions' => "🆔 *Obtener código por ID:*\n\n" .
@@ -47,7 +48,7 @@ return [
 
     'invalid_format' => "❌ *Formato incorrecto*\n\n" .
                        "Por favor verifica el formato de tu comando\\.\n" .
-                       "Usa /ayuda para ver los ejemplos correctos\\.",
+                       "Envía /ayuda para ver los ejemplos correctos\\.",
 
     'searching' => "🔍 *Buscando\\.\\.\\.*\n\n" .
                    "Consultando en los servidores\\.\\.\\.\n" .
@@ -61,24 +62,20 @@ return [
 
     'error_generic' => "⚠️ *Error del sistema*\n\n" .
                       "Ha ocurrido un error interno\\.\n" .
-                      "Por favor intenta nuevamente en unos minutos\\.\n\n" .
+                      "Intenta nuevamente en unos minutos\\.\n\n" .
                       "Si el problema persiste, contacta al administrador\\.",
 
     'rate_limit' => "⏰ *Demasiadas solicitudes*\n\n" .
                    "Has realizado muchas consultas muy rápido\\.\n" .
-                   "Por favor espera un momento antes de intentar nuevamente\\.",
+                   "Espera un momento antes de intentar nuevamente\\.",
 
     'admin_only' => "👨‍💼 *Solo Administradores*\n\n" .
                    "Este comando está disponible únicamente para administradores del sistema\\.",
 
-    'config_info' => "⚙️ *Tu Configuración*\n\n" .
-                    "Aquí puedes ver tu información personal y permisos\\.\n" .
-                    "Si necesitas cambios, contacta al administrador\\.",
-
     'stats_info' => "📊 *Estadísticas del Sistema*\n\n" .
                    "Vista general del uso del bot y actividad de usuarios\\.",
 
-    'unknown_command' => "Comando no reconocido\\. Usa /ayuda para ver comandos disponibles\\.",
+    'unknown_command' => "Comando no reconocido\\. Envía /ayuda para ver comandos disponibles\\.",
     'usage_search' => "Uso: /buscar <email> <plataforma>",
     'usage_code' => "Uso: /codigo <id_numerico>",
     'error_code' => "Error obteniendo el código\\.",
