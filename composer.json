@@ -51,5 +51,8 @@
             "version": "1.0",
             "auto-setup": true
         }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10"
     }
 }
