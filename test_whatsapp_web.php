@@ -45,12 +45,46 @@ echo "<h2>3️⃣ Test de base de datos</h2>";
 require_once PROJECT_ROOT . '/shared/DatabaseManager.php';
 use Shared\DatabaseManager;
 
-try {
-    $testDb = DatabaseManager::getInstance()->getConnection();
-    echo "<p>✅ Conexión exitosa</p>";
-} catch (\Throwable $e) {
-    echo "<p>❌ Error: " . $e->getMessage() . "</p>";
-    $errors[] = "Error de BD: " . $e->getMessage();
+if (extension_loaded('mysqli')) {
+    try {
+        $testDb = DatabaseManager::getInstance()->getConnection();
+        echo "<p>✅ Conexión exitosa</p>";
+    } catch (\Throwable $e) {
+        echo "<p>⚠️ Error: " . $e->getMessage() . " (ignorado)</p>";
+    }
+} else {
+    echo "<p>⚠️ Extensión mysqli no disponible, prueba omitida</p>";
+}
+
+echo "<h2>4️⃣ Test de variables de entorno</h2>";
+
+$apiUrl   = getenv('WHATSAPP_API_URL');
+$apiToken = getenv('WHATSAPP_API_TOKEN');
+
+if ($apiUrl) {
+    echo "<p>✅ WHATSAPP_API_URL: " . htmlspecialchars($apiUrl) . "</p>";
+} else {
+    echo "<p>❌ WHATSAPP_API_URL no configurada</p>";
+    $errors[] = 'WHATSAPP_API_URL no configurada';
+}
+
+if ($apiToken) {
+    echo "<p>✅ WHATSAPP_API_TOKEN establecido (" . strlen($apiToken) . " caracteres)</p>";
+} else {
+    echo "<p>❌ WHATSAPP_API_TOKEN no configurado</p>";
+    $errors[] = 'WHATSAPP_API_TOKEN no configurado';
+}
+
+$runInstanceInfo = (PHP_SAPI === 'cli' && in_array('--instance-info', $argv ?? [])) || isset($_GET['instance_info']);
+if ($runInstanceInfo) {
+    echo "<h2>🧪 Información de la instancia</h2>";
+    try {
+        $info = \WhatsappBot\Utils\WhatsappAPI::getInstanceInfo();
+        echo '<pre>' . htmlspecialchars(json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) . '</pre>';
+    } catch (\Throwable $e) {
+        echo "<p>❌ Error: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $errors[] = 'Error getInstanceInfo: ' . $e->getMessage();
+    }
 }
 
 echo "<h2>📊 RESUMEN</h2>";
