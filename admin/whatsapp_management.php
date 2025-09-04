@@ -7,7 +7,7 @@ use Shared\DatabaseManager;
 
 // Default endpoint for checking WhatsApp instance status
 if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
-    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/getInstanceInfo');
+    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/api/messages/instance');
 }
 
 authorize('manage_whatsapp', '../index.php', false);
@@ -171,19 +171,16 @@ function testApiConnection($url, $token, $instance, $statusEndpoint) {
     }
 
     $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
-    log_action('POST ' . $endpoint);
-    $payload = json_encode(['instance' => $instance]);
+    $endpoint .= '?instance=' . urlencode($instance);
+    log_action('GET ' . $endpoint);
 
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
             'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
+        ]
     ]);
 
     $response = curl_exec($ch);
@@ -200,19 +197,16 @@ function testApiConnection($url, $token, $instance, $statusEndpoint) {
 
 function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
     $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
-    log_action('POST ' . $endpoint);
-    $payload = json_encode(['instance' => $instance]);
+    $endpoint .= '?instance=' . urlencode($instance);
+    log_action('GET ' . $endpoint);
 
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
             'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
+        ]
     ]);
 
     $response = curl_exec($ch);
