@@ -16,6 +16,9 @@ class WhatsappAuth
     /** Duración de la sesión en segundos (30 minutos por defecto) */
     const SESSION_LIFETIME = 1800;
 
+    /** Días a conservar en el registro de actividad */
+    const ACTIVITY_LOG_RETENTION_DAYS = 30;
+
     public function __construct()
     {
         $this->db = DatabaseManager::getInstance()->getConnection();
@@ -26,6 +29,22 @@ class WhatsappAuth
     public function cleanExpiredSessions(): void
     {
         $this->db->query("DELETE FROM whatsapp_sessions WHERE expires_at < NOW() OR is_active = 0");
+    }
+
+    /**
+     * Elimina datos temporales expirados y registros antiguos de actividad.
+     */
+    public function cleanupExpiredData(): void
+    {
+        // Sesiones temporales usadas durante el login
+        $this->db->query(
+            "DELETE FROM whatsapp_temp_data WHERE created_at < (NOW() - INTERVAL " . self::SESSION_LIFETIME . " SECOND)"
+        );
+
+        // Registro de actividad antiguo
+        $this->db->query(
+            "DELETE FROM whatsapp_activity_log WHERE created_at < (NOW() - INTERVAL " . self::ACTIVITY_LOG_RETENTION_DAYS . " DAY)"
+        );
     }
 
     /**
