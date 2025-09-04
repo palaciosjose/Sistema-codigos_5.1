@@ -98,12 +98,12 @@ function sendTestMessage($url, $token, $instance, $phone) {
     if (empty($phone)) {
         return [false, 'Número de teléfono requerido'];
     }
-    $endpoint = rtrim($url, '/') . '/sendMessage';
+    $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint);
     $payload = json_encode([
-        'instance' => $instance,
-        'to' => $phone,
-        'message' => 'Mensaje de prueba'
+        'number' => $phone,
+        'body' => 'Mensaje de prueba',
+        'instance' => $instance
     ]);
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
