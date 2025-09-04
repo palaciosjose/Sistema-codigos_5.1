@@ -4,7 +4,7 @@ namespace WhatsappBot\Services;
 
 use Shared\DatabaseManager;
 use Shared\UnifiedQueryEngine;
-use Shared\TelegramIntegration;
+use Shared\WhatsappIntegration;
 
 /**
  * Procesamiento de solicitudes de búsqueda provenientes de WhatsApp.
@@ -14,7 +14,7 @@ class WhatsappQuery
     private \mysqli $db;
     private WhatsappAuth $auth;
     private UnifiedQueryEngine $engine;
-    private TelegramIntegration $integration;
+    private WhatsappIntegration $integration;
 
     /** @var array */
     private array $settings;
@@ -24,7 +24,7 @@ class WhatsappQuery
         $this->db = DatabaseManager::getInstance()->getConnection();
         $this->auth = $auth;
         $this->engine = new UnifiedQueryEngine($this->db);
-        $this->integration = new TelegramIntegration($this->db);
+        $this->integration = new WhatsappIntegration($this->db);
         $this->settings = $this->loadSettings();
     }
 
