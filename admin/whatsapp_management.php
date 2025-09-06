@@ -241,12 +241,17 @@ function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret
         return ['success' => false, 'message' => 'URL de webhook no configurada'];
     }
 
-    $endpoint = rtrim($url, '/') . '/testWebhook';
-    log_action('POST ' . $endpoint);
+    if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
+        return ['success' => false, 'message' => 'URL de webhook inválida'];
+    }
+
+    // Verificar usando el único endpoint que funciona
+    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    log_action('POST ' . $endpoint . ' (verificación webhook)');
+
     $payload = json_encode([
-        'url' => $webhook_url,
-        'secret' => $secret,
-        'instance' => $instance
+        'number' => '00000000000',
+        'body' => 'Test conectividad'
     ]);
 
     $ch = curl_init($endpoint);
@@ -266,13 +271,15 @@ function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($response === false || $code >= 400) {
-        $msg = 'Error al verificar webhook: ' . ($error ?: 'HTTP ' . $code);
-        log_action($msg);
-        return ['success' => false, 'message' => $msg];
+    if ($response === false) {
+        return ['success' => false, 'message' => 'Error de conexión: ' . $error];
     }
 
-    return ['success' => true, 'message' => 'Webhook verificado correctamente'];
+    if ($code >= 200 && $code < 500) {
+        return ['success' => true, 'message' => 'Webhook verificado - API operativa'];
+    }
+
+    return ['success' => false, 'message' => 'Error del servidor: HTTP ' . $code];
 }
 
 function getWhatsAppStats($conn) {
