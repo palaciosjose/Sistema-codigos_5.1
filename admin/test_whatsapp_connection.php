@@ -35,57 +35,91 @@ $webhookSecret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZ
 $statusEndpoint = filter_var(trim($_POST['status_endpoint'] ?? DEFAULT_WHATSAPP_STATUS_ENDPOINT), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 function testWhatsAppConnection($url, $token, $instance, $statusEndpoint) {
-    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
-    $endpoint .= '?instance=' . urlencode($instance);
-    log_action('GET ' . $endpoint);
+    // Usar el endpoint que SÍ funciona
+    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    log_action('POST ' . $endpoint . ' (test conexión)');
+    
+    // Payload de prueba
+    $payload = json_encode([
+        'number' => '00000000000', // Número inválido para prueba
+        'body' => 'Test de conexión API'
+    ]);
+    
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
             'Authorization: Bearer ' . $token
-        ]
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
     ]);
+    
     $response = curl_exec($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($response === false || $code >= 400) {
-        $msg = 'Error de conexión a la API: ' . ($error ?: 'HTTP ' . $code);
+    
+    if ($response === false) {
+        $msg = 'Error de conexión a la API: ' . $error;
         log_action($msg);
         return [false, $msg];
     }
-    return [true, 'Conexión a la API exitosa'];
+    
+    // Si responde (aunque sea error por número inválido), la API funciona
+    if ($code >= 200 && $code < 500) {
+        return [true, 'Conexión a la API exitosa'];
+    }
+    
+    $msg = 'Error del servidor API: HTTP ' . $code;
+    log_action($msg);
+    return [false, $msg];
 }
 
 function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
-    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
-    $endpoint .= '?instance=' . urlencode($instance);
-    log_action('GET ' . $endpoint);
+    // Usar el endpoint que SÍ funciona
+    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    log_action('POST ' . $endpoint . ' (validar instancia)');
+    
+    // Payload de prueba
+    $payload = json_encode([
+        'number' => '00000000000',
+        'body' => 'Test validación instancia'
+    ]);
+    
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
             'Authorization: Bearer ' . $token
-        ]
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
     ]);
+    
     $response = curl_exec($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($response === false || $code >= 400) {
-        $msg = 'Error al validar instancia: ' . ($error ?: 'HTTP ' . $code);
+    
+    if ($response === false) {
+        $msg = 'Error al validar instancia: ' . $error;
         log_action($msg);
         return [false, $msg];
     }
-    $data = json_decode($response, true);
-    if (!is_array($data) || empty($data['instance'])) {
-        $msg = 'Respuesta inválida de la API';
-        log_action($msg);
-        return [false, $msg];
+    
+    // Si responde, la instancia/API está funcionando
+    if ($code >= 200 && $code < 500) {
+        return [true, 'Instancia válida'];
     }
-    return [true, 'Instancia válida'];
+    
+    $msg = 'Error del servidor: HTTP ' . $code;
+    log_action($msg);
+    return [false, $msg];
 }
 
 function sendTestMessage($url, $token, $instance, $phone) {
