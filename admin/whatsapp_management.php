@@ -172,17 +172,24 @@ function testApiConnection($url, $token, $instance, $statusEndpoint) {
         return ['success' => false, 'message' => 'Configuración incompleta'];
     }
 
-    $endpoint = rtrim($url, '/') . '/' . ltrim($statusEndpoint, '/');
-    $endpoint .= '?instance=' . urlencode($instance);
-    log_action('GET ' . $endpoint);
+    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    log_action('POST ' . $endpoint . ' (test API)');
+
+    $payload = json_encode([
+        'number' => '00000000000',
+        'body' => 'Test API'
+    ]);
 
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
             'Authorization: Bearer ' . $token
-        ]
+        ],
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload
     ]);
 
     $response = curl_exec($ch);
@@ -190,11 +197,15 @@ function testApiConnection($url, $token, $instance, $statusEndpoint) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($response === false || $code >= 400) {
-        return ['success' => false, 'message' => 'Error de conexión: ' . ($error ?: 'HTTP ' . $code)];
+    if ($response === false) {
+        return ['success' => false, 'message' => 'Error de conexión: ' . $error];
     }
 
-    return ['success' => true, 'message' => 'Conexión exitosa con la API'];
+    if ($code >= 200 && $code < 500) {
+        return ['success' => true, 'message' => 'Conexión exitosa con la API'];
+    }
+
+    return ['success' => false, 'message' => 'Error del servidor: HTTP ' . $code];
 }
 
 function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
