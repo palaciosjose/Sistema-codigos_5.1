@@ -501,6 +501,409 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     header("Location: admin.php?" . http_build_query($redirect_params));
     exit();
 }
+// === Diagnóstico de WhatsApp (Wamundo) ===
+function checkWamundoSystemStatus() {
+    $config = ConfigService::getInstance();
+
+    $status = [
+        'checks' => [],
+        'overall' => 'unknown'
+    ];
+
+    // 1. Verificar configuración de envío
+    $send_secret = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
+    $account_id = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
+
+    if (!empty($send_secret) && !empty($account_id)) {
+        $status['checks']['send_config'] = [
+            'status' => 'ok',
+            'message' => 'Configuración de envío Wamundo completa',
+            'icon' => 'fa-paper-plane'
+        ];
+    } else {
+        $status['checks']['send_config'] = [
+            'status' => 'error',
+            'message' => 'Falta configuración de envío (Send Secret o Account ID)',
+            'icon' => 'fa-paper-plane'
+        ];
+    }
+
+    // 2. Verificar webhook secret
+    $webhook_secret = $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', '');
+    if (!empty($webhook_secret)) {
+        $status['checks']['webhook_secret'] = [
+            'status' => 'ok',
+            'message' => 'Webhook Secret configurado',
+            'icon' => 'fa-shield-alt'
+        ];
+    } else {
+        $status['checks']['webhook_secret'] = [
+            'status' => 'warning',
+            'message' => 'Webhook Secret no configurado (recomendado para seguridad)',
+            'icon' => 'fa-shield-alt'
+        ];
+    }
+
+    // 3. Verificar archivo webhook
+    $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook_new.php';
+    if (file_exists($webhook_file)) {
+        $status['checks']['webhook_file'] = [
+            'status' => 'ok',
+            'message' => 'Archivo webhook existe y está listo',
+            'icon' => 'fa-file-code'
+        ];
+    } else {
+        $status['checks']['webhook_file'] = [
+            'status' => 'error',
+            'message' => 'Archivo webhook_new.php no encontrado',
+            'icon' => 'fa-file-code'
+        ];
+    }
+
+    // 4. Verificar directorio de logs
+    $logs_dir = PROJECT_ROOT . '/whatsapp_bot/logs';
+    if (is_dir($logs_dir) && is_writable($logs_dir)) {
+        $status['checks']['logs_dir'] = [
+            'status' => 'ok',
+            'message' => 'Directorio de logs accesible',
+            'icon' => 'fa-folder-open'
+        ];
+    } else {
+        $status['checks']['logs_dir'] = [
+            'status' => 'warning',
+            'message' => 'Directorio de logs no existe o no es escribible',
+            'icon' => 'fa-folder-open'
+        ];
+    }
+
+    // 5. Verificar tablas de base de datos
+    try {
+        $db = DatabaseManager::getInstance()->getConnection();
+        $required_tables = ['whatsapp_sessions', 'whatsapp_activity_log', 'whatsapp_temp_data'];
+        $missing_tables = [];
+
+        foreach ($required_tables as $table) {
+            $result = $db->query("SHOW TABLES LIKE '$table'");
+            if (!$result || $result->num_rows == 0) {
+                $missing_tables[] = $table;
+            }
+        }
+
+        if (empty($missing_tables)) {
+            $status['checks']['database'] = [
+                'status' => 'ok',
+                'message' => 'Todas las tablas de WhatsApp existen',
+                'icon' => 'fa-database'
+            ];
+        } else {
+            $status['checks']['database'] = [
+                'status' => 'error',
+                'message' => 'Faltan tablas: ' . implode(', ', $missing_tables),
+                'icon' => 'fa-database'
+            ];
+        }
+    } catch (Exception $e) {
+        $status['checks']['database'] = [
+            'status' => 'error',
+            'message' => 'Error verificando base de datos: ' . $e->getMessage(),
+            'icon' => 'fa-database'
+        ];
+    }
+
+    // 6. Test de conectividad con Wamundo
+    if (!empty($send_secret) && !empty($account_id)) {
+        $connection_test = testWamundoApiConnection($send_secret, $account_id);
+        $status['checks']['api_connection'] = [
+            'status' => $connection_test['success'] ? 'ok' : 'warning',
+            'message' => $connection_test['message'],
+            'icon' => 'fa-globe'
+        ];
+    } else {
+        $status['checks']['api_connection'] = [
+            'status' => 'error',
+            'message' => 'No se puede probar conexión - falta configuración',
+            'icon' => 'fa-globe'
+        ];
+    }
+
+    // Determinar estado general
+    $has_error = false;
+    $has_warning = false;
+
+    foreach ($status['checks'] as $check) {
+        if ($check['status'] === 'error') {
+            $has_error = true;
+            break;
+        } elseif ($check['status'] === 'warning') {
+            $has_warning = true;
+        }
+    }
+
+    if ($has_error) {
+        $status['overall'] = 'error';
+        $status['overall_message'] = 'Sistema requiere correcciones críticas';
+    } elseif ($has_warning) {
+        $status['overall'] = 'warning';
+        $status['overall_message'] = 'Sistema funcional con advertencias menores';
+    } else {
+        $status['overall'] = 'ok';
+        $status['overall_message'] = 'Sistema Wamundo completamente operativo';
+    }
+
+    return $status;
+}
+
+function testWamundoApiConnection($send_secret, $account_id) {
+    $url = "https://wamundo.com/api/send/whatsapp";
+    $data = [
+        "secret" => $send_secret,
+        "account" => $account_id,
+        "recipient" => "000000000000",
+        "type" => "text",
+        "message" => "Diagnostic test - " . date('H:i:s'),
+        "priority" => 1
+    ];
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $data,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_SSL_VERIFYPEER => false
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false || !empty($curlError)) {
+        return [
+            'success' => false,
+            'message' => 'Error de conexión con Wamundo: ' . ($curlError ?: 'Timeout')
+        ];
+    }
+
+    if ($httpCode === 200) {
+        $responseData = json_decode($response, true);
+        if ($responseData && $responseData['status'] === 200) {
+            return [
+                'success' => true,
+                'message' => 'Conexión exitosa con API de Wamundo'
+            ];
+        }
+    }
+
+    return [
+        'success' => false,
+        'message' => "API Wamundo respondió con error HTTP $httpCode"
+    ];
+}
+
+function getWamundoSystemStats() {
+    try {
+        $db = DatabaseManager::getInstance()->getConnection();
+
+        $stats = [
+            'total_sessions' => 0,
+            'active_sessions_24h' => 0,
+            'total_messages' => 0,
+            'messages_today' => 0,
+            'last_activity' => null,
+            'webhook_calls_today' => 0
+        ];
+
+        // Total de sesiones
+        $result = $db->query("SELECT COUNT(*) as count FROM whatsapp_sessions");
+        if ($result) {
+            $stats['total_sessions'] = $result->fetch_assoc()['count'];
+        }
+
+        // Sesiones activas en las últimas 24 horas
+        $result = $db->query("SELECT COUNT(*) as count FROM whatsapp_sessions WHERE last_activity > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        if ($result) {
+            $stats['active_sessions_24h'] = $result->fetch_assoc()['count'];
+        }
+
+        // Total de actividad registrada
+        $result = $db->query("SELECT COUNT(*) as count FROM whatsapp_activity_log");
+        if ($result) {
+            $stats['total_messages'] = $result->fetch_assoc()['count'];
+        }
+
+        // Actividad de hoy
+        $result = $db->query("SELECT COUNT(*) as count FROM whatsapp_activity_log WHERE DATE(created_at) = CURDATE()");
+        if ($result) {
+            $stats['messages_today'] = $result->fetch_assoc()['count'];
+        }
+
+        // Última actividad
+        $result = $db->query("SELECT MAX(created_at) as last_activity FROM whatsapp_activity_log");
+        if ($result) {
+            $row = $result->fetch_assoc();
+            $stats['last_activity'] = $row['last_activity'];
+        }
+
+        // Llamadas al webhook hoy (estimación)
+        $result = $db->query("SELECT COUNT(*) as count FROM whatsapp_activity_log WHERE DATE(created_at) = CURDATE() AND action_type = 'webhook_received'");
+        if ($result) {
+            $stats['webhook_calls_today'] = $result->fetch_assoc()['count'];
+        }
+
+        return $stats;
+
+    } catch (Exception $e) {
+        return [
+            'total_sessions' => 0,
+            'active_sessions_24h' => 0,
+            'total_messages' => 0,
+            'messages_today' => 0,
+            'last_activity' => null,
+            'webhook_calls_today' => 0,
+            'error' => $e->getMessage()
+        ];
+    }
+}
+
+function renderWamundoDashboard($status, $stats) {
+    $overall_class = $status['overall'] === 'ok' ? 'success' : ($status['overall'] === 'warning' ? 'warning' : 'danger');
+    $overall_icon = $status['overall'] === 'ok' ? 'check-circle' : ($status['overall'] === 'warning' ? 'exclamation-triangle' : 'times-circle');
+
+    ob_start();
+    ?>
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-card-title">
+                <i class="fas fa-whatsapp me-2 text-success"></i>
+                WhatsApp Bot - Wamundo.com
+            </h3>
+            <div class="badge bg-<?= $overall_class ?> fs-6">
+                <i class="fas fa-<?= $overall_icon ?> me-1"></i>
+                <?= ucfirst($status['overall']) ?>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <!-- Estado General -->
+            <div class="alert alert-<?= $overall_class ?> d-flex align-items-center">
+                <i class="fas fa-<?= $overall_icon ?> me-2"></i>
+                <div>
+                    <strong><?= $status['overall_message'] ?></strong><br>
+                    <small>Plataforma: Wamundo.com | Webhook: webhook_new.php</small>
+                </div>
+            </div>
+
+            <!-- Checks del Sistema -->
+            <div class="row">
+                <?php foreach ($status['checks'] as $check_name => $check): ?>
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <?php
+                            $check_class = $check['status'] === 'ok' ? 'success' : ($check['status'] === 'warning' ? 'warning' : 'danger');
+                            $check_icon = $check['status'] === 'ok' ? 'check' : ($check['status'] === 'warning' ? 'exclamation' : 'times');
+                            ?>
+                            <div class="rounded-circle bg-<?= $check_class ?> text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="fas fa-<?= $check_icon ?>"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold"><?= ucwords(str_replace('_', ' ', $check_name)) ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($check['message']) ?></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h4 text-primary"><?= $stats['total_sessions'] ?></div>
+                        <div class="small text-muted">Sesiones Total</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h4 text-success"><?= $stats['active_sessions_24h'] ?></div>
+                        <div class="small text-muted">Activas (24h)</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h4 text-info"><?= $stats['total_messages'] ?></div>
+                        <div class="small text-muted">Mensajes Total</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h4 text-warning"><?= $stats['messages_today'] ?></div>
+                        <div class="small text-muted">Hoy</div>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($stats['last_activity']): ?>
+            <div class="mt-3 text-center">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Última actividad: <?= date('d/m/Y H:i:s', strtotime($stats['last_activity'])) ?>
+                </small>
+            </div>
+            <?php endif; ?>
+
+            <!-- Acciones -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <a href="whatsapp_management.php" class="btn btn-primary w-100">
+                        <i class="fas fa-cog me-1"></i>Gestionar Configuración
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-outline-info w-100" onclick="testWamundoConnection()">
+                        <i class="fas fa-vial me-1"></i>Test de Conexión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function testWamundoConnection() {
+        // Implementar test de conexión via AJAX
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Probando...';
+        btn.disabled = true;
+
+        fetch('whatsapp_management.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'action=test_wamundo_connection'
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al probar la conexión');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
+$whatsapp_status = checkWamundoSystemStatus();
+$whatsapp_stats = getWamundoSystemStats();
 
 ?>
 <!DOCTYPE html>
@@ -1286,7 +1689,8 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 </script>
-            
+<?= renderWamundoDashboard($whatsapp_status, $whatsapp_stats); ?>
+
             <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="current_tab" value="config" class="current-tab-input">
 
