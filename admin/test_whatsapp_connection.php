@@ -63,22 +63,23 @@ function testWhatsAppConnection($url, $token) {
     ]);
     
     $response = curl_exec($ch);
+    $errno = curl_errno($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
-    if ($response === false) {
-        $msg = 'Error de conexión a la API: ' . $error;
+
+    if ($response === false || $code === 0) {
+        $msg = "Error cURL {$errno}: {$error}";
         log_action($msg);
         return [false, $msg];
     }
-    
+
     // Si responde (aunque sea error por número inválido), la API funciona
     if ($code >= 200 && $code < 500) {
         return [true, 'Conexión a la API exitosa'];
     }
-    
-    $msg = 'Error del servidor API: HTTP ' . $code;
+
+    $msg = "Error del servidor API: HTTP {$code} - cURL {$errno}: {$error}";
     log_action($msg);
     return [false, $msg];
 }
@@ -110,22 +111,23 @@ function validateWhatsAppInstance($url, $token) {
     ]);
     
     $response = curl_exec($ch);
+    $errno = curl_errno($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
-    if ($response === false) {
-        $msg = 'Error al validar instancia: ' . $error;
+
+    if ($response === false || $code === 0) {
+        $msg = "Error cURL {$errno}: {$error}";
         log_action($msg);
         return [false, $msg];
     }
-    
+
     // Si responde, la instancia/API está funcionando
     if ($code >= 200 && $code < 500) {
         return [true, 'Instancia válida'];
     }
-    
-    $msg = 'Error del servidor: HTTP ' . $code;
+
+    $msg = "Error del servidor: HTTP {$code} - cURL {$errno}: {$error}";
     log_action($msg);
     return [false, $msg];
 }
@@ -159,11 +161,17 @@ function sendTestMessage($url, $token, $phone, $accountId) {
         CURLOPT_POSTFIELDS => $payload
     ]);
     $response = curl_exec($ch);
+    $errno = curl_errno($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($response === false || $code >= 400) {
-        $msg = 'Error al enviar mensaje: ' . ($error ?: 'HTTP ' . $code);
+    if ($response === false || $code === 0) {
+        $msg = "Error cURL {$errno}: {$error}";
+        log_action($msg);
+        return [false, $msg];
+    }
+    if ($code >= 400) {
+        $msg = "Error al enviar mensaje: HTTP {$code} - cURL {$errno}: {$error}";
         log_action($msg);
         return [false, $msg];
     }
@@ -207,26 +215,27 @@ function verifyWebhook($url, $token, $webhookUrl, $secret) {
     ]);
     
     $response = curl_exec($ch);
+    $errno = curl_errno($ch);
     $error = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
-    // Si obtenemos respuesta (aunque sea error por número inválido), 
+
+    // Si obtenemos respuesta (aunque sea error por número inválido),
     // significa que la API está funcionando y el token es válido
-    if ($response === false) {
-        $msg = 'No se puede conectar con la API: ' . $error;
+    if ($response === false || $code === 0) {
+        $msg = "Error cURL {$errno}: {$error}";
         log_action($msg);
         return [false, $msg];
     }
-    
+
     // Códigos 200-299 = éxito, 400-499 = error de cliente pero API funciona
     if ($code >= 200 && $code < 500) {
         log_action('Webhook verificado: API responde correctamente y token válido');
         return [true, 'Webhook configurado - API operativa y token válido'];
     }
-    
+
     // Solo códigos 500+ son errores reales del servidor
-    $msg = 'Error del servidor API: HTTP ' . $code;
+    $msg = "Error del servidor API: HTTP {$code} - cURL {$errno}: {$error}";
     log_action($msg);
     return [false, $msg];
 }
