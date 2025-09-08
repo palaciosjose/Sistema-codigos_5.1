@@ -545,7 +545,7 @@ function checkWamundoSystemStatus() {
     }
 
     // 3. Verificar archivo webhook
-    $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook_new.php';
+    $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook.php';
     if (file_exists($webhook_file)) {
         $status['checks']['webhook_file'] = [
             'status' => 'ok',
@@ -555,7 +555,7 @@ function checkWamundoSystemStatus() {
     } else {
         $status['checks']['webhook_file'] = [
             'status' => 'error',
-            'message' => 'Archivo webhook_new.php no encontrado',
+            'message' => 'Archivo webhook.php no encontrado',
             'icon' => 'fa-file-code'
         ];
     }
@@ -791,7 +791,7 @@ function renderWamundoDashboard($status, $stats) {
                 <i class="fas fa-<?= $overall_icon ?> me-2"></i>
                 <div>
                     <strong><?= $status['overall_message'] ?></strong><br>
-                    <small>Plataforma: Wamundo.com | Webhook: webhook_new.php</small>
+                    <small>Plataforma: Wamundo.com | Webhook: webhook.php</small>
                 </div>
             </div>
 
@@ -6217,3 +6217,4 @@ if (typeof loadUserEmails === 'function') {
 console.log('✅ Correcciones para sistema de tarjetas aplicadas');
 
 </script>
+
