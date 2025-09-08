@@ -75,28 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     if ($configLoaded && $config) {
                         $config->set('WHATSAPP_NEW_SEND_SECRET', $send_secret);
-                        Shared\ConfigService::getInstance()->reload();
-                        if (Shared\ConfigService::getInstance()->get('WHATSAPP_NEW_SEND_SECRET') !== $send_secret) {
-                            throw new Exception('WHATSAPP_NEW_SEND_SECRET no se actualizó correctamente');
-                        }
-
                         $config->set('WHATSAPP_NEW_ACCOUNT_ID', $account_id);
-                        Shared\ConfigService::getInstance()->reload();
-                        if (Shared\ConfigService::getInstance()->get('WHATSAPP_NEW_ACCOUNT_ID') !== $account_id) {
-                            throw new Exception('WHATSAPP_NEW_ACCOUNT_ID no se actualizó correctamente');
-                        }
-
                         $config->set('WHATSAPP_NEW_WEBHOOK_SECRET', $webhook_secret);
-                        Shared\ConfigService::getInstance()->reload();
-                        if (Shared\ConfigService::getInstance()->get('WHATSAPP_NEW_WEBHOOK_SECRET') !== $webhook_secret) {
-                            throw new Exception('WHATSAPP_NEW_WEBHOOK_SECRET no se actualizó correctamente');
-                        }
-
                         $config->set('WHATSAPP_NEW_LOG_LEVEL', $log_level);
+
                         Shared\ConfigService::getInstance()->reload();
-                        if (Shared\ConfigService::getInstance()->get('WHATSAPP_NEW_LOG_LEVEL') !== $log_level) {
-                            throw new Exception('WHATSAPP_NEW_LOG_LEVEL no se actualizó correctamente');
-                        }
 
                         $message = 'Configuración guardada exitosamente';
                         $message_type = 'success';
