@@ -178,6 +178,37 @@ class ConfigService
     }
 
     /**
+     * Persist a configuration value to the database and update caches.
+     *
+     * @param string $key
+     * @param mixed  $value
+     */
+    public function set(string $key, $value): void
+    {
+        $storeValue = $value;
+        if (is_string($value) && in_array($key, self::ENCRYPTED_KEYS, true)) {
+            $storeValue = Crypto::encrypt($value);
+        }
+
+        try {
+            $db = DatabaseManager::getInstance()->getConnection();
+            $stmt = $db->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)');
+            if ($stmt) {
+                $stmt->bind_param('ss', $key, $storeValue);
+                $stmt->execute();
+                $stmt->close();
+            }
+        } catch (\Throwable $e) {
+            error_log('ConfigService set error: ' . $e->getMessage());
+        }
+
+        $this->dbSettings[$key] = $storeValue;
+        $this->cache[$key] = $value;
+        $this->dbLoaded = true;
+        $this->writeCacheFile();
+    }
+
+    /**
      * Return all configuration settings from database cache.
      *
      * @return array<string,string>

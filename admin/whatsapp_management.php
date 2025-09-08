@@ -73,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $config->set('WHATSAPP_NEW_ACCOUNT_ID', $account_id);
                         $config->set('WHATSAPP_NEW_WEBHOOK_SECRET', $webhook_secret);
                         $config->set('WHATSAPP_NEW_LOG_LEVEL', $log_level);
-                        
+                        $config->reload();
+
                         $message = 'Configuración guardada exitosamente';
                         $message_type = 'success';
                     } else {
