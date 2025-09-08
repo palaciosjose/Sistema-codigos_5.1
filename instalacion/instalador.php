@@ -237,43 +237,37 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "ADMIN_EMAIL_OVERRIDE=1\n" .
         "MAX_SEARCH_RESULTS=50\n" .
         "CACHE_ENABLED=1\n" .
-        "CACHE_LIFETIME=300\n\n" .
-        "# ========== WHATICKET (DESACTIVADO - USAR WAMUNDO) ==========\n" .
-        "WHATSAPP_API_URL=\n" .
-        "WHATSAPP_TOKEN=\n" .
-        "WHATSAPP_INSTANCE_ID=\n" .
-        "WHATSAPP_WEBHOOK_SECRET=\n" .
-        "WHATSAPP_ACTIVE_WEBHOOK=wamundo\n";
+        "CACHE_LIFETIME=300\n";
 
     $project_root = dirname(__DIR__);
     $env_path = $project_root . '/.env';
 
     // Crear .env en la raíz del proyecto
-    if (file_put_contents($env_path, $env_content)) {
+    if (file_put_contents($env_path, $env_content) !== false) {
         // Establecer la clave en la sesión actual
         putenv("CRYPTO_KEY=$cryptoKey");
         $_ENV['CRYPTO_KEY'] = $cryptoKey;
 
-        return true;
+        // Verificar que la clave se escribió correctamente en el archivo
+        $written_env = file_get_contents($env_path);
+        return strpos($written_env, "CRYPTO_KEY={$cryptoKey}") !== false;
     }
 
     return false;
 }
 
 function insertWamundoDefaultSettings($pdo) {
-    // Configuraciones por defecto para Wamundo en la base de datos
+    // Verificar que la tabla settings existe antes de intentar escribir
+    $table_check = $pdo->query("SHOW TABLES LIKE 'settings'");
+    if ($table_check === false || $table_check->rowCount() === 0) {
+        return; // No se puede insertar si la tabla no existe
+    }
+
+    // Configuraciones mínimas requeridas para Wamundo
     $default_settings = [
         'WHATSAPP_NEW_LOG_LEVEL' => 'info',
         'WHATSAPP_NEW_API_TIMEOUT' => '30',
-        'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo',
-        'EMAIL_AUTH_ENABLED' => '1',
-        'REQUIRE_LOGIN' => '1',
-        'USER_EMAIL_RESTRICTIONS_ENABLED' => '1',
-        'USER_SUBJECT_RESTRICTIONS_ENABLED' => '1',
-        'ADMIN_EMAIL_OVERRIDE' => '1',
-        'MAX_SEARCH_RESULTS' => '50',
-        'CACHE_ENABLED' => '1',
-        'CACHE_LIFETIME' => '300'
+        'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo'
     ];
 
     foreach ($default_settings as $key => $value) {
@@ -1332,9 +1326,16 @@ function verifyInstallation() {
             throw new Exception('Archivo config/db_credentials.php no fue creado');
         }
 
-        // 6. Verificar que el .env fue creado (si es que se implementó)
+        // 6. Verificar que el .env fue creado y contiene la clave de cifrado
         $env_path = dirname(INSTALL_DIR) . '/.env';
         $env_created = file_exists($env_path);
+        $env_crypto_key = false;
+        $env_has_whaticket_keys = false;
+        if ($env_created) {
+            $env_content = file_get_contents($env_path);
+            $env_crypto_key = preg_match('/^CRYPTO_KEY=.*/m', $env_content) === 1;
+            $env_has_whaticket_keys = preg_match('/WHATSAPP_API_URL|WHATSAPP_TOKEN|WHATSAPP_INSTANCE_ID|WHATSAPP_WEBHOOK_SECRET/', $env_content) === 1;
+        }
 
         $test_conn->close();
 
@@ -1344,6 +1345,8 @@ function verifyInstallation() {
         return [
             'verified' => true,
             'env_created' => $env_created,
+            'env_crypto_key' => $env_crypto_key,
+            'env_has_whaticket_keys' => $env_has_whaticket_keys,
             'error' => null
         ];
 
@@ -1354,6 +1357,8 @@ function verifyInstallation() {
         return [
             'verified' => false,
             'env_created' => false,
+            'env_crypto_key' => false,
+            'env_has_whaticket_keys' => false,
             'error' => $verification_error
         ];
     }
@@ -1384,6 +1389,8 @@ function verifyInstallation() {
 $verification_result = verifyInstallation();
 $installation_verified = $verification_result['verified'];
 $env_created = $verification_result['env_created'];
+$env_crypto_key = $verification_result['env_crypto_key'];
+$env_has_whaticket_keys = $verification_result['env_has_whaticket_keys'];
 $verification_error = $verification_result['error'];
 ?>
 <div class="text-center">
@@ -1458,7 +1465,13 @@ $verification_error = $verification_result['error'];
                 </div>
             </div>
         <?php endif; ?>
-        
+
+        <?php if ($env_crypto_key && !$env_has_whaticket_keys): ?>
+            <div class="alert alert-success mt-3">
+                <i class="fas fa-lock me-2"></i>Clave de cifrado verificada y sin claves de Whaticket.
+            </div>
+        <?php endif; ?>
+
         <?php
         $license_info = $license_client->getLicenseInfo();
         if ($license_info): ?>
