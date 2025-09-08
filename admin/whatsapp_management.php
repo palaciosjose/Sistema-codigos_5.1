@@ -317,7 +317,7 @@ function testWamundoAPI($send_secret, $account_id) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
-    
+
     if ($response === false || !empty($curlError)) {
         return [
             'success' => false,
@@ -325,10 +325,13 @@ function testWamundoAPI($send_secret, $account_id) {
             'details' => ['Error' => $curlError ?: 'Timeout']
         ];
     }
-    
-    if ($httpCode === 200) {
-        $responseData = json_decode($response, true);
-        if ($responseData && $responseData['status'] === 200) {
+
+    $responseData = json_decode($response, true);
+    if (is_array($responseData)) {
+        $status = $responseData['status'] ?? null;
+        $apiMessage = $responseData['message'] ?? '';
+
+        if ($status === 200) {
             return [
                 'success' => true,
                 'message' => 'Conexión exitosa con API Wamundo',
@@ -339,11 +342,29 @@ function testWamundoAPI($send_secret, $account_id) {
                 ]
             ];
         }
+
+        if ($status === 400 && stripos($apiMessage, 'Invalid phone number') !== false) {
+            return [
+                'success' => true,
+                'message' => 'API respondió correctamente (número inválido)',
+                'details' => [
+                    'Status' => 'OK',
+                    'Response' => $apiMessage,
+                    'HTTP Code' => $httpCode
+                ]
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => $apiMessage ?: "Error HTTP $httpCode",
+            'details' => ['HTTP Code' => $httpCode, 'Response' => substr($response, 0, 100)]
+        ];
     }
-    
+
     return [
         'success' => false,
-        'message' => "Error HTTP $httpCode",
+        'message' => "Respuesta inválida de API Wamundo",
         'details' => ['HTTP Code' => $httpCode, 'Response' => substr($response, 0, 100)]
     ];
 }
