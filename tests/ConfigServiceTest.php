@@ -138,6 +138,21 @@ class ConfigServiceTest extends TestCase
         $this->assertSame($plain, $service->get('WHATSAPP_NEW_SEND_SECRET'));
     }
 
+    public function testEnvEmptyStringFallsBackToDb(): void
+    {
+        $_ENV['TEST_KEY'] = '';
+        putenv('TEST_KEY=');
+
+        $service = ConfigService::getInstance();
+        $service->set('TEST_KEY', 'db_value');
+        $service->reload();
+
+        $this->assertSame('db_value', $service->get('TEST_KEY'));
+
+        unset($_ENV['TEST_KEY']);
+        putenv('TEST_KEY');
+    }
+
     protected function tearDown(): void
     {
         $refCfg = new \ReflectionProperty(ConfigService::class, 'instance');

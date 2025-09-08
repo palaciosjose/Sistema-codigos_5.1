@@ -89,7 +89,7 @@ class ConfigService
     private function getFromEnv(string $key): ?string
     {
         $val = $_ENV[$key] ?? getenv($key);
-        return $val !== false ? $val : null;
+        return ($val === false || $val === '') ? null : $val;
     }
 
     private function loadFileConfig(): void
