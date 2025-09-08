@@ -144,8 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
             // Crear archivo .env automáticamente con datos de BD
             $env_created = createEnvironmentFile($db_host, $db_name, $db_user, $db_password);
 
-            // Insertar configuraciones por defecto de Wamundo
-            insertWamundoDefaultSettings($pdo);
+            // Insertar configuraciones por defecto de WhatsApp
+            insertDefaultWhatsappSettings($pdo);
 
 
         } catch (Exception $e) {
@@ -218,19 +218,19 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "DB_PASSWORD={$db_password}\n" .
         "DB_NAME={$db_name}\n" .
         "CRYPTO_KEY={$cryptoKey}\n\n" .
-        "# ========== WHATSAPP - WAMUNDO.COM ==========\n" .
+        "# ========== WHATSAPP API ==========\n" .
         "# Las siguientes claves se configurarán desde el panel administrativo\n" .
-        "# WHATSAPP_NEW_API_URL: URL base de la API de Wamundo\n" .
+        "# WHATSAPP_NEW_API_URL: URL base de la API de WhatsApp\n" .
         "WHATSAPP_NEW_API_URL=\n" .
         "# WHATSAPP_NEW_WEBHOOK_SECRET: secreto para validar webhooks\n" .
         "WHATSAPP_NEW_WEBHOOK_SECRET=\n" .
         "# WHATSAPP_NEW_SEND_SECRET: secreto para enviar mensajes\n" .
         "WHATSAPP_NEW_SEND_SECRET=\n" .
-        "# WHATSAPP_NEW_ACCOUNT_ID: identificador de la cuenta en Wamundo\n" .
+        "# WHATSAPP_NEW_ACCOUNT_ID: identificador de la cuenta en la API de WhatsApp\n" .
         "WHATSAPP_NEW_ACCOUNT_ID=\n" .
         "WHATSAPP_NEW_LOG_LEVEL=info\n" .
         "WHATSAPP_NEW_API_TIMEOUT=30\n" .
-        "WHATSAPP_ACTIVE_WEBHOOK=wamundo\n\n" .
+        "WHATSAPP_ACTIVE_WEBHOOK=\n\n" .
         "# ========== SISTEMA ==========\n" .
         "ENVIRONMENT=production\n" .
         "DEBUG_MODE=0\n" .
@@ -263,18 +263,18 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
     return false;
 }
 
-function insertWamundoDefaultSettings($pdo) {
+function insertDefaultWhatsappSettings($pdo) {
     // Verificar que la tabla settings existe antes de intentar escribir
     $table_check = $pdo->query("SHOW TABLES LIKE 'settings'");
     if ($table_check === false || $table_check->rowCount() === 0) {
         return; // No se puede insertar si la tabla no existe
     }
 
-    // Configuraciones mínimas requeridas para Wamundo
+    // Configuraciones mínimas requeridas para la API de WhatsApp
     $default_settings = [
         'WHATSAPP_NEW_LOG_LEVEL' => 'info',
         'WHATSAPP_NEW_API_TIMEOUT' => '30',
-        'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo'
+        'WHATSAPP_ACTIVE_WEBHOOK' => ''
     ];
 
     foreach ($default_settings as $key => $value) {
@@ -1412,7 +1412,7 @@ $verification_error = $verification_result['error'];
                     <?php endif; ?>
                     <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
                     <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de WhatsApp insertadas</li>
                     <li><i class="fas fa-check text-success me-2"></i> Todas las tablas necesarias creadas</li>
                 </ul>
             </div>
@@ -1428,7 +1428,7 @@ $verification_error = $verification_result['error'];
                     <?php endif; ?>
                     <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
                     <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de WhatsApp insertadas</li>
                 </ul>
                 
                 <?php if ($verification_error): ?>
@@ -1480,7 +1480,7 @@ $verification_error = $verification_result['error'];
         <div class="alert alert-info">
             <h6><i class="fas fa-rocket me-2"></i>¡Sistema Completamente Configurado!</h6>
             <p class="mb-0">
-                <strong>WhatsApp:</strong> Configurado con Wamundo.com<br>
+                <strong>WhatsApp:</strong> Configuración básica completa<br>
                 <strong>Telegram:</strong> Bot integrado y funcional<br>
                 <strong>Base de datos:</strong> Todas las tablas creadas<br>
                 <strong>Configuración:</strong> Lista para usar
