@@ -98,7 +98,6 @@ class ConfigServiceTest extends TestCase
     protected function setUp(): void
     {
         $_ENV['CRYPTO_KEY'] = 'testkey';
-        putenv('CRYPTO_KEY=testkey');
 
         $this->fakeDb = new CSFakeMysqli();
         $manager = new CSFakeDatabaseManager($this->fakeDb);
@@ -141,7 +140,6 @@ class ConfigServiceTest extends TestCase
     public function testEnvEmptyStringFallsBackToDb(): void
     {
         $_ENV['TEST_KEY'] = '';
-        putenv('TEST_KEY=');
 
         $service = ConfigService::getInstance();
         $service->set('TEST_KEY', 'db_value');
@@ -150,7 +148,6 @@ class ConfigServiceTest extends TestCase
         $this->assertSame('db_value', $service->get('TEST_KEY'));
 
         unset($_ENV['TEST_KEY']);
-        putenv('TEST_KEY');
     }
 
     protected function tearDown(): void
