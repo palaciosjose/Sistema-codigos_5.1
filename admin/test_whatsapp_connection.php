@@ -11,6 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 header('Content-Type: application/json');
 
 require_once SECURITY_DIR . '/auth.php';
+require_once PROJECT_ROOT . '/shared/ConfigService.php';
+
+use Shared\ConfigService;
 
 if (!is_admin()) {
     http_response_code(401);
@@ -24,19 +27,16 @@ function log_action($message) {
     error_log("[$timestamp] $message\n", 3, $logFile);
 }
 
-if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
-    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/api/messages/instance');
-}
-
 $action = filter_var($_POST['action'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-$apiUrl = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
-$token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-$instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
 $webhookUrl = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
 $webhookSecret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-$statusEndpoint = filter_var(trim($_POST['status_endpoint'] ?? DEFAULT_WHATSAPP_STATUS_ENDPOINT), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-function testWhatsAppConnection($url, $token, $instance, $statusEndpoint) {
+$config = ConfigService::getInstance();
+$apiUrl = $config->get('WHATSAPP_NEW_API_URL', '');
+$token = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
+$accountId = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
+
+function testWhatsAppConnection($url, $token) {
     // Usar el endpoint que SÍ funciona
     $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint . ' (test conexión)');
@@ -80,7 +80,7 @@ function testWhatsAppConnection($url, $token, $instance, $statusEndpoint) {
     return [false, $msg];
 }
 
-function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
+function validateWhatsAppInstance($url, $token) {
     // Usar el endpoint que SÍ funciona
     $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint . ' (validar instancia)');
@@ -124,17 +124,20 @@ function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
     return [false, $msg];
 }
 
-function sendTestMessage($url, $token, $instance, $phone) {
+function sendTestMessage($url, $token, $phone, $accountId) {
     if (empty($phone)) {
         return [false, 'Número de teléfono requerido'];
     }
     $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint);
-    $payload = json_encode([
+    $payloadArray = [
         'number' => $phone,
         'body' => 'Mensaje de prueba',
-        'instance' => $instance
-    ]);
+    ];
+    if (!empty($accountId)) {
+        $payloadArray['accountId'] = $accountId;
+    }
+    $payload = json_encode($payloadArray);
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -158,7 +161,7 @@ function sendTestMessage($url, $token, $instance, $phone) {
     return [true, 'Mensaje de prueba enviado'];
 }
 
-function verifyWebhook($url, $token, $instance, $webhookUrl, $secret) {
+function verifyWebhook($url, $token, $webhookUrl, $secret) {
     if (empty($webhookUrl)) {
         return [false, 'URL de webhook no configurada'];
     }
@@ -218,21 +221,21 @@ function verifyWebhook($url, $token, $instance, $webhookUrl, $secret) {
 
 switch ($action) {
     case 'test_api':
-        $result = testWhatsAppConnection($apiUrl, $token, $instance, $statusEndpoint);
+        $result = testWhatsAppConnection($apiUrl, $token);
         break;
     case 'validate_instance':
-        $result = validateWhatsAppInstance($apiUrl, $token, $instance, $statusEndpoint);
+        $result = validateWhatsAppInstance($apiUrl, $token);
         break;
     case 'send_message':
         $phone = filter_var(trim($_POST['phone'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
         try {
-            $result = sendTestMessage($apiUrl, $token, $instance, $phone);
+            $result = sendTestMessage($apiUrl, $token, $phone, $accountId);
         } catch (Exception $e) {
             $result = [false, 'Error inesperado: ' . $e->getMessage()];
         }
         break;
     case 'verify_webhook':
-        $result = verifyWebhook($apiUrl, $token, $instance, $webhookUrl, $webhookSecret);
+        $result = verifyWebhook($apiUrl, $token, $webhookUrl, $webhookSecret);
         break;
     default:
         $result = [false, 'Acción inválida'];
