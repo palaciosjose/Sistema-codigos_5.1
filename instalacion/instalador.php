@@ -139,18 +139,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
 
         try {
             // Crear archivo .env automáticamente con datos de BD
-            if (createEnvironmentFile($db_host, $db_name, $db_user, $db_password)) {
-                echo "<p class='text-success'>✅ Archivo .env creado automáticamente</p>";
-            } else {
-                echo "<p class='text-warning'>⚠️ No se pudo crear .env - configurar manualmente</p>";
-            }
+            $env_created = createEnvironmentFile($db_host, $db_name, $db_user, $db_password);
 
             // Insertar configuraciones por defecto de Wamundo
             insertWamundoDefaultSettings($pdo);
-            echo "<p class='text-success'>✅ Configuraciones de Wamundo insertadas</p>";
+
+            // Limpiar referencias a Whaticket
+            cleanupWhaticketReferences($pdo);
 
         } catch (Exception $e) {
-            echo "<p class='text-warning'>⚠️ Error en configuración automática: " . $e->getMessage() . "</p>";
+            // Log del error pero no mostrar nada en pantalla
+            error_log("Error en configuración automática: " . $e->getMessage());
+            $env_created = false;
         }
 
         // ✅ CORRECCIÓN CRÍTICA: Pasar correctamente el parámetro $admin_telegram
@@ -276,6 +276,30 @@ function insertWamundoDefaultSettings($pdo) {
             // Log pero no fallar - estas son configuraciones opcionales
             error_log("Warning: No se pudo insertar configuración $key: " . $e->getMessage());
         }
+    }
+}
+
+function cleanupWhaticketReferences($pdo) {
+    try {
+        // Marcar Whaticket como inactivo
+        $stmt = $pdo->prepare("UPDATE settings SET setting_value = 'wamundo' WHERE setting_key = 'WHATSAPP_ACTIVE_WEBHOOK'");
+        $stmt->execute();
+
+        // Limpiar configuraciones obsoletas de Whaticket
+        $obsolete_keys = [
+            'WHATSAPP_API_URL',
+            'WHATSAPP_TOKEN',
+            'WHATSAPP_INSTANCE',
+            'WHATSAPP_WEBHOOK_SECRET'
+        ];
+
+        foreach ($obsolete_keys as $key) {
+            $stmt = $pdo->prepare("UPDATE settings SET setting_value = '' WHERE setting_key = ?");
+            $stmt->execute([$key]);
+        }
+
+    } catch (Exception $e) {
+        error_log("Warning: Error limpiando referencias Whaticket: " . $e->getMessage());
     }
 }
 
