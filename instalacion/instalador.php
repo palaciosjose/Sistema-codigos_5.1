@@ -136,7 +136,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
 
         // Garantizar índice único para telegram_temp_data
         ensureTelegramTempIndex($pdo);
-        
+
+        try {
+            // Crear archivo .env automáticamente con datos de BD
+            if (createEnvironmentFile($db_host, $db_name, $db_user, $db_password)) {
+                echo "<p class='text-success'>✅ Archivo .env creado automáticamente</p>";
+            } else {
+                echo "<p class='text-warning'>⚠️ No se pudo crear .env - configurar manualmente</p>";
+            }
+
+            // Insertar configuraciones por defecto de Wamundo
+            insertWamundoDefaultSettings($pdo);
+            echo "<p class='text-success'>✅ Configuraciones de Wamundo insertadas</p>";
+
+            // Limpiar referencias a Whaticket
+            cleanupWhaticketReferences($pdo);
+            echo "<p class='text-success'>✅ Referencias a Whaticket eliminadas</p>";
+
+        } catch (Exception $e) {
+            echo "<p class='text-warning'>⚠️ Error en configuración automática: " . $e->getMessage() . "</p>";
+        }
+
         // ✅ CORRECCIÓN CRÍTICA: Pasar correctamente el parámetro $admin_telegram
         insertInitialData($pdo, $admin_user, $admin_password, $admin_telegram);
         
@@ -183,6 +203,107 @@ function ensureTelegramTempIndex($pdo) {
     $result = $pdo->query("SHOW INDEX FROM telegram_temp_data WHERE Key_name = 'unique_user_type'");
     if ($result->rowCount() === 0) {
         $pdo->exec("ALTER TABLE telegram_temp_data ADD UNIQUE KEY unique_user_type (user_id, data_type)");
+    }
+}
+
+function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
+    // Escapar valores para evitar problemas
+    $env_content = "# =========================================\n" .
+        "# CONFIGURACIÓN AUTOMÁTICA - Sistema Web Códigos 5.0\n" .
+        "# Generado automáticamente el " . date('Y-m-d H:i:s') . "\n" .
+        "# =========================================\n\n" .
+        "# ========== BASE DE DATOS ==========\n" .
+        "DB_HOST={$db_host}\n" .
+        "DB_USER={$db_user}\n" .
+        "DB_PASSWORD={$db_password}\n" .
+        "DB_NAME={$db_name}\n\n" .
+        "# ========== WHATSAPP - WAMUNDO.COM ==========\n" .
+        "WHATSAPP_NEW_API_URL=https://wamundo.com/api\n" .
+        "WHATSAPP_NEW_WEBHOOK_SECRET=\n" .
+        "WHATSAPP_NEW_SEND_SECRET=\n" .
+        "WHATSAPP_NEW_ACCOUNT_ID=\n" .
+        "WHATSAPP_NEW_LOG_LEVEL=info\n" .
+        "WHATSAPP_NEW_API_TIMEOUT=30\n\n" .
+        "# ========== SISTEMA ==========\n" .
+        "ENVIRONMENT=production\n" .
+        "DEBUG_MODE=0\n" .
+        "SESSION_LIFETIME=3600\n" .
+        "LOG_LEVEL=info\n\n" .
+        "# ========== CONFIGURACIONES DE NEGOCIO ==========\n" .
+        "EMAIL_AUTH_ENABLED=1\n" .
+        "REQUIRE_LOGIN=1\n" .
+        "USER_EMAIL_RESTRICTIONS_ENABLED=1\n" .
+        "USER_SUBJECT_RESTRICTIONS_ENABLED=1\n" .
+        "ADMIN_EMAIL_OVERRIDE=1\n" .
+        "MAX_SEARCH_RESULTS=50\n" .
+        "CACHE_ENABLED=1\n" .
+        "CACHE_LIFETIME=300\n\n" .
+        "# ========== WHATICKET (DESACTIVADO - USAR WAMUNDO) ==========\n" .
+        "WHATSAPP_API_URL=\n" .
+        "WHATSAPP_TOKEN=\n" .
+        "WHATSAPP_INSTANCE_ID=\n" .
+        "WHATSAPP_WEBHOOK_SECRET=\n" .
+        "WHATSAPP_ACTIVE_WEBHOOK=wamundo\n";
+
+    $project_root = dirname(__DIR__);
+    $env_path = $project_root . '/.env';
+
+    // Crear .env en la raíz del proyecto
+    if (file_put_contents($env_path, $env_content)) {
+        return true;
+    }
+
+    return false;
+}
+
+function insertWamundoDefaultSettings($pdo) {
+    // Configuraciones por defecto para Wamundo en la base de datos
+    $default_settings = [
+        'WHATSAPP_NEW_LOG_LEVEL' => 'info',
+        'WHATSAPP_NEW_API_TIMEOUT' => '30',
+        'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo',
+        'EMAIL_AUTH_ENABLED' => '1',
+        'REQUIRE_LOGIN' => '1',
+        'USER_EMAIL_RESTRICTIONS_ENABLED' => '1',
+        'USER_SUBJECT_RESTRICTIONS_ENABLED' => '1',
+        'ADMIN_EMAIL_OVERRIDE' => '1',
+        'MAX_SEARCH_RESULTS' => '50',
+        'CACHE_ENABLED' => '1',
+        'CACHE_LIFETIME' => '300'
+    ];
+
+    foreach ($default_settings as $key => $value) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+            $stmt->execute([$key, $value, $value]);
+        } catch (Exception $e) {
+            // Log pero no fallar - estas son configuraciones opcionales
+            error_log("Warning: No se pudo insertar configuración $key: " . $e->getMessage());
+        }
+    }
+}
+
+function cleanupWhaticketReferences($pdo) {
+    // Limpiar cualquier referencia a Whaticket en la base de datos
+    try {
+        // Marcar Whaticket como inactivo
+        $stmt = $pdo->prepare("UPDATE settings SET setting_value = 'wamundo' WHERE setting_key = 'WHATSAPP_ACTIVE_WEBHOOK'");
+        $stmt->execute();
+
+        // Limpiar configuraciones obsoletas de Whaticket
+        $obsolete_keys = [
+            'WHATSAPP_API_URL',
+            'WHATSAPP_TOKEN',
+            'WHATSAPP_INSTANCE',
+            'WHATSAPP_WEBHOOK_SECRET'
+        ];
+
+        foreach ($obsolete_keys as $key) {
+            $stmt = $pdo->prepare("UPDATE settings SET setting_value = '' WHERE setting_key = ?");
+            $stmt->execute([$key]);
+        }
+    } catch (Exception $e) {
+        error_log("Warning: Error limpiando referencias Whaticket: " . $e->getMessage());
     }
 }
 
