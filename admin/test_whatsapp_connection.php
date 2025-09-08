@@ -8,6 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+header('Content-Type: application/json');
+
 require_once SECURITY_DIR . '/auth.php';
 
 if (!is_admin()) {
@@ -223,7 +225,11 @@ switch ($action) {
         break;
     case 'send_message':
         $phone = filter_var(trim($_POST['phone'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
-        $result = sendTestMessage($apiUrl, $token, $instance, $phone);
+        try {
+            $result = sendTestMessage($apiUrl, $token, $instance, $phone);
+        } catch (Exception $e) {
+            $result = [false, 'Error inesperado: ' . $e->getMessage()];
+        }
         break;
     case 'verify_webhook':
         $result = verifyWebhook($apiUrl, $token, $instance, $webhookUrl, $webhookSecret);
