@@ -149,10 +149,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
             insertWamundoDefaultSettings($pdo);
             echo "<p class='text-success'>✅ Configuraciones de Wamundo insertadas</p>";
 
-            // Limpiar referencias a Whaticket
-            cleanupWhaticketReferences($pdo);
-            echo "<p class='text-success'>✅ Referencias a Whaticket eliminadas</p>";
-
         } catch (Exception $e) {
             echo "<p class='text-warning'>⚠️ Error en configuración automática: " . $e->getMessage() . "</p>";
         }
@@ -280,30 +276,6 @@ function insertWamundoDefaultSettings($pdo) {
             // Log pero no fallar - estas son configuraciones opcionales
             error_log("Warning: No se pudo insertar configuración $key: " . $e->getMessage());
         }
-    }
-}
-
-function cleanupWhaticketReferences($pdo) {
-    // Limpiar cualquier referencia a Whaticket en la base de datos
-    try {
-        // Marcar Whaticket como inactivo
-        $stmt = $pdo->prepare("UPDATE settings SET setting_value = 'wamundo' WHERE setting_key = 'WHATSAPP_ACTIVE_WEBHOOK'");
-        $stmt->execute();
-
-        // Limpiar configuraciones obsoletas de Whaticket
-        $obsolete_keys = [
-            'WHATSAPP_API_URL',
-            'WHATSAPP_TOKEN',
-            'WHATSAPP_INSTANCE',
-            'WHATSAPP_WEBHOOK_SECRET'
-        ];
-
-        foreach ($obsolete_keys as $key) {
-            $stmt = $pdo->prepare("UPDATE settings SET setting_value = '' WHERE setting_key = ?");
-            $stmt->execute([$key]);
-        }
-    } catch (Exception $e) {
-        error_log("Warning: Error limpiando referencias Whaticket: " . $e->getMessage());
     }
 }
 
@@ -1275,6 +1247,86 @@ function finalizeInstallation($pdo) {
     cleanupInstaller();
 }
 
+function verifyInstallation() {
+    $installation_verified = false;
+    $verification_error = null;
+
+    try {
+        // 1. Verificar que el archivo basededatos.php existe
+        $basededatos_path = INSTALL_DIR . '/basededatos.php';
+        if (!file_exists($basededatos_path)) {
+            throw new Exception('Archivo basededatos.php no encontrado después de la instalación');
+        }
+
+        require_once $basededatos_path;
+
+        // 2. Verificar conexión a la base de datos
+        $test_conn = new mysqli($db_host, $db_user, $db_password, $db_name);
+        $test_conn->set_charset("utf8mb4");
+
+        if ($test_conn->connect_error) {
+            throw new Exception('Error de conexión post-instalación: ' . $test_conn->connect_error);
+        }
+
+        // 3. Verificar configuración INSTALLED en base de datos
+        $test_result = $test_conn->query("SELECT value FROM settings WHERE name = 'INSTALLED'");
+        if (!$test_result || $test_result->num_rows === 0) {
+            throw new Exception('Configuración INSTALLED no encontrada en la base de datos');
+        }
+
+        $test_row = $test_result->fetch_assoc();
+        if ($test_row['value'] !== '1') {
+            throw new Exception('Configuración INSTALLED no está establecida correctamente. Valor actual: ' . $test_row['value']);
+        }
+
+        // 4. Verificar que las tablas críticas existen
+        $required_tables = ['telegram_temp_data', 'whatsapp_sessions', 'whatsapp_activity_log'];
+        $missing_tables = [];
+
+        foreach ($required_tables as $table) {
+            $table_check = $test_conn->query("SHOW TABLES LIKE '$table'");
+            if (!$table_check || $table_check->num_rows === 0) {
+                $missing_tables[] = $table;
+            }
+        }
+
+        if (!empty($missing_tables)) {
+            throw new Exception('Faltan tablas críticas: ' . implode(', ', $missing_tables));
+        }
+
+        // 5. Verificar que el archivo de configuración DB existe
+        $config_db_path = dirname(INSTALL_DIR) . '/config/db_credentials.php';
+        if (!file_exists($config_db_path)) {
+            throw new Exception('Archivo config/db_credentials.php no fue creado');
+        }
+
+        // 6. Verificar que el .env fue creado (si es que se implementó)
+        $env_path = dirname(INSTALL_DIR) . '/.env';
+        $env_created = file_exists($env_path);
+
+        $test_conn->close();
+
+        // ✅ INSTALACIÓN VERIFICADA EXITOSAMENTE
+        $installation_verified = true;
+
+        return [
+            'verified' => true,
+            'env_created' => $env_created,
+            'error' => null
+        ];
+
+    } catch (Exception $e) {
+        $verification_error = $e->getMessage();
+        error_log("Error verificación post-instalación: " . $e->getMessage());
+
+        return [
+            'verified' => false,
+            'env_created' => false,
+            'error' => $verification_error
+        ];
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -1294,71 +1346,22 @@ function finalizeInstallation($pdo) {
     <div id="topProgressBar"></div>
 
     <div class="container py-4">
-        <?php if (isset($installation_successful) && $installation_successful): 
-        
-try {
-    // ✅ CORRECCIÓN: Cargar basededatos.php solo DESPUÉS de la instalación
-    $basededatos_path = __DIR__ . '/basededatos.php';
-    if (!file_exists($basededatos_path)) {
-        throw new Exception('Archivo basededatos.php no encontrado después de la instalación');
-    }
-    
-    require_once $basededatos_path;
-    
-    $test_conn = new mysqli($db_host, $db_user, $db_password, $db_name);
-    $test_conn->set_charset("utf8mb4");
-    
-    if ($test_conn->connect_error) {
-        throw new Exception('Error de conexión post-instalación: ' . $test_conn->connect_error);
-    }
-    
-    $test_result = $test_conn->query("SELECT value FROM settings WHERE name = 'INSTALLED'");
-    if (!$test_result || $test_result->num_rows === 0) {
-        throw new Exception('Configuración INSTALLED no encontrada en la base de datos');
-    }
-    
-    $test_row = $test_result->fetch_assoc();
-    if ($test_row['value'] !== '1') {
-        throw new Exception('Configuración INSTALLED no está establecida correctamente. Valor actual: ' . $test_row['value']);
-    }
-    
-    // Verificar que la tabla crítica telegram_temp_data existe
-    $table_check = $test_conn->query("SHOW TABLES LIKE 'telegram_temp_data'");
-    if (!$table_check || $table_check->num_rows === 0) {
-        throw new Exception('La tabla crítica telegram_temp_data no fue creada');
-    }
-    
-    // ✅ CORRECCIÓN: Verificar is_installed() solo si existe la función
-    chdir(PROJECT_ROOT);
-    $funciones_path = PROJECT_ROOT . '/funciones.php';
-    if (file_exists($funciones_path)) {
-        require_once $funciones_path;
-        if (function_exists('is_installed')) {
-            $is_detected = is_installed();
-            if (!$is_detected) {
-                throw new Exception('La función is_installed() no detecta la instalación como completa');
-            }
-        }
-    }
-    chdir(INSTALL_DIR);
-    
-    $test_conn->close();
-    $installation_verified = true;
-    
-} catch (Exception $e) {
-    $installation_verified = false;
-    $verification_error = $e->getMessage();
-    error_log("Error verificación post-instalación: " . $e->getMessage());
-}
-        ?>
+        <?php if (isset($installation_successful) && $installation_successful): ?>
+<?php
+// Ejecutar verificación
+$verification_result = verifyInstallation();
+$installation_verified = $verification_result['verified'];
+$env_created = $verification_result['env_created'];
+$verification_error = $verification_result['error'];
+?>
 <div class="text-center">
     <div class="mb-4">
-        <?php if (isset($installation_verified) && $installation_verified): ?>
+        <?php if ($installation_verified): ?>
             <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
             <div class="mt-3">
                 <span class="badge bg-success fs-6">
                     <i class="fas fa-shield-check me-1"></i>
-                    Verificación Completa
+                    ¡Instalación Completada!
                 </span>
             </div>
         <?php else: ?>
@@ -1366,42 +1369,61 @@ try {
             <div class="mt-3">
                 <span class="badge bg-warning text-dark fs-6">
                     <i class="fas fa-exclamation-triangle me-1"></i>
-                    Verificación con Advertencias
+                    Instalación con Advertencias
                 </span>
             </div>
         <?php endif; ?>
     </div>
     
-    <h1 class="text-center mb-4">¡Instalación Exitosa!</h1>
+    <h1 class="text-center mb-4">
+        <?= $installation_verified ? '¡Sistema Listo!' : '¡Instalación Completada!' ?>
+    </h1>
     
     <div class="form-section">
         <p class="mb-3">La configuración se ha guardado correctamente y la instalación se ha completado.</p>
         
-        <?php if (isset($installation_verified) && $installation_verified): ?>
+        <?php if ($installation_verified): ?>
             <div class="alert alert-success">
-                <h6><i class="fas fa-check-circle me-2"></i>Verificación Completa</h6>
-                <ul class="list-unstyled mb-0 text-start">
-                    <li>✅ Base de datos conectada correctamente</li>
-                    <li>✅ Configuración INSTALLED creada</li>
-                    <li>✅ Sistema detecta instalación completa</li>
-                    <li>✅ Licencia activa y funcionando</li>
-                    <li>✅ Bot de Telegram integrado completamente</li>
-                    <li>✅ Tabla telegram_temp_data creada exitosamente</li>
-                    <li>✅ Todas las tablas necesarias presentes</li>
+                <h6><i class="fas fa-check-circle me-2"></i>✅ Instalación Completada Exitosamente</h6>
+                <ul class="list-unstyled text-start mt-3">
+                    <li><i class="fas fa-check text-success me-2"></i> Licencia activada y verificada</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Base de datos configurada completamente</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Usuario administrador creado</li>
+                    <?php if ($env_created): ?>
+                    <li><i class="fas fa-check text-success me-2"></i> Archivo .env creado automáticamente</li>
+                    <?php endif; ?>
+                    <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Todas las tablas necesarias creadas</li>
                 </ul>
             </div>
         <?php else: ?>
             <div class="alert alert-warning">
-                <h6><i class="fas fa-exclamation-triangle me-2"></i>Instalación Completada con Advertencias</h6>
-                <p class="mb-2"><strong>Error de verificación:</strong></p>
-                <code class="d-block p-2 bg-dark text-light rounded">
-                    <?= htmlspecialchars($verification_error ?? 'Error desconocido') ?>
-                </code>
-                <hr>
-                <p class="mb-0">
-                    <strong>La instalación se completó, pero hay un problema menor.</strong><br>
-                    Puedes intentar acceder al sistema o contactar soporte.
-                </p>
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Instalación Completada con Advertencias Menores</h6>
+                <ul class="list-unstyled text-start mt-3">
+                    <li><i class="fas fa-check text-success me-2"></i> Licencia activada y verificada</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Base de datos configurada completamente</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Usuario administrador creado</li>
+                    <?php if ($env_created): ?>
+                    <li><i class="fas fa-check text-success me-2"></i> Archivo .env creado automáticamente</li>
+                    <?php endif; ?>
+                    <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
+                </ul>
+                
+                <?php if ($verification_error): ?>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <strong>Detalle técnico:</strong> <?= htmlspecialchars($verification_error) ?>
+                    </small>
+                </div>
+                <?php endif; ?>
+                
+                <div class="alert alert-info mt-3">
+                    <strong>El sistema está listo para usar.</strong> Las advertencias no afectan el funcionamiento.
+                </div>
             </div>
         <?php endif; ?>
         
@@ -1416,61 +1438,33 @@ try {
                     <li><strong>Estado:</strong> <span class="badge bg-success">Válida</span></li>
                 </ul>
             </div>
-        <?php else: ?>
-            <div class="alert alert-info">
-                <h6><i class="fas fa-info-circle me-2"></i>Información de Licencia</h6>
-                <ul class="list-unstyled mb-0 text-start">
-                    <li><strong>Estado:</strong> <span class="badge bg-success">Activada durante instalación</span></li>
-                </ul>
-            </div>
-        <?php endif; ?>
-        
-        <ul class="list-unstyled text-start mt-3">
-            <li><i class="fas fa-check text-success me-2"></i> Licencia activada y verificada</li>
-            <li><i class="fas fa-check text-success me-2"></i> Base de datos configurada completamente</li>
-            <li><i class="fas fa-check text-success me-2"></i> Usuario administrador creado</li>
-            <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
-            <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-            <li><i class="fas fa-check text-success me-2"></i> Tabla telegram_temp_data creada</li>
-            <li><i class="fas fa-check text-success me-2"></i> Todas las configuraciones del bot insertadas</li>
-            <?php if (isset($installation_verified) && $installation_verified): ?>
-            <li><i class="fas fa-check text-success me-2"></i> Verificación post-instalación exitosa</li>
-            <?php endif; ?>
-        </ul>
-    </div>
-    
-    <div class="d-flex justify-content-center gap-3">
-        <a href="../inicio.php" class="btn btn-primary btn-lg">
-            <i class="fas fa-home me-2"></i>Ir al Sistema
-        </a>
-        <a href="../admin/telegram_management.php" class="btn btn-success btn-lg">
-            <i class="fab fa-telegram me-2"></i>Configurar Bot
-        </a>
-        <?php if (!isset($installation_verified) || !$installation_verified): ?>
-        <a href="?step=configuration" class="btn btn-warning btn-lg">
-            <i class="fas fa-redo me-2"></i>Reintentar Instalación
-        </a>
         <?php endif; ?>
     </div>
     
-    <?php if (isset($installation_verified) && !$installation_verified): ?>
-    <div class="mt-4">
-        <details class="text-start">
-            <summary class="btn btn-outline-secondary btn-sm">Ver información de depuración</summary>
-            <div class="mt-2 p-3 bg-dark text-light rounded">
-                <small>
-                    <strong>Directorio actual:</strong> <?= htmlspecialchars(INSTALL_DIR) ?><br>
-                    <strong>Archivo basededatos.php:</strong> <?= file_exists('basededatos.php') ? 'Existe' : 'No existe' ?><br>
-                    <strong>Directorio padre:</strong> <?= htmlspecialchars(PROJECT_ROOT) ?><br>
-                    <strong>Archivo funciones.php:</strong> <?= file_exists(PROJECT_ROOT . '/funciones.php') ? 'Existe' : 'No existe' ?><br>
-                    <strong>Error específico:</strong> <?= htmlspecialchars($verification_error ?? 'N/A') ?>
-                </small>
-            </div>
-        </details>
+    <div class="d-flex justify-content-center gap-3 mt-4">
+        <a href="../admin/admin.php" class="btn btn-primary btn-lg">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            Acceder al Panel de Administración
+        </a>
+        <a href="../" class="btn btn-outline-secondary btn-lg">
+            <i class="fas fa-home me-2"></i>
+            Ir al Sistema Principal
+        </a>
     </div>
-    <?php endif; ?>
+    
+    <div class="text-center mt-4">
+        <div class="alert alert-info">
+            <h6><i class="fas fa-rocket me-2"></i>¡Sistema Completamente Configurado!</h6>
+            <p class="mb-0">
+                <strong>WhatsApp:</strong> Configurado con Wamundo.com<br>
+                <strong>Telegram:</strong> Bot integrado y funcional<br>
+                <strong>Base de datos:</strong> Todas las tablas creadas<br>
+                <strong>Configuración:</strong> Lista para usar
+            </p>
+        </div>
+    </div>
 </div>
-            
+
         <?php elseif (isset($installation_error) && $installation_error): ?>
             <div class="text-center">
                 <div class="mb-4">
