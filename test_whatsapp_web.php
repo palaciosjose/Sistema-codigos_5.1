@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config/path_constants.php';
 require_once PROJECT_ROOT . '/config/env_helper.php';
+require_once PROJECT_ROOT . '/shared/ConfigService.php';
 /**
  * Pruebas web del Bot de WhatsApp
  */
@@ -45,6 +46,7 @@ if (file_exists(PROJECT_ROOT . "/whatsapp_bot/webhook.php")) {
 echo "<h2>3️⃣ Test de base de datos</h2>";
 require_once PROJECT_ROOT . '/shared/DatabaseManager.php';
 use Shared\DatabaseManager;
+use Shared\ConfigService;
 
 if (extension_loaded('mysqli')) {
     try {
@@ -57,10 +59,11 @@ if (extension_loaded('mysqli')) {
     echo "<p>⚠️ Extensión mysqli no disponible, prueba omitida</p>";
 }
 
-echo "<h2>4️⃣ Test de variables de entorno</h2>";
+echo "<h2>4️⃣ Test de configuración</h2>";
 
-$apiUrl   = getenv('WHATSAPP_NEW_API_URL');
-$sendSecret = getenv('WHATSAPP_NEW_SEND_SECRET');
+$config = ConfigService::getInstance();
+$apiUrl   = $config->get('WHATSAPP_NEW_API_URL');
+$sendSecret = $config->get('WHATSAPP_NEW_SEND_SECRET');
 
 if ($apiUrl) {
     echo "<p>✅ WHATSAPP_NEW_API_URL: " . htmlspecialchars($apiUrl) . "</p>";

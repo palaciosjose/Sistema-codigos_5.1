@@ -105,14 +105,15 @@ try {
     if ($result) { $result->close(); }
 
     // Configuraciones iniciales para el bot de WhatsApp
+    $config = ConfigService::getInstance();
     $settings = [
-        ['WHATSAPP_NEW_API_URL', getenv('WHATSAPP_NEW_API_URL') ?: 'https://wamundo.com/api', 'URL base de la API de Wamundo', 'whatsapp'],
-        ['WHATSAPP_NEW_SEND_SECRET', getenv('WHATSAPP_NEW_SEND_SECRET') ?: '', 'Secreto para enviar mensajes', 'whatsapp'],
-        ['WHATSAPP_NEW_ACCOUNT_ID', getenv('WHATSAPP_NEW_ACCOUNT_ID') ?: '', 'ID de la cuenta en Wamundo', 'whatsapp'],
-        ['WHATSAPP_NEW_WEBHOOK_SECRET', getenv('WHATSAPP_NEW_WEBHOOK_SECRET') ?: '', 'Secreto para validar webhooks', 'whatsapp'],
-        ['WHATSAPP_NEW_LOG_LEVEL', getenv('WHATSAPP_NEW_LOG_LEVEL') ?: 'info', 'Nivel de registro del bot', 'whatsapp'],
-        ['WHATSAPP_NEW_API_TIMEOUT', getenv('WHATSAPP_NEW_API_TIMEOUT') ?: '30', 'Timeout de la API en segundos', 'whatsapp'],
-        ['WHATSAPP_ACTIVE_WEBHOOK', getenv('WHATSAPP_ACTIVE_WEBHOOK') ?: 'wamundo', 'Webhook activo', 'whatsapp']
+        ['WHATSAPP_NEW_API_URL', $config->get('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api'), 'URL base de la API de Wamundo', 'whatsapp'],
+        ['WHATSAPP_NEW_SEND_SECRET', $config->get('WHATSAPP_NEW_SEND_SECRET', ''), 'Secreto para enviar mensajes', 'whatsapp'],
+        ['WHATSAPP_NEW_ACCOUNT_ID', $config->get('WHATSAPP_NEW_ACCOUNT_ID', ''), 'ID de la cuenta en Wamundo', 'whatsapp'],
+        ['WHATSAPP_NEW_WEBHOOK_SECRET', $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', ''), 'Secreto para validar webhooks', 'whatsapp'],
+        ['WHATSAPP_NEW_LOG_LEVEL', $config->get('WHATSAPP_NEW_LOG_LEVEL', 'info'), 'Nivel de registro del bot', 'whatsapp'],
+        ['WHATSAPP_NEW_API_TIMEOUT', $config->get('WHATSAPP_NEW_API_TIMEOUT', '30'), 'Timeout de la API en segundos', 'whatsapp'],
+        ['WHATSAPP_ACTIVE_WEBHOOK', $config->get('WHATSAPP_ACTIVE_WEBHOOK', 'wamundo'), 'Webhook activo', 'whatsapp']
     ];
 
     $stmt = $db->prepare("INSERT INTO settings (name, value, description, category) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
