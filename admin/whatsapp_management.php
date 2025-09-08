@@ -52,6 +52,22 @@ function getConfig($key, $default = '') {
     return $default;
 }
 
+// Configuración actual enmascarada
+$current_config = [
+    'send_secret' => getConfig('WHATSAPP_NEW_SEND_SECRET'),
+    'account_id' => getConfig('WHATSAPP_NEW_ACCOUNT_ID'),
+    'webhook_secret' => getConfig('WHATSAPP_NEW_WEBHOOK_SECRET'),
+    'log_level' => getConfig('WHATSAPP_NEW_LOG_LEVEL', 'info'),
+];
+
+if (!empty($current_config['send_secret'])) {
+    $current_config['send_secret'] = '**********';
+}
+
+if (!empty($current_config['webhook_secret'])) {
+    $current_config['webhook_secret'] = '**********';
+}
+
 // Procesar acciones
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -62,6 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $account_id = trim($_POST['account_id'] ?? '');
             $webhook_secret = trim($_POST['webhook_secret'] ?? '');
             $log_level = $_POST['log_level'] ?? 'info';
+
+            if ($send_secret === '**********') {
+                $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
+            }
+
+            if ($webhook_secret === '**********') {
+                $webhook_secret = getConfig('WHATSAPP_NEW_WEBHOOK_SECRET');
+            }
             
             if (empty($send_secret) || empty($account_id)) {
                 $message = 'Send Secret y Account ID son campos obligatorios';
@@ -340,13 +364,7 @@ function getRecentLogs($lines = 20) {
 }
 
 // Cargar datos
-$current_config = [
-    'send_secret' => getConfig('WHATSAPP_NEW_SEND_SECRET'),
-    'account_id' => getConfig('WHATSAPP_NEW_ACCOUNT_ID'),
-    'webhook_secret' => getConfig('WHATSAPP_NEW_WEBHOOK_SECRET'),
-    'log_level' => getConfig('WHATSAPP_NEW_LOG_LEVEL', 'info'),
-    'webhook_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/whatsapp_bot/webhook_new.php'
-];
+$current_config['webhook_url'] = '/whatsapp_bot/webhook.php';
 
 $stats = getWhatsAppStats();
 $recent_logs = getRecentLogs();
