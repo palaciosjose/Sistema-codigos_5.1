@@ -134,6 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
         // CREAR TODA LA ESTRUCTURA DE BASE DE DATOS (INCLUYENDO BOT)
         createCompleteDatabase($pdo);
 
+        // Ejecutar migración de WhatsApp para crear tablas relacionadas
+        require_once __DIR__ . '/migrate_whatsapp.php';
+
         // Garantizar índice único para telegram_temp_data
         ensureTelegramTempIndex($pdo);
 
