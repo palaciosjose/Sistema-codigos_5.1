@@ -203,6 +203,9 @@ function ensureTelegramTempIndex($pdo) {
 }
 
 function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
+    // Generar clave aleatoria para cifrado
+    $cryptoKey = bin2hex(random_bytes(32));
+
     // Escapar valores para evitar problemas
     $env_content = "# =========================================\n" .
         "# CONFIGURACIÓN AUTOMÁTICA - Sistema Web Códigos 5.0\n" .
@@ -212,7 +215,8 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "DB_HOST={$db_host}\n" .
         "DB_USER={$db_user}\n" .
         "DB_PASSWORD={$db_password}\n" .
-        "DB_NAME={$db_name}\n\n" .
+        "DB_NAME={$db_name}\n" .
+        "CRYPTO_KEY={$cryptoKey}\n\n" .
         "# ========== WHATSAPP - WAMUNDO.COM ==========\n" .
         "WHATSAPP_NEW_API_URL=https://wamundo.com/api\n" .
         "WHATSAPP_NEW_WEBHOOK_SECRET=\n" .
@@ -246,6 +250,10 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
 
     // Crear .env en la raíz del proyecto
     if (file_put_contents($env_path, $env_content)) {
+        // Establecer la clave en la sesión actual
+        putenv("CRYPTO_KEY=$cryptoKey");
+        $_ENV['CRYPTO_KEY'] = $cryptoKey;
+
         return true;
     }
 
