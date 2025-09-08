@@ -97,6 +97,9 @@ class ConfigServiceTest extends TestCase
 
     protected function setUp(): void
     {
+        $_ENV['CRYPTO_KEY'] = 'testkey';
+        putenv('CRYPTO_KEY=testkey');
+
         $this->fakeDb = new CSFakeMysqli();
         $manager = new CSFakeDatabaseManager($this->fakeDb);
         $ref = new \ReflectionProperty(DatabaseManager::class, 'instance');
@@ -120,6 +123,19 @@ class ConfigServiceTest extends TestCase
 
         $service->reload();
         $this->assertSame('value', $service->get('TEST_KEY'));
+    }
+
+    public function testEncryptsWhatsAppSecrets(): void
+    {
+        $service = ConfigService::getInstance();
+        $plain = 'super-secret';
+
+        $service->set('WHATSAPP_NEW_SEND_SECRET', $plain);
+
+        $stored = $this->fakeDb->data['WHATSAPP_NEW_SEND_SECRET'] ?? '';
+        $this->assertNotSame($plain, $stored);
+        $this->assertSame($plain, \Shared\Crypto::decrypt($stored));
+        $this->assertSame($plain, $service->get('WHATSAPP_NEW_SEND_SECRET'));
     }
 
     protected function tearDown(): void
