@@ -1,8 +1,6 @@
 <?php
 /**
- * GESTIÓN WHATSAPP - WAMUNDO.COM EXCLUSIVAMENTE
- * Reemplazo completo de whatsapp_management.php
- * Sistema de gestión exclusivo para wamundo.com (sin Whaticket)
+ * GESTIÓN WHATSAPP - WAMUNDO.COM 
  */
 
 require_once '../config/path_constants.php';
