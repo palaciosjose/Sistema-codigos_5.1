@@ -1,1543 +1,519 @@
 <?php
-require_once __DIR__ . '/../config/path_constants.php';
-session_start();
-require_once PROJECT_ROOT . '/shared/DatabaseManager.php';
-require_once PROJECT_ROOT . '/shared/WhatsAppUrlHelper.php';
-require_once SECURITY_DIR . '/auth.php';
+/**
+ * GESTIÓN WHATSAPP - WAMUNDO.COM EXCLUSIVAMENTE
+ * Reemplazo completo de whatsapp_management.php
+ * Sistema de gestión exclusivo para wamundo.com (sin Whaticket)
+ */
+
+require_once '../config/path_constants.php';
+require_once PROJECT_ROOT . '/vendor/autoload.php';
+
+use Shared\ConfigService;
 use Shared\DatabaseManager;
-use Shared\WhatsAppUrlHelper;
+use WhatsappBot\Services\LogService;
 
-// Default endpoint for checking WhatsApp instance status
-if (!defined('DEFAULT_WHATSAPP_STATUS_ENDPOINT')) {
-    define('DEFAULT_WHATSAPP_STATUS_ENDPOINT', '/api/messages/instance');
-}
+// Headers de seguridad
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
 
-authorize('manage_whatsapp', '../index.php', false);
+$logger = new LogService();
+$config = ConfigService::getInstance();
 
-$conn = DatabaseManager::getInstance()->getConnection();
-
-// Generar token CSRF si no existe
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+// Variables de estado
+$message = '';
+$message_type = '';
 
 // ========================================
-// FUNCIONES AUXILIARES
+// PROCESAR FORMULARIOS
 // ========================================
 
-function log_action($message) {
-    $logFile = __DIR__ . '/whatsapp_management.log';
-    $timestamp = date('Y-m-d H:i:s');
-    error_log("[$timestamp] $message\n", 3, $logFile);
-}
-
-function get_setting($conn, $name) {
-    $stmt = $conn->prepare("SELECT value FROM settings WHERE name = ? LIMIT 1");
-    if (!$stmt) return '';
-    $stmt->bind_param('s', $name);
-    $stmt->execute();
-    $stmt->bind_result($value);
-    $result = $stmt->fetch() ? $value : '';
-    $stmt->close();
-    return $result;
-}
-
-function set_setting($conn, $name, $value) {
-    $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
-    if ($stmt) {
-        $stmt->bind_param('ss', $name, $value);
-        $stmt->execute();
-        $stmt->close();
-    }
-}
-
-// ========================================
-// FUNCIONES DE ESTADO Y DIAGNÓSTICO
-// ========================================
-
-function checkWhatsAppBotStatus($conn) {
-    $api_url = get_setting($conn, 'WHATSAPP_API_URL');
-    $token = get_setting($conn, 'WHATSAPP_TOKEN');
-    $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
-    $webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
-    $webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
-    $status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
-
-    $status = [
-        'overall' => 'error',
-        'checks' => [],
-        'configured' => ($api_url && $token && $instance && $webhook_secret && $webhook_url),
-        'linked' => false,
-        'qr_url' => null
-    ];
-
-    // 1. Verificar configuración básica
-    if (!$status['configured']) {
-        $status['checks']['config'] = [
-            'status' => 'error',
-            'message' => 'Configuración incompleta - ingresa todos los datos requeridos',
-            'icon' => 'fa-cog'
-        ];
-        return $status;
-    } else {
-        $status['checks']['config'] = [
-            'status' => 'ok',
-            'message' => 'Configuración guardada correctamente',
-            'icon' => 'fa-cog'
-        ];
-    }
-
-    // 2. Verificar conexión API
-    $apiTest = testApiConnection($api_url, $token, $instance, $status_endpoint);
-    $status['checks']['api'] = [
-        'status' => $apiTest['success'] ? 'ok' : 'error',
-        'message' => $apiTest['message'],
-        'icon' => 'fa-plug'
-    ];
-
-    // 3. Verificar vinculación WhatsApp
-    if ($apiTest['success']) {
-        $instanceInfo = validateWhatsAppInstance($api_url, $token, $instance, $status_endpoint);
-        $status['linked'] = $instanceInfo['linked'];
-        $status['qr_url'] = $instanceInfo['qr_url'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    if ($action === 'save_wamundo_config') {
+        $send_secret = trim($_POST['send_secret'] ?? '');
+        $account_id = trim($_POST['account_id'] ?? '');
+        $webhook_secret = trim($_POST['webhook_secret'] ?? '');
         
-        $status['checks']['whatsapp'] = [
-            'status' => $instanceInfo['linked'] ? 'ok' : 'warning',
-            'message' => $instanceInfo['linked'] ? 'WhatsApp conectado' : 'WhatsApp no conectado - Escanea el QR',
-            'icon' => 'fa-link'
-        ];
-    }
-
-    // 4. Verificar webhook
-    if ($webhook_url) {
-        $webhookTest = testWebhookConfiguration($api_url, $token, $instance, $webhook_url, $webhook_secret);
-        $status['checks']['webhook'] = [
-            'status' => $webhookTest['success'] ? 'ok' : 'warning',
-            'message' => $webhookTest['message'],
-            'icon' => 'fa-globe'
-        ];
-    }
-
-    // 5. Verificar tablas de base de datos
-    $required_tables = ['whatsapp_sessions', 'whatsapp_activity_log', 'whatsapp_temp_data'];
-    $missing_tables = [];
-    
-    foreach ($required_tables as $table) {
-        $res = $conn->query("SHOW TABLES LIKE '$table'");
-        if (!$res || $res->num_rows == 0) {
-            $missing_tables[] = $table;
+        // Validaciones básicas
+        if (empty($send_secret) || empty($account_id)) {
+            $message = 'Send Secret y Account ID son obligatorios';
+            $message_type = 'error';
+        } else {
+            // Guardar configuración
+            $config->set('WHATSAPP_NEW_SEND_SECRET', $send_secret);
+            $config->set('WHATSAPP_NEW_ACCOUNT_ID', $account_id);
+            $config->set('WHATSAPP_NEW_WEBHOOK_SECRET', $webhook_secret);
+            
+            $message = 'Configuración de Wamundo guardada correctamente';
+            $message_type = 'success';
+            
+            $logger->info("Configuración Wamundo actualizada", [
+                'account_id' => substr($account_id, 0, 10) . '...',
+                'has_webhook_secret' => !empty($webhook_secret)
+            ]);
         }
     }
     
-    if (empty($missing_tables)) {
-        $status['checks']['database'] = [
-            'status' => 'ok',
-            'message' => 'Todas las tablas requeridas existen',
-            'icon' => 'fa-database'
-        ];
-    } else {
-        $status['checks']['database'] = [
-            'status' => 'error',
-            'message' => 'Faltan tablas: ' . implode(', ', $missing_tables),
-            'icon' => 'fa-database'
-        ];
+    elseif ($action === 'test_wamundo_connection') {
+        header('Content-Type: application/json');
+        
+        $send_secret = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
+        $account_id = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
+        
+        $result = testWamundoConnection($send_secret, $account_id);
+        echo json_encode($result);
+        exit;
     }
-
-    // Determinar estado general
-    $has_error = false;
-    $has_warning = false;
     
-    foreach ($status['checks'] as $check) {
-        if ($check['status'] === 'error') {
-            $has_error = true;
-            break;
-        } elseif ($check['status'] === 'warning') {
-            $has_warning = true;
+    elseif ($action === 'clear_logs') {
+        $log_file = PROJECT_ROOT . '/whatsapp_bot/logs/webhook_complete.log';
+        if (file_exists($log_file)) {
+            file_put_contents($log_file, '');
+            $message = 'Logs limpiados correctamente';
+            $message_type = 'success';
+        } else {
+            $message = 'Archivo de logs no encontrado';
+            $message_type = 'warning';
         }
     }
+}
+
+// ========================================
+// FUNCIONES DE WAMUNDO
+// ========================================
+
+function testWamundoConnection($send_secret, $account_id) {
+    if (empty($send_secret) || empty($account_id)) {
+        return [
+            'success' => false, 
+            'message' => 'Credenciales incompletas. Configura Send Secret y Account ID.',
+            'details' => 'Faltan credenciales de Wamundo'
+        ];
+    }
     
-    if ($has_error) {
-        $status['overall'] = 'error';
-    } elseif ($has_warning) {
-        $status['overall'] = 'warning';
+    $url = "https://wamundo.com/api/send/whatsapp";
+    $data = [
+        "secret" => $send_secret,
+        "account" => $account_id,
+        "recipient" => "000000000000", // Número de prueba
+        "type" => "text",
+        "message" => "Test de conectividad - " . date('H:i:s'),
+        "priority" => 1
+    ];
+    
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $data,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 15,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_USERAGENT => 'WamundoTest/1.0'
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($response === false || !empty($curlError)) {
+        return [
+            'success' => false, 
+            'message' => 'Error de conexión con Wamundo',
+            'details' => $curlError ?: 'Error de red desconocido'
+        ];
+    }
+    
+    $responseData = json_decode($response, true);
+    
+    if ($httpCode === 200 && $responseData && $responseData['status'] === 200) {
+        return [
+            'success' => true, 
+            'message' => 'Conexión exitosa con Wamundo',
+            'details' => 'API respondió correctamente. Message ID: ' . ($responseData['data']['messageId'] ?? 'N/A')
+        ];
+    }
+    
+    // Analizar errores específicos
+    $error_message = 'Error desconocido';
+    if ($responseData && isset($responseData['message'])) {
+        $error_message = $responseData['message'];
+    } elseif ($httpCode !== 200) {
+        $error_message = "HTTP Error $httpCode";
+    }
+    
+    return [
+        'success' => false, 
+        'message' => 'Error en la API de Wamundo',
+        'details' => $error_message . " (Código: $httpCode)"
+    ];
+}
+
+function getWamundoStatus() {
+    $config = ConfigService::getInstance();
+    
+    $send_secret = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
+    $account_id = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
+    $webhook_secret = $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', '');
+    
+    $status = [
+        'send_configured' => !empty($send_secret) && !empty($account_id),
+        'webhook_configured' => !empty($webhook_secret),
+        'webhook_file_exists' => file_exists(PROJECT_ROOT . '/whatsapp_bot/webhook_new.php'),
+        'logs_exist' => file_exists(PROJECT_ROOT . '/whatsapp_bot/logs/webhook_complete.log')
+    ];
+    
+    // Estado general
+    if ($status['send_configured'] && $status['webhook_configured'] && $status['webhook_file_exists']) {
+        $status['overall'] = 'ready';
+        $status['overall_message'] = 'Sistema completamente configurado';
+    } elseif ($status['send_configured']) {
+        $status['overall'] = 'partial';
+        $status['overall_message'] = 'Configuración parcial - revisa webhook';
     } else {
-        $status['overall'] = 'ok';
+        $status['overall'] = 'not_configured';
+        $status['overall_message'] = 'Requiere configuración inicial';
     }
     
     return $status;
 }
 
-function testApiConnection($url, $token, $instance, $statusEndpoint) {
-    if (empty($url) || empty($token) || empty($instance)) {
-        return ['success' => false, 'message' => 'Configuración incompleta'];
-    }
-
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
-    log_action('POST ' . $endpoint . ' (test API)');
-
-    $payload = json_encode([
-        'number' => '00000000000',
-        'body' => 'Test API'
-    ]);
-
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
-    ]);
-
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($response === false) {
-        return ['success' => false, 'message' => 'Error de conexión: ' . $error];
-    }
-
-    if ($code >= 200 && $code < 500) {
-        return ['success' => true, 'message' => 'Conexión exitosa con la API'];
-    }
-
-    return ['success' => false, 'message' => 'Error del servidor: HTTP ' . $code];
-}
-
-function validateWhatsAppInstance($url, $token, $instance, $statusEndpoint) {
-    // Como el endpoint /api/messages/instance no existe en tu Whaticket,
-    // verificamos la conectividad usando el endpoint que SÍ funciona
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
-    log_action('POST ' . $endpoint . ' (validar WhatsApp)');
-
-    $payload = json_encode([
-        'number' => '00000000000',
-        'body' => 'Test WhatsApp status'
-    ]);
-
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
-    ]);
-
-    $response = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($response === false || $code >= 500) {
-        return ['success' => false, 'message' => 'Error al validar instancia', 'linked' => false, 'qr_url' => null];
-    }
-
-    // Analizar la respuesta para determinar el estado
-    $data = json_decode($response, true);
-    
-    // Si la API responde correctamente, asumimos que WhatsApp está conectado
-    // En Whaticket, cuando WhatsApp no está conectado, normalmente devuelve errores específicos
-    if ($code >= 200 && $code < 400) {
-        // API responde bien - probablemente WhatsApp está conectado
+function getWamundoStats() {
+    try {
+        $db = DatabaseManager::getInstance()->getConnection();
+        
+        // Estadísticas básicas
+        $stats = [
+            'total_sessions' => 0,
+            'active_sessions' => 0,
+            'total_activity' => 0,
+            'activity_today' => 0
+        ];
+        
+        // Sesiones de WhatsApp
+        $result = $db->query("SELECT COUNT(*) as total FROM whatsapp_sessions");
+        if ($result) {
+            $stats['total_sessions'] = $result->fetch_assoc()['total'];
+        }
+        
+        // Sesiones activas (últimas 24 horas)
+        $result = $db->query("SELECT COUNT(*) as active FROM whatsapp_sessions WHERE last_activity > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        if ($result) {
+            $stats['active_sessions'] = $result->fetch_assoc()['active'];
+        }
+        
+        // Actividad total
+        $result = $db->query("SELECT COUNT(*) as total FROM whatsapp_activity_log");
+        if ($result) {
+            $stats['total_activity'] = $result->fetch_assoc()['total'];
+        }
+        
+        // Actividad hoy
+        $result = $db->query("SELECT COUNT(*) as today FROM whatsapp_activity_log WHERE DATE(created_at) = CURDATE()");
+        if ($result) {
+            $stats['activity_today'] = $result->fetch_assoc()['today'];
+        }
+        
+        return $stats;
+        
+    } catch (Exception $e) {
         return [
-            'success' => true,
-            'message' => 'Instancia vinculada',
-            'linked' => true,
-            'qr_url' => null
+            'total_sessions' => 0,
+            'active_sessions' => 0,
+            'total_activity' => 0,
+            'activity_today' => 0,
+            'error' => $e->getMessage()
         ];
     }
-    
-    // Si hay errores 400-499, podría ser que WhatsApp no esté conectado
-    if ($code >= 400 && $code < 500) {
-        // Revisar el mensaje de error para detectar si es por WhatsApp desconectado
-        $error_message = strtolower($response);
-        if (strpos($error_message, 'not connected') !== false || 
-            strpos($error_message, 'qr') !== false ||
-            strpos($error_message, 'session') !== false) {
-            
-            return [
-                'success' => true,
-                'message' => 'Instancia no vinculada - Escanea QR Code',
-                'linked' => false,
-                'qr_url' => 'data:image/svg+xml;base64,' . base64_encode('<!-- QR Code placeholder -->')
-            ];
-        }
-    }
-    
-    // Estado por defecto: asumir conectado si la API responde
-    return [
-        'success' => true,
-        'message' => 'Estado de WhatsApp: Conectado (verificación limitada)',
-        'linked' => true,
-        'qr_url' => null
-    ];
-}
-
-function testWebhookConfiguration($url, $token, $instance, $webhook_url, $secret) {
-    if (empty($webhook_url)) {
-        return ['success' => false, 'message' => 'URL de webhook no configurada'];
-    }
-
-    if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
-        return ['success' => false, 'message' => 'URL de webhook inválida'];
-    }
-
-    // Verificar usando el único endpoint que funciona
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
-    log_action('POST ' . $endpoint . ' (verificación webhook)');
-
-    $payload = json_encode([
-        'number' => '00000000000',
-        'body' => 'Test conectividad'
-    ]);
-
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload
-    ]);
-
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($response === false) {
-        return ['success' => false, 'message' => 'Error de conexión: ' . $error];
-    }
-
-    if ($code >= 200 && $code < 500) {
-        return ['success' => true, 'message' => 'Webhook verificado - API operativa'];
-    }
-
-    return ['success' => false, 'message' => 'Error del servidor: HTTP ' . $code];
-}
-
-function getWhatsAppStats($conn) {
-    $stats = [
-        'active_users' => 0,
-        'messages_today' => 0,
-        'total_messages' => 0,
-        'total_searches' => 0
-    ];
-    
-    try {
-        // Usuarios activos (últimos 30 días)
-        $res = $conn->query("SELECT COUNT(DISTINCT whatsapp_id) AS c FROM users WHERE whatsapp_id IS NOT NULL AND last_whatsapp_activity >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
-        if ($res) {
-            $row = $res->fetch_assoc();
-            $stats['active_users'] = (int)($row['c'] ?? 0);
-            $res->close();
-        }
-        
-        // Mensajes de hoy
-        $res = $conn->query("SELECT COUNT(*) AS c FROM whatsapp_activity_log WHERE DATE(created_at) = CURDATE()");
-        if ($res) {
-            $row = $res->fetch_assoc();
-            $stats['messages_today'] = (int)($row['c'] ?? 0);
-            $res->close();
-        }
-        
-        // Total mensajes
-        $res = $conn->query("SELECT COUNT(*) AS c FROM whatsapp_activity_log");
-        if ($res) {
-            $row = $res->fetch_assoc();
-            $stats['total_messages'] = (int)($row['c'] ?? 0);
-            $res->close();
-        }
-        
-        // Búsquedas
-        $res = $conn->query("SELECT COUNT(*) AS c FROM search_logs WHERE source = 'whatsapp'");
-        if ($res) {
-            $row = $res->fetch_assoc();
-            $stats['total_searches'] = (int)($row['c'] ?? 0);
-            $res->close();
-        }
-    } catch (Exception $e) {
-        // Mantener valores por defecto si hay error
-    }
-    
-    return $stats;
-}
-
-function getLinkedUsers($conn) {
-    $users = [];
-    try {
-        $query = "SELECT u.id, u.username, u.whatsapp_id, u.created_at, 
-                  (SELECT COUNT(*) FROM whatsapp_activity_log WHERE whatsapp_id = u.whatsapp_id) as activity_count
-                  FROM users u 
-                  WHERE u.whatsapp_id IS NOT NULL AND u.whatsapp_id != ''
-                  ORDER BY u.username ASC";
-        $result = $conn->query($query);
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                $users[] = $row;
-            }
-            $result->close();
-        }
-    } catch (Exception $e) {
-        // Mantener array vacío si hay error
-    }
-    return $users;
-}
-
-function createWhatsAppTables($conn) {
-    $queries = [
-        "CREATE TABLE IF NOT EXISTS whatsapp_sessions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            whatsapp_id VARCHAR(50) NOT NULL,
-            user_id INT,
-            session_token VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP,
-            is_active BOOLEAN DEFAULT TRUE,
-            INDEX idx_whatsapp_id (whatsapp_id),
-            INDEX idx_user_id (user_id),
-            INDEX idx_session_token (session_token),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        "CREATE TABLE IF NOT EXISTS whatsapp_activity_log (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            whatsapp_id VARCHAR(50) NOT NULL,
-            action VARCHAR(100) NOT NULL,
-            details TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_whatsapp_id (whatsapp_id),
-            INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        "CREATE TABLE IF NOT EXISTS whatsapp_temp_data (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            data_type VARCHAR(50) NOT NULL,
-            data_content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_user_type (user_id, data_type),
-            INDEX idx_user_id (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    ];
-    
-    foreach ($queries as $query) {
-        $conn->query($query);
-    }
-    
-    // Agregar columnas de WhatsApp a la tabla users si no existen
-    $check_column = $conn->query("SHOW COLUMNS FROM users LIKE 'whatsapp_id'");
-    if ($check_column && $check_column->num_rows == 0) {
-        $conn->query("ALTER TABLE users 
-                     ADD COLUMN whatsapp_id VARCHAR(50) NULL UNIQUE, 
-                     ADD COLUMN last_whatsapp_activity TIMESTAMP NULL");
-    }
 }
 
 // ========================================
-// PROCESAMIENTO DE ACCIONES
+// CARGAR DATOS PARA LA VISTA
 // ========================================
 
-$message = '';
-$message_type = '';
+$wamundo_config = [
+    'send_secret' => $config->get('WHATSAPP_NEW_SEND_SECRET', ''),
+    'account_id' => $config->get('WHATSAPP_NEW_ACCOUNT_ID', ''),
+    'webhook_secret' => $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', ''),
+    'webhook_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/whatsapp_bot/webhook_new.php'
+];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_STRING);
-    
-    if ($action === 'save_config') {
-        $api_url_input = filter_var(trim($_POST['api_url'] ?? ''), FILTER_SANITIZE_URL);
-        $token = filter_var(trim($_POST['token'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-        $instance = filter_var(trim($_POST['instance'] ?? ''), FILTER_SANITIZE_NUMBER_INT);
-        $webhook_secret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-        $webhook_url = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
-        $status_endpoint = filter_var(trim($_POST['status_endpoint'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-        if ($status_endpoint === '') { $status_endpoint = DEFAULT_WHATSAPP_STATUS_ENDPOINT; }
+$wamundo_status = getWamundoStatus();
+$wamundo_stats = getWamundoStats();
 
-        $warning = null;
-        $api_url = WhatsAppUrlHelper::sanitizeBaseUrl($api_url_input, $warning);
-
-        set_setting($conn, 'WHATSAPP_API_URL', $api_url);
-        set_setting($conn, 'WHATSAPP_TOKEN', $token);
-        set_setting($conn, 'WHATSAPP_INSTANCE', $instance);
-        set_setting($conn, 'WHATSAPP_WEBHOOK_SECRET', $webhook_secret);
-        set_setting($conn, 'WHATSAPP_WEBHOOK_URL', $webhook_url);
-        set_setting($conn, 'WHATSAPP_STATUS_ENDPOINT', $status_endpoint);
-
-        if ($warning) {
-            $message = $warning;
-            $message_type = 'warning';
-        } else {
-            $message = 'Configuración guardada correctamente';
-            $message_type = 'success';
-        }
-    }
-    
-    elseif ($action === 'create_tables') {
-        createWhatsAppTables($conn);
-        $message = 'Tablas creadas/verificadas exitosamente';
-        $message_type = 'success';
-    }
-    
-    elseif ($action === 'test_connection') {
-        header('Content-Type: application/json');
-        $api_url = get_setting($conn, 'WHATSAPP_API_URL');
-        $token = get_setting($conn, 'WHATSAPP_TOKEN');
-        $instance = get_setting($conn, 'WHATSAPP_INSTANCE');
-        $status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
-
-        $result = testApiConnection($api_url, $token, $instance, $status_endpoint);
-        echo json_encode($result);
-        exit;
-    }
+// Logs recientes
+$recent_logs = '';
+$log_file = PROJECT_ROOT . '/whatsapp_bot/logs/webhook_complete.log';
+if (file_exists($log_file)) {
+    $log_content = file_get_contents($log_file);
+    $log_lines = explode("\n", $log_content);
+    $recent_logs = implode("\n", array_slice($log_lines, -20)); // Últimas 20 líneas
 }
 
-// ========================================
-// CARGAR DATOS PARA EL PANEL
-// ========================================
-
-$status = checkWhatsAppBotStatus($conn);
-$stats = getWhatsAppStats($conn);
-$linked_users = getLinkedUsers($conn);
-
-// Configuración actual
-$api_url = get_setting($conn, 'WHATSAPP_API_URL');
-$token = get_setting($conn, 'WHATSAPP_TOKEN');
-$instance = get_setting($conn, 'WHATSAPP_INSTANCE');
-$webhook_secret = get_setting($conn, 'WHATSAPP_WEBHOOK_SECRET');
-$webhook_url = get_setting($conn, 'WHATSAPP_WEBHOOK_URL');
-$status_endpoint = get_setting($conn, 'WHATSAPP_STATUS_ENDPOINT') ?: DEFAULT_WHATSAPP_STATUS_ENDPOINT;
-
-// Última actividad
-$last_activity = '';
-try {
-    $activity_res = $conn->query("SELECT MAX(created_at) AS last_activity FROM whatsapp_activity_log");
-    if ($activity_res) {
-        $row = $activity_res->fetch_assoc();
-        $last_activity = $row['last_activity'] ?? '';
-        $activity_res->close();
-    }
-} catch (Exception $e) {
-    // Mantener vacío si hay error
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Panel del Bot de WhatsApp</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../styles/modern_global.css">
-    <link rel="stylesheet" href="../styles/modern_admin.css">
-    
+    <title>Gestión WhatsApp - Wamundo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Estilos específicos para el panel de WhatsApp */
-        :root {
-            --wa-green: #25D366;
-            --wa-green-dark: #128C7E;
-            --wa-green-light: #DCF8C6;
-            --bg-primary: #1a1d3a;
-            --bg-secondary: #242850;
-            --text-primary: #e0e6ff;
-            --text-secondary: #a0a8d0;
-            --accent-success: #25D366;
-            --accent-warning: #FFC107;
-            --accent-danger: #FF5252;
-            --card-bg: rgba(255, 255, 255, 0.05);
-        }
-        
-        body {
-            background: linear-gradient(135deg, #1a1d3a 0%, #242850 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-        }
-        
-        .admin-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .admin-header {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        .admin-header h1 {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0;
-        }
-        
-        .admin-header h1::before {
-            content: "💬";
-            font-size: 28px;
-        }
-        
-        .admin-header p {
-            color: var(--text-secondary);
-            margin: 0;
-            font-size: 14px;
-        }
-        
-        .btn-back-modern {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: var(--text-primary);
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-back-modern:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-1px);
-            color: #ffffff;
-        }
-        
-        /* Navigation Tabs */
-        .nav-tabs-modern {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: var(--card-bg);
-            padding: 10px;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            overflow-x: auto;
-        }
-        
-        .nav-tabs-modern .nav-link {
-            padding: 12px 24px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-        }
-        
-        .nav-tabs-modern .nav-link:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .nav-tabs-modern .nav-link.active {
-            background: linear-gradient(135deg, var(--wa-green) 0%, var(--wa-green-dark) 100%);
-            color: white;
-        }
-        
-        /* Cards */
-        .admin-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .admin-card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* Status Indicators */
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        
-        .status-active {
-            background-color: var(--accent-success);
-            box-shadow: 0 0 10px var(--accent-success);
-        }
-        
-        .status-inactive {
-            background-color: var(--accent-danger);
-            box-shadow: 0 0 10px var(--accent-danger);
-        }
-        
-        .status-warning {
-            background-color: var(--accent-warning);
-            box-shadow: 0 0 10px var(--accent-warning);
-        }
-        
-        /* Alert Styles */
-        .alert-modern {
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-        }
-        
-        .alert-success-modern {
-            background: rgba(37, 211, 102, 0.1);
-            border: 1px solid var(--wa-green);
-            color: var(--wa-green);
-        }
-        
-        .alert-warning-modern {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid var(--accent-warning);
-            color: var(--accent-warning);
-        }
-        
-        .alert-danger-modern {
-            background: rgba(255, 82, 82, 0.1);
-            border: 1px solid var(--accent-danger);
-            color: var(--accent-danger);
-        }
-        
-        /* Form Controls */
-        .form-group-admin {
-            margin-bottom: 20px;
-        }
-        
-        .form-label-admin {
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .form-control-admin {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #ffffff;
-            padding: 12px 16px;
-            font-size: 14px;
-            width: 100%;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control-admin:focus {
-            outline: none;
-            border-color: var(--wa-green);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
-        }
-        
-        .form-control-admin.is-invalid {
-            border-color: var(--accent-danger);
-        }
-        
-        /* Buttons */
-        .btn-admin {
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        
-        .btn-primary-admin {
-            background: linear-gradient(135deg, var(--wa-green) 0%, var(--wa-green-dark) 100%);
-            color: white;
-        }
-        
-        .btn-primary-admin:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-        }
-        
-        .btn-secondary-admin {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-secondary-admin:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-        }
-        
-        .btn-warning-admin {
-            background: transparent;
-            color: var(--accent-warning);
-            border: 1px solid var(--accent-warning);
-        }
-        
-        .btn-warning-admin:hover {
-            background: rgba(255, 193, 7, 0.1);
-            transform: translateY(-1px);
-        }
-        
-        .btn-info-admin {
-            background: transparent;
-            color: #06b6d4;
-            border: 1px solid #06b6d4;
-        }
-        
-        .btn-info-admin:hover {
-            background: rgba(6, 182, 212, 0.1);
-        }
-        
-        /* Status Check Items */
-        .status-check-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            border-left: 4px solid;
-            transition: all 0.3s ease;
-        }
-        
-        .status-check-item:hover {
-            background: rgba(0, 0, 0, 0.3);
-            transform: translateX(5px);
-        }
-        
-        .status-check-ok {
-            border-left-color: var(--accent-success);
-        }
-        
-        .status-check-warning {
-            border-left-color: var(--accent-warning);
-        }
-        
-        .status-check-error {
-            border-left-color: var(--accent-danger);
-        }
-        
-        .status-check-icon {
-            font-size: 24px;
-            margin-right: 15px;
-            width: 40px;
-            text-align: center;
-        }
-        
-        .status-check-content {
-            flex: 1;
-        }
-        
-        .status-check-title {
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-        
-        .status-check-message {
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-        
-        /* Statistics Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            background: rgba(0, 0, 0, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--wa-green);
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Table Styles */
-        .table-admin {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .table-admin thead {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        
-        .table-admin th {
-            padding: 12px;
-            text-align: left;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .table-admin td {
-            padding: 12px;
-            color: var(--text-primary);
-            font-size: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        .table-admin tbody tr:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-        
-        /* Input Group */
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .input-group .form-control-admin {
-            flex: 1;
-        }
-        
-        /* QR Modal */
-        .modal-content {
-            background: var(--bg-secondary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-        }
-        
-        .modal-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px;
-        }
-        
-        .modal-title {
-            color: #ffffff;
-            font-weight: 600;
-        }
-        
-        .modal-body {
-            padding: 30px;
-        }
-        
-        .btn-close {
-            filter: invert(1);
-        }
-        
-        /* Loading Animation */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: var(--wa-green);
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-tabs-modern {
-                flex-wrap: nowrap;
-                overflow-x: auto;
-            }
-            
-            .admin-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-        }
+        .status-ready { color: #28a745; }
+        .status-partial { color: #ffc107; }
+        .status-not-configured { color: #dc3545; }
+        .config-card { border-left: 4px solid #007bff; }
+        .logs-container { background: #1e1e1e; color: #00ff00; font-family: monospace; }
     </style>
 </head>
-<body>
-    <div class="admin-container">
-        <!-- Header -->
-        <div class="admin-header">
-            <div>
-                <h1>Panel del Bot de WhatsApp</h1>
-                <p>Diagnostica, configura y monitorea la integración de tu bot</p>
+<body class="bg-light">
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-whatsapp text-success me-2"></i>Gestión WhatsApp - Wamundo</h1>
+                <div class="badge bg-info fs-6">
+                    <i class="fas fa-cloud me-1"></i>wamundo.com
+                </div>
             </div>
-            <a href="admin.php" class="btn-back-modern">
-                <i class="fas fa-arrow-left"></i> Volver al Panel Principal
-            </a>
+            
+            <?php if ($message): ?>
+            <div class="alert alert-<?= $message_type === 'error' ? 'danger' : $message_type ?> alert-dismissible fade show">
+                <?= htmlspecialchars($message) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <?php endif; ?>
         </div>
-        
-        <?php if (!empty($message)): ?>
-        <div class="alert-modern alert-<?= $message_type ?>-modern">
-            <i class="fas <?= $message_type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
-            <?= htmlspecialchars($message) ?>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Navigation Tabs -->
-        <div class="nav nav-tabs-modern" id="whatsappTabs" role="tablist">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#diagnostico">
-                <i class="fas fa-stethoscope"></i> Diagnóstico
-            </button>
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#configuracion">
-                <i class="fas fa-cog"></i> Configuración
-            </button>
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#estadisticas">
-                <i class="fas fa-chart-bar"></i> Estadísticas
-            </button>
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#usuarios">
-                <i class="fas fa-users"></i> Usuarios Vinculados
-            </button>
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#sistema">
-                <i class="fas fa-server"></i> Sistema
-            </button>
-        </div>
-        
-        <!-- Tab Content -->
-        <div class="tab-content">
-            <!-- Diagnóstico Tab -->
-            <div class="tab-pane fade show active" id="diagnostico">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-heartbeat"></i> Estado del Bot
-                        </h3>
-                    </div>
-                    
-                    <!-- Estado General -->
-                    <div class="alert-modern alert-<?= $status['overall'] === 'ok' ? 'success' : ($status['overall'] === 'warning' ? 'warning' : 'danger') ?>-modern">
-                        <i class="fas <?= $status['overall'] === 'ok' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
-                        <strong>Estado General:</strong> 
-                        <?= $status['overall'] === 'ok' ? 'Requiere atención' : ($status['overall'] === 'warning' ? 'Requiere atención' : 'Requiere atención') ?>
-                    </div>
-                    
-                    <!-- Checks Detallados -->
-                    <?php foreach ($status['checks'] as $check): ?>
-                    <div class="status-check-item status-check-<?= $check['status'] ?>">
-                        <div class="status-check-icon">
-                            <?php if ($check['status'] === 'ok'): ?>
-                                <i class="fas fa-check-circle" style="color: var(--accent-success);"></i>
-                            <?php elseif ($check['status'] === 'warning'): ?>
-                                <i class="fas fa-exclamation-triangle" style="color: var(--accent-warning);"></i>
-                            <?php else: ?>
-                                <i class="fas fa-times-circle" style="color: var(--accent-danger);"></i>
-                            <?php endif; ?>
+    </div>
+
+    <div class="row">
+        <!-- Estado del Sistema -->
+        <div class="col-md-4">
+            <div class="card config-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i>Estado del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Estado General:</span>
+                            <span class="badge bg-<?= $wamundo_status['overall'] === 'ready' ? 'success' : ($wamundo_status['overall'] === 'partial' ? 'warning' : 'danger') ?> fs-6">
+                                <?= ucfirst($wamundo_status['overall']) ?>
+                            </span>
                         </div>
-                        <div class="status-check-content">
-                            <div class="status-check-title">
-                                <i class="fas <?= $check['icon'] ?> me-2"></i>
-                                <?= ucfirst(str_replace('_', ' ', array_search($check, $status['checks']))) ?>
+                        <small class="text-muted"><?= $wamundo_status['overall_message'] ?></small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="<?= $wamundo_status['send_configured'] ? 'text-success' : 'text-danger' ?>">
+                                <i class="fas fa-paper-plane fa-2x"></i>
+                                <div class="mt-1 small">Envío</div>
                             </div>
-                            <div class="status-check-message"><?= htmlspecialchars($check['message']) ?></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="<?= $wamundo_status['webhook_configured'] ? 'text-success' : 'text-warning' ?>">
+                                <i class="fas fa-link fa-2x"></i>
+                                <div class="mt-1 small">Webhook</div>
+                            </div>
                         </div>
                     </div>
-                    <?php endforeach; ?>
                     
-                    <!-- Info Adicional -->
-                    <div class="mt-4 p-3" style="background: rgba(0,0,0,0.2); border-radius: 10px;">
-                        <p class="mb-2"><strong>ID de Instancia:</strong> <?= htmlspecialchars($instance ?: 'No configurada') ?></p>
-                        <p class="mb-0"><strong>Última actividad:</strong> <?= htmlspecialchars($last_activity ?: 'Sin registros') ?></p>
-                    </div>
+                    <hr>
                     
-                    <!-- Acciones -->
-                    <div class="d-flex gap-2 flex-wrap mt-4">
-                        <form method="post" class="d-inline">
-                            <input type="hidden" name="action" value="create_tables">
-                            <button type="submit" class="btn-admin btn-warning-admin">
-                                <i class="fas fa-database"></i> Crear Tablas
-                            </button>
-                        </form>
-                        <?php if (!$status['linked'] && $status['qr_url']): ?>
-                        <button type="button" id="btnShowQR" class="btn-admin btn-primary-admin">
-                            <i class="fas fa-qrcode"></i> Ver Código QR
-                        </button>
-                        <?php endif; ?>
-                        <button type="button" id="btnTestConnection" class="btn-admin btn-info-admin">
-                            <i class="fas fa-plug"></i> Probar Conexión
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="testConnection()">
+                            <i class="fas fa-vial me-1"></i>Test de Conexión
                         </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Configuración Tab -->
-            <div class="tab-pane fade" id="configuracion">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-tools"></i> Configuración del Bot
-                        </h3>
-                    </div>
-                    
-                    <form method="post" novalidate>
-                        <input type="hidden" name="action" value="save_config">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                        
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-link me-2"></i>API URL
-                            </label>
-                            <input type="url" name="api_url" id="api_url" class="form-control-admin"
-                                   value="<?= htmlspecialchars($api_url) ?>"
-                                   placeholder="https://api.whatsapp.example.com" required>
-                        </div>
+        </div>
 
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-route me-2"></i>Endpoint de Estado
-                            </label>
-                            <input type="text" name="status_endpoint" id="status_endpoint" class="form-control-admin"
-                                   value="<?= htmlspecialchars($status_endpoint) ?>"
-                                   placeholder="/getInstanceInfo" required>
-                        </div>
+        <!-- Configuración -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-cog me-2"></i>Configuración Wamundo</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_wamundo_config">
                         
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-key me-2"></i>Token
-                            </label>
-                            <div class="input-group">
-                                <input type="password" name="token" id="token" class="form-control-admin" 
-                                       value="<?= htmlspecialchars($token) ?>" 
-                                       placeholder="Tu token de autenticación" required>
-                                <button type="button" id="toggleToken" class="btn-admin btn-secondary-admin">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Send Secret <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="send_secret" 
+                                           value="<?= htmlspecialchars($wamundo_config['send_secret']) ?>"
+                                           placeholder="Obtener de wamundo.com">
+                                    <div class="form-text">Secret para enviar mensajes</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Account ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="account_id" 
+                                           value="<?= htmlspecialchars($wamundo_config['account_id']) ?>"
+                                           placeholder="ID de cuenta de wamundo.com">
+                                    <div class="form-text">Identificador de tu cuenta</div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-hashtag me-2"></i>ID de Instancia
-                            </label>
-                            <input type="text" name="instance" id="instance" class="form-control-admin" 
-                                   value="<?= htmlspecialchars($instance) ?>" 
-                                   placeholder="123456" pattern="[0-9]+" required>
+                        <div class="mb-3">
+                            <label class="form-label">Webhook Secret</label>
+                            <input type="text" class="form-control" name="webhook_secret" 
+                                   value="<?= htmlspecialchars($wamundo_config['webhook_secret']) ?>"
+                                   placeholder="Opcional - para validar webhooks entrantes">
+                            <div class="form-text">Recomendado para mayor seguridad</div>
                         </div>
                         
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-lock me-2"></i>Webhook Secret
-                            </label>
+                        <div class="mb-3">
+                            <label class="form-label">URL del Webhook (Solo lectura)</label>
                             <div class="input-group">
-                                <input type="text" name="webhook_secret" id="webhook_secret" class="form-control-admin" 
-                                       value="<?= htmlspecialchars($webhook_secret) ?>" 
-                                       placeholder="Secreto del webhook" required>
-                                <button type="button" id="generateSecret" class="btn-admin btn-secondary-admin">
-                                    <i class="fas fa-dice"></i> Generar
+                                <input type="text" class="form-control" readonly 
+                                       value="<?= htmlspecialchars($wamundo_config['webhook_url']) ?>">
+                                <button type="button" class="btn btn-outline-secondary" onclick="copyWebhookUrl()">
+                                    <i class="fas fa-copy"></i>
                                 </button>
                             </div>
+                            <div class="form-text">Usar esta URL en tu panel de Wamundo</div>
                         </div>
                         
-                        <div class="form-group-admin">
-                            <label class="form-label-admin">
-                                <i class="fas fa-globe me-2"></i>Webhook URL
-                            </label>
-                            <input type="url" name="webhook_url" id="webhook_url" class="form-control-admin" 
-                                   value="<?= htmlspecialchars($webhook_url) ?>" 
-                                   placeholder="https://tudominio.com/whatsapp_bot/webhook.php" required>
-                        </div>
-                        
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="submit" class="btn-admin btn-primary-admin">
-                                <i class="fas fa-save"></i> Guardar Configuración
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Guardar Configuración
                             </button>
-                            <button type="button" id="btnVerifyWebhook" class="btn-admin btn-secondary-admin">
-                                <i class="fas fa-check-circle"></i> Verificar Webhook
-                            </button>
+                            <a href="../admin/admin.php" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Volver al Admin
+                            </a>
                         </div>
-                        <div id="webhookFeedback" class="mt-3"></div>
                     </form>
                 </div>
             </div>
-            
-            <!-- Estadísticas Tab -->
-            <div class="tab-pane fade" id="estadisticas">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-chart-line"></i> Estadísticas
-                        </h3>
-                    </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number"><?= $stats['active_users'] ?></div>
-                            <div class="stat-label">Usuarios Activos</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number"><?= $stats['messages_today'] ?></div>
-                            <div class="stat-label">Mensajes de Hoy</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number"><?= $stats['total_messages'] ?></div>
-                            <div class="stat-label">Total Mensajes</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number"><?= $stats['total_searches'] ?></div>
-                            <div class="stat-label">Búsquedas</div>
-                        </div>
-                    </div>
-                    
-                    <button type="button" id="refreshStats" class="btn-admin btn-secondary-admin">
-                        <i class="fas fa-sync-alt"></i> Refrescar
-                    </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas y Logs -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-bar me-2"></i>Estadísticas</h6>
                 </div>
-            </div>
-            
-            <!-- Usuarios Vinculados Tab -->
-            <div class="tab-pane fade" id="usuarios">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-users-cog"></i> Usuarios Vinculados (<?= count($linked_users) ?>)
-                        </h3>
-                    </div>
-                    
-                    <?php if (empty($linked_users)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary); opacity: 0.5;"></i>
-                        <p style="color: var(--text-secondary); margin-top: 1rem;">
-                            No hay usuarios vinculados con WhatsApp aún
-                        </p>
-                    </div>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table-admin">
-                            <thead>
-                                <tr>
-                                    <th>Usuario</th>
-                                    <th>WhatsApp ID</th>
-                                    <th>Actividad</th>
-                                    <th>Vinculado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($linked_users as $user): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($user['username']) ?></td>
-                                    <td style="color: var(--wa-green);"><?= htmlspecialchars($user['whatsapp_id']) ?></td>
-                                    <td><?= $user['activity_count'] ?> acciones</td>
-                                    <td><?= date('d/m/Y', strtotime($user['created_at'])) ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            
-            <!-- Sistema Tab -->
-            <div class="tab-pane fade" id="sistema">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-server"></i> Sistema
-                        </h3>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 style="color: var(--text-primary); margin-bottom: 1rem;">
-                                <i class="fas fa-info-circle me-2"></i>Información del Sistema
-                            </h5>
-                            <ul class="list-unstyled" style="color: var(--text-secondary);">
-                                <li class="mb-2"><strong>PHP Version:</strong> <?= PHP_VERSION ?></li>
-                                <li class="mb-2"><strong>Servidor:</strong> <?= $_SERVER['SERVER_SOFTWARE'] ?? 'No disponible' ?></li>
-                                <li class="mb-2"><strong>Base de Datos:</strong> MySQL</li>
-                                <li class="mb-2"><strong>Última Actualización:</strong> <?= date('Y-m-d H:i:s') ?></li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h5 style="color: var(--text-primary); margin-bottom: 1rem;">
-                                <i class="fas fa-clipboard-list me-2"></i>Logs del Sistema
-                            </h5>
-                            <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px; height: 150px; overflow-y: auto;">
-                                <small style="color: var(--text-secondary); font-family: monospace;">
-                                    [<?= date('Y-m-d H:i:s') ?>] Sistema iniciado<br>
-                                    [<?= date('Y-m-d H:i:s') ?>] Panel de administración cargado<br>
-                                    [<?= date('Y-m-d H:i:s') ?>] Verificación de estado completada
-                                </small>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="h4 text-primary"><?= $wamundo_stats['total_sessions'] ?></div>
+                                <div class="small text-muted">Sesiones Total</div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <h5 style="color: var(--text-primary); margin-bottom: 1rem;">
-                            <i class="fas fa-terminal me-2"></i>Comandos Útiles
-                        </h5>
-                        <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px;">
-                            <code style="color: var(--wa-green);">composer run whatsapp-test</code> - Ejecutar pruebas del bot<br>
-                            <code style="color: var(--wa-green);">composer install</code> - Instalar dependencias<br>
-                            <code style="color: var(--wa-green);">php whatsapp_bot/test.php</code> - Probar conexión directamente
+                        <div class="col-6">
+                            <div class="h4 text-success"><?= $wamundo_stats['active_sessions'] ?></div>
+                            <div class="small text-muted">Activas (24h)</div>
                         </div>
                     </div>
-                    <div class="mt-4 d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn-admin btn-secondary-admin" data-accion="purge_audit_logs">
-                            <i class="fas fa-trash"></i> Purgar registros
-                        </button>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="h4 text-info"><?= $wamundo_stats['total_activity'] ?></div>
+                                <div class="small text-muted">Actividad Total</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-warning"><?= $wamundo_stats['activity_today'] ?></div>
+                            <div class="small text-muted">Hoy</div>
+                        </div>
                     </div>
-                    <div id="cli-output" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="fas fa-terminal me-2"></i>Logs Recientes</h6>
+                    <form method="POST" class="d-inline">
+                        <input type="hidden" name="action" value="clear_logs">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                onclick="return confirm('¿Limpiar todos los logs?')">
+                            <i class="fas fa-trash me-1"></i>Limpiar
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="logs-container p-3" style="height: 300px; overflow-y: auto;">
+                        <pre class="mb-0"><?= htmlspecialchars($recent_logs ?: 'No hay logs disponibles') ?></pre>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function testConnection() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Probando...';
+    btn.disabled = true;
     
-    <!-- QR Modal -->
-    <?php if (!$status['linked'] && $status['qr_url']): ?>
-    <div class="modal fade" id="qrModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-qrcode me-2"></i>Código QR de WhatsApp
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="<?= htmlspecialchars($status['qr_url']) ?>" alt="QR Code" class="img-fluid" style="max-width: 300px;">
-                    <p class="mt-3" style="color: var(--text-secondary);">
-                        Escanea este código con WhatsApp para vincular el bot
-                    </p>
-                </div>
+    fetch('', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=test_wamundo_connection'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const alertClass = data.success ? 'alert-success' : 'alert-danger';
+        const icon = data.success ? 'check-circle' : 'exclamation-triangle';
+        
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show mt-3">
+                <i class="fas fa-${icon} me-2"></i>
+                <strong>${data.message}</strong><br>
+                <small>${data.details || ''}</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        </div>
-    </div>
-    <?php endif; ?>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-    const csrf = '<?= htmlspecialchars($_SESSION['csrf_token']) ?>';
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Token Visibility
-        const toggleToken = document.getElementById('toggleToken');
-        const tokenInput = document.getElementById('token');
+        `;
         
-        if (toggleToken) {
-            toggleToken.addEventListener('click', function() {
-                if (tokenInput.type === 'password') {
-                    tokenInput.type = 'text';
-                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                } else {
-                    tokenInput.type = 'password';
-                    this.innerHTML = '<i class="fas fa-eye"></i>';
-                }
-            });
-        }
-        
-        // Generate Secret
-        const generateSecret = document.getElementById('generateSecret');
-        if (generateSecret) {
-            generateSecret.addEventListener('click', function() {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                let secret = '';
-                for (let i = 0; i < 32; i++) {
-                    secret += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                document.getElementById('webhook_secret').value = secret;
-            });
-        }
-        
-        // Auto-fill webhook URL
-        const webhookUrl = document.getElementById('webhook_url');
-        if (webhookUrl && !webhookUrl.value) {
-            const currentDomain = window.location.hostname;
-            const basePath = window.location.pathname.split('/admin/')[0];
-            webhookUrl.value = `https://${currentDomain}${basePath}/whatsapp_bot/webhook.php`;
-        }
-
-        // Verify Webhook
-        const btnVerifyWebhook = document.getElementById('btnVerifyWebhook');
-        const webhookFeedback = document.getElementById('webhookFeedback');
-        if (btnVerifyWebhook && webhookFeedback) {
-            btnVerifyWebhook.addEventListener('click', async () => {
-                webhookFeedback.textContent = 'Verificando...';
-                const api_url = document.getElementById('api_url').value;
-                const token = document.getElementById('token').value;
-                const instance = document.getElementById('instance').value;
-                const webhook_url = document.getElementById('webhook_url').value;
-                const webhook_secret = document.getElementById('webhook_secret').value;
-                const params = new URLSearchParams({
-                    action: 'verify_webhook',
-                    api_url,
-                    token,
-                    instance,
-                    webhook_url,
-                    webhook_secret,
-                    csrf_token: csrf
-                });
-
-                try {
-                    const response = await fetch('test_whatsapp_connection.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: params.toString()
-                    });
-                    if (!response.ok) {
-                        throw new Error('HTTP ' + response.status);
-                    }
-                    const data = await response.json();
-                    webhookFeedback.textContent = (data.success ? '✅ ' : '❌ ') + data.message;
-                } catch (error) {
-                    webhookFeedback.textContent = '❌ Error de red: ' + error.message;
-                }
-            });
-        }
-
-        // Show QR Modal
-        const btnShowQR = document.getElementById('btnShowQR');
-        if (btnShowQR) {
-            btnShowQR.addEventListener('click', function() {
-                const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
-                qrModal.show();
-            });
-        }
-        
-        // Test Connection
-        const btnTestConnection = document.getElementById('btnTestConnection');
-        if (btnTestConnection) {
-            btnTestConnection.addEventListener('click', function() {
-                this.disabled = true;
-                this.innerHTML = '<span class="loading-spinner"></span> Probando...';
-                
-                fetch('whatsapp_management.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=test_connection'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ ' + data.message);
-                    } else {
-                        alert('❌ ' + data.message);
-                    }
-                })
-                .finally(() => {
-                    this.disabled = false;
-                    this.innerHTML = '<i class="fas fa-plug"></i> Probar Conexión';
-                });
-            });
-        }
-        
-        // Refresh Stats
-        const refreshStats = document.getElementById('refreshStats');
-        if (refreshStats) {
-            refreshStats.addEventListener('click', function() {
-                window.location.reload();
-            });
-        }
-        
-        // Tab persistence
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab');
-        if (tab) {
-            const tabElement = document.querySelector(`[data-bs-target="#${tab}"]`);
-            if (tabElement) {
-                new bootstrap.Tab(tabElement).show();
-            }
-        }
-        
-        // Update URL on tab change
-        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(button => {
-            button.addEventListener('shown.bs.tab', event => {
-                const newTabId = event.target.getAttribute('data-bs-target').substring(1);
-                const newUrl = new URL(window.location);
-                newUrl.searchParams.set('tab', newTabId);
-                window.history.pushState({path: newUrl.href}, '', newUrl.href);
-            });
-        });
-
-        // CLI buttons
-        const cliOutput = document.getElementById('cli-output');
-        document.querySelectorAll('button[data-accion]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const accion = btn.dataset.accion;
-                btn.disabled = true;
-                fetch('run_cli.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `accion=${encodeURIComponent(accion)}&csrf_token=${encodeURIComponent(csrf)}`
-                })
-                .then(async res => {
-                    const text = await res.text();
-                    if (!res.ok) {
-                        throw new Error(text || `Error ${res.status}`);
-                    }
-                    cliOutput.textContent = text;
-                })
-                .catch(err => {
-                    cliOutput.textContent = 'Error: ' + err.message;
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                });
-            });
-        });
+        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alertHtml);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al probar la conexión');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     });
-    </script>
+}
+
+function copyWebhookUrl() {
+    const input = document.querySelector('input[readonly]');
+    input.select();
+    document.execCommand('copy');
+    
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => {
+        btn.innerHTML = originalHtml;
+    }, 1500);
+}
+</script>
+
 </body>
 </html>
