@@ -191,17 +191,18 @@ Once configured, you can query codes via /codigo <id> or search with /buscar <pa
 
 ## Bot de WhatsApp
 
-Este proyecto también integra un bot de WhatsApp que se comunica con Whaticket para ofrecer búsquedas de códigos desde la aplicación de mensajería.
+Este proyecto integra un bot de WhatsApp (WamBot) que se comunica con la plataforma de Wamundo para ofrecer búsquedas de códigos desde la aplicación de mensajería.
 
 ### Campos configurables
 
 La configuración se obtiene de variables de entorno:
 
-- `WHATSAPP_API_URL`: URL base de la API de Whaticket (por ejemplo `https://midominio.com/api`).
-- `WHATSAPP_TOKEN`: token generado en Whaticket → **Configuración → API**.
-- `WHATSAPP_INSTANCE_ID`: identificador de la instancia visible en **Instancias**.
-- `WHATSAPP_WEBHOOK_SECRET`: secreto para validar los webhooks recibidos.
-- `WHATSAPP_LOG_LEVEL`: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
+- `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
+- `WHATSAPP_NEW_SEND_SECRET`: secreto utilizado para enviar mensajes a través de WamBot.
+- `WHATSAPP_NEW_WEBHOOK_SECRET`: secreto para validar los webhooks recibidos.
+- `WHATSAPP_NEW_ACCOUNT_ID`: identificador de la cuenta configurada en Wamundo.
+- `WHATSAPP_NEW_LOG_LEVEL`: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
+- `WHATSAPP_NEW_API_TIMEOUT`: tiempo máximo de espera en segundos para llamadas a la API. Valor por defecto: `30`.
 
 Puedes definir estos valores en tu entorno o copiando `.env.example` a `.env` y ajustando los campos anteriores.
 
@@ -210,7 +211,7 @@ Puedes definir estos valores en tu entorno o copiando `.env.example` a `.env` y 
 1. Configura las variables de entorno mencionadas.
 2. Ejecuta `composer run whatsapp-install` para instalar el bot.
 3. Ejecuta `composer run whatsapp-test` para verificar la configuración.
-4. Configura en Whaticket el webhook apuntando a `whatsapp_bot/webhook.php`.
+4. Configura en Wamundo el webhook apuntando a `whatsapp_bot/webhook.php`.
 
 ### Comandos disponibles
 
@@ -230,4 +231,4 @@ El bot responde a los siguientes comandos enviados por chat:
 /buscar usuario@example.com netflix
 ```
 
-Los comandos deben enviarse al número de WhatsApp vinculado con tu instancia de Whaticket.
+Los comandos deben enviarse al número de WhatsApp vinculado con tu instancia de Wamundo.

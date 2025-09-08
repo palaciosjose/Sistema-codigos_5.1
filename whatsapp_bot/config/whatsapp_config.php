@@ -12,43 +12,29 @@ function env(string $key, ?string $default = null): ?string
     return ($val === false || $val === '') ? $default : $val;
 }
 
-// WhatsApp API configuration
-$rawUrl = getenv('WHATSAPP_API_URL');
-if ($rawUrl === false || $rawUrl === '') {
-    error_log('WHATSAPP_API_URL not found in environment, using default');
+// WamBot API configuration
+$apiUrl = env('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api');
+if (!filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+    $apiUrl = 'https://wamundo.com/api';
 }
-$url = env('WHATSAPP_API_URL', 'https://api.example.com');
-if (!filter_var($url, FILTER_VALIDATE_URL)) {
-    $url = 'https://api.example.com';
-}
-define(__NAMESPACE__ . '\\WHATSAPP_API_URL', $url);
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_API_URL', $apiUrl);
 
-$rawToken = getenv('WHATSAPP_TOKEN');
-if ($rawToken === false || $rawToken === '') {
-    error_log('WHATSAPP_TOKEN not found in environment, using default');
-}
-$token = env('WHATSAPP_TOKEN', 'your-api-token');
-if ($token === null || $token === '') {
-    $token = 'your-api-token';
-}
-define(__NAMESPACE__ . '\\WHATSAPP_TOKEN', $token);
+$sendSecret = env('WHATSAPP_NEW_SEND_SECRET', '');
+$sendSecret = $sendSecret ? trim($sendSecret) : '';
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_SEND_SECRET', $sendSecret);
 
-$instance = env('WHATSAPP_INSTANCE_ID', '');
-$instance = $instance ? trim($instance) : '';
-define(__NAMESPACE__ . '\\WHATSAPP_INSTANCE_ID', $instance);
+$accountId = env('WHATSAPP_NEW_ACCOUNT_ID', '');
+$accountId = $accountId ? trim($accountId) : '';
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_ACCOUNT_ID', $accountId);
 
-$webhookUrl = env('WHATSAPP_WEBHOOK_URL', 'https://yourdomain.com/whatsapp/webhook');
-if (!filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
-    $webhookUrl = 'https://yourdomain.com/whatsapp/webhook';
-}
-define(__NAMESPACE__ . '\\WHATSAPP_WEBHOOK_URL', $webhookUrl);
-
-$webhookSecret = env('WHATSAPP_WEBHOOK_SECRET', '');
+$webhookSecret = env('WHATSAPP_NEW_WEBHOOK_SECRET', '');
 $webhookSecret = $webhookSecret ? trim($webhookSecret) : '';
-define(__NAMESPACE__ . '\\WHATSAPP_WEBHOOK_SECRET', $webhookSecret);
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_WEBHOOK_SECRET', $webhookSecret);
 
 // Logging configuration
 
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_LOG_LEVEL', env('WHATSAPP_NEW_LOG_LEVEL', 'info'));
+define(__NAMESPACE__ . '\\WHATSAPP_NEW_API_TIMEOUT', (int) env('WHATSAPP_NEW_API_TIMEOUT', '30'));
+define(__NAMESPACE__ . '\\WHATSAPP_ACTIVE_WEBHOOK', env('WHATSAPP_ACTIVE_WEBHOOK', 'wamundo'));
 define(__NAMESPACE__ . '\\WHATSAPP_LOG_CHANNEL', 'whatsapp');
 define(__NAMESPACE__ . '\\WHATSAPP_LOG_PATH', __DIR__ . '/../logs/whatsapp.log');
-define(__NAMESPACE__ . '\\WHATSAPP_LOG_LEVEL', env('WHATSAPP_LOG_LEVEL', 'info'));

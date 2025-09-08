@@ -10,13 +10,13 @@ class WhatsappBotSetup
     {
         $config = ConfigService::getInstance();
 
-        $apiUrl = $config->get('WHATSAPP_API_URL', '');
-        $token = $config->get('WHATSAPP_TOKEN', '');
-        $instanceId = $config->get('WHATSAPP_INSTANCE_ID', '');
+        $apiUrl = $config->get('WHATSAPP_NEW_API_URL', '');
+        $sendSecret = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
+        $accountId = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
 
-        putenv('WHATSAPP_API_URL=' . $apiUrl);
-        putenv('WHATSAPP_TOKEN=' . $token);
-        putenv('WHATSAPP_INSTANCE_ID=' . $instanceId);
+        putenv('WHATSAPP_NEW_API_URL=' . $apiUrl);
+        putenv('WHATSAPP_NEW_SEND_SECRET=' . $sendSecret);
+        putenv('WHATSAPP_NEW_ACCOUNT_ID=' . $accountId);
 
         $webhookUrl = $config->get('WHATSAPP_WEBHOOK_URL', '');
 

@@ -9,7 +9,7 @@ use WhatsappBot\Utils\WhatsappAPI;
 /**
  * Manejador de callbacks del bot de WhatsApp.
  *
- * Los callbacks provienen de interacciones de botones en Whaticket,
+ * Los callbacks provienen de interacciones de botones en Wamundo,
  * las cuales envían un payload con `chat_id`, `whatsapp_id` y `data`.
  */
 class CallbackHandler
@@ -26,7 +26,7 @@ class CallbackHandler
     }
 
     /**
-     * Procesa un callback adaptado desde Whaticket.
+     * Procesa un callback adaptado desde Wamundo.
      *
      * @param array $payload Datos del callback: chat_id, whatsapp_id y data.
      */

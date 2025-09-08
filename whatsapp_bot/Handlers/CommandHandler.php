@@ -7,7 +7,7 @@ use WhatsappBot\Services\WhatsappQuery;
 use WhatsappBot\Utils\WhatsappAPI;
 
 /**
- * Gestiona comandos básicos recibidos mediante Whaticket.
+ * Gestiona comandos básicos recibidos mediante Wamundo.
  */
 class CommandHandler
 {
@@ -23,7 +23,7 @@ class CommandHandler
     }
 
     /**
-     * Maneja un mensaje tipo comando desde Whaticket.
+     * Maneja un mensaje tipo comando desde Wamundo.
      *
      * @param array $payload Debe contener `chat_id`, `whatsapp_id` y `text`.
      */
