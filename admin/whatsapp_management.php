@@ -746,7 +746,20 @@ $recent_logs = getRecentLogs();
                         </button>
                     </form>
                 </div>
-                
+
+                <div class="p-3">
+                    <form id="testMessageForm" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="phone" id="testPhone" class="form-control"
+                                   placeholder="Número de teléfono">
+                            <button type="submit" class="btn-admin btn-primary-admin ms-2">
+                                Enviar mensaje de prueba
+                            </button>
+                        </div>
+                    </form>
+                    <div id="testMessageResult"></div>
+                </div>
+
                 <?php if (!empty($test_results)): ?>
                     <?php foreach ($test_results as $test): ?>
                         <div class="test-result test-<?= $test['status'] ?>">
@@ -829,6 +842,26 @@ function copyWebhookUrl() {
         alert('Error al copiar la URL');
     });
 }
+
+document.getElementById('testMessageForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const phone = document.getElementById('testPhone').value.trim();
+    fetch('test_whatsapp_connection.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({action: 'send_message', phone: phone})
+    })
+    .then(response => response.json())
+    .then(data => {
+        const result = document.getElementById('testMessageResult');
+        const type = data.success ? 'success' : 'error';
+        result.innerHTML = `<div class="alert-admin alert-${type}-admin"><i class="fas fa-${data.success ? 'check-circle' : 'exclamation-circle'}"></i><span>${data.message}</span></div>`;
+    })
+    .catch(() => {
+        const result = document.getElementById('testMessageResult');
+        result.innerHTML = '<div class="alert-admin alert-error-admin"><i class="fas fa-exclamation-circle"></i><span>Error al enviar mensaje de prueba</span></div>';
+    });
+});
 
 // Auto-refresh de logs cada 30 segundos
 if (document.querySelector('#logs.active')) {

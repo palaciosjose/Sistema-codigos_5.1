@@ -439,7 +439,11 @@ try {
         'response_sent' => $responseSuccess,
         'should_respond' => $shouldRespond
     ]);
-    
+
+    $completeLog = __DIR__ . '/logs/webhook_complete.log';
+    $entry = date('Y-m-d H:i:s') . " - Mensaje de prueba enviado: " . $messageText . "\n";
+    file_put_contents($completeLog, $entry, FILE_APPEND);
+
     http_response_code(200);
     echo json_encode([
         'success' => true,
