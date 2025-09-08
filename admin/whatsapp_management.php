@@ -67,6 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'Send Secret y Account ID son campos obligatorios';
                 $message_type = 'error';
             } else {
+                $cryptoKey = env('CRYPTO_KEY');
+                if (empty($cryptoKey)) {
+                    $message = 'Falta configurar la variable CRYPTO_KEY. Agrega una clave segura en el archivo .env.';
+                    $message_type = 'error';
+                } else {
                 try {
                     if ($configLoaded && $config) {
                         $config->set('WHATSAPP_NEW_SEND_SECRET', $send_secret);
@@ -101,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch (Exception $e) {
                     $message = 'Error al guardar configuración: ' . $e->getMessage();
                     $message_type = 'error';
+                }
                 }
             }
             break;
