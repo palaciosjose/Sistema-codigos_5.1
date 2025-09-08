@@ -165,7 +165,7 @@ function runSystemTests() {
     ];
     
     // Test 2: Archivos del sistema
-    $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook_new.php';
+    $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook.php';
     $logs_dir = PROJECT_ROOT . '/whatsapp_bot/logs';
     
     $tests['files'] = [
@@ -173,7 +173,7 @@ function runSystemTests() {
         'status' => (file_exists($webhook_file) && is_dir($logs_dir)) ? 'success' : 'error',
         'message' => 'Verificación de archivos críticos',
         'details' => [
-            'webhook_new.php' => file_exists($webhook_file) ? 'Existe' : 'No encontrado',
+            'webhook.php' => file_exists($webhook_file) ? 'Existe' : 'No encontrado',
             'Directorio logs' => is_dir($logs_dir) ? 'Existe' : 'No encontrado',
             'Logs escribibles' => (is_dir($logs_dir) && is_writable($logs_dir)) ? 'Sí' : 'No'
         ]
@@ -548,10 +548,10 @@ $recent_logs = getRecentLogs();
                     </div>
                     <div class="col-md-3">
                         <div class="text-center">
-                            <div class="<?= file_exists(PROJECT_ROOT . '/whatsapp_bot/webhook_new.php') ? 'text-success' : 'text-danger' ?>">
+                            <div class="<?= file_exists(PROJECT_ROOT . '/whatsapp_bot/webhook.php') ? 'text-success' : 'text-danger' ?>">
                                 <i class="fas fa-file-code fa-3x mb-2"></i>
                                 <div class="small">Archivo Webhook</div>
-                                <div class="status-indicator <?= file_exists(PROJECT_ROOT . '/whatsapp_bot/webhook_new.php') ? 'status-success' : 'status-error' ?>"></div>
+                                <div class="status-indicator <?= file_exists(PROJECT_ROOT . '/whatsapp_bot/webhook.php') ? 'status-success' : 'status-error' ?>"></div>
                             </div>
                         </div>
                     </div>
