@@ -33,6 +33,8 @@ class ConfigService
     private const ENCRYPTED_KEYS = [
         'TELEGRAM_BOT_TOKEN',
         'TELEGRAM_WEBHOOK_SECRET',
+        'WHATSAPP_NEW_SEND_SECRET',
+        'WHATSAPP_NEW_WEBHOOK_SECRET',
     ];
 
     private function __construct()

@@ -50,6 +50,8 @@ El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se o
 - **`WHATSAPP_WEBHOOK_SECRET`**: cadena usada para validar los webhooks recibidos; debe coincidir con el secreto configurado en Whaticket.
 - **`WHATSAPP_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
 
+Los valores sensibles como `WHATSAPP_NEW_SEND_SECRET` y `WHATSAPP_NEW_WEBHOOK_SECRET` se almacenan cifrados cuando son guardados mediante el `ConfigService`.
+
 #### Formato de `whatsapp_id`
 El campo `whatsapp_id` debe guardarse como número completo con código de país y sin sufijos como `@c.us` (ejemplo: `521234567890`).
 
