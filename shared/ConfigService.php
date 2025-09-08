@@ -164,7 +164,7 @@ class ConfigService
         }
     }
 
-    private function writeCacheFile(): void
+    private function writeCacheFile(bool $throw = false): void
     {
         try {
             $dir = dirname($this->cacheFile);
@@ -173,6 +173,9 @@ class ConfigService
             }
             file_put_contents($this->cacheFile, json_encode($this->dbSettings));
         } catch (\Throwable $e) {
+            if ($throw) {
+                throw $e;
+            }
             error_log('ConfigService cache write error: ' . $e->getMessage());
         }
     }
@@ -193,19 +196,23 @@ class ConfigService
         try {
             $db = DatabaseManager::getInstance()->getConnection();
             $stmt = $db->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)');
-            if ($stmt) {
-                $stmt->bind_param('ss', $key, $storeValue);
-                $stmt->execute();
-                $stmt->close();
+            if (!$stmt) {
+                throw new \RuntimeException('Failed to prepare statement');
             }
-        } catch (\Throwable $e) {
-            error_log('ConfigService set error: ' . $e->getMessage());
-        }
+            $stmt->bind_param('ss', $key, $storeValue);
+            if (!$stmt->execute()) {
+                $stmt->close();
+                throw new \RuntimeException('Failed to execute statement');
+            }
+            $stmt->close();
 
-        $this->dbSettings[$key] = $storeValue;
-        $this->cache[$key] = $value;
-        $this->dbLoaded = true;
-        $this->writeCacheFile();
+            $this->dbSettings[$key] = $storeValue;
+            $this->cache[$key] = $value;
+            $this->dbLoaded = true;
+            $this->writeCacheFile(true);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('ConfigService set error: ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**
