@@ -37,6 +37,9 @@ $token = $config->get('WHATSAPP_NEW_SEND_SECRET', '');
 $accountId = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
 
 function testWhatsAppConnection($url, $token) {
+    if (empty($url) || empty($token)) {
+        return [false, 'Faltan credenciales de WhatsApp en la configuración'];
+    }
     // Usar el endpoint que SÍ funciona
     $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint . ' (test conexión)');
@@ -81,6 +84,9 @@ function testWhatsAppConnection($url, $token) {
 }
 
 function validateWhatsAppInstance($url, $token) {
+    if (empty($url) || empty($token)) {
+        return [false, 'Faltan credenciales de WhatsApp en la configuración'];
+    }
     // Usar el endpoint que SÍ funciona
     $endpoint = rtrim($url, '/') . '/api/messages/send';
     log_action('POST ' . $endpoint . ' (validar instancia)');
@@ -125,6 +131,9 @@ function validateWhatsAppInstance($url, $token) {
 }
 
 function sendTestMessage($url, $token, $phone, $accountId) {
+    if (empty($url) || empty($token)) {
+        return [false, 'Faltan credenciales de WhatsApp en la configuración'];
+    }
     if (empty($phone)) {
         return [false, 'Número de teléfono requerido'];
     }
@@ -162,6 +171,9 @@ function sendTestMessage($url, $token, $phone, $accountId) {
 }
 
 function verifyWebhook($url, $token, $webhookUrl, $secret) {
+    if (empty($url) || empty($token)) {
+        return [false, 'Faltan credenciales de WhatsApp en la configuración'];
+    }
     if (empty($webhookUrl)) {
         return [false, 'URL de webhook no configurada'];
     }
