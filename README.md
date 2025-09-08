@@ -193,25 +193,27 @@ Once configured, you can query codes via /codigo <id> or search with /buscar <pa
 
 Este proyecto integra un bot de WhatsApp (WamBot) que se comunica con la plataforma de Wamundo para ofrecer búsquedas de códigos desde la aplicación de mensajería.
 
-### Campos configurables
+### Configuración
 
-La configuración se obtiene de variables de entorno:
+Las claves necesarias para conectarse a Wamundo se gestionan únicamente desde el panel administrativo. Tras la instalación, las variables `WHATSAPP_NEW_*` permanecen vacías en el archivo `.env` y deben completarse desde el panel.
 
-- `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
+Desde el panel puedes definir:
+
+- `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo.
 - `WHATSAPP_NEW_SEND_SECRET`: secreto utilizado para enviar mensajes a través de WamBot.
 - `WHATSAPP_NEW_WEBHOOK_SECRET`: secreto para validar los webhooks recibidos.
 - `WHATSAPP_NEW_ACCOUNT_ID`: identificador de la cuenta configurada en Wamundo.
+
+Otros parámetros disponibles en `.env`:
+
 - `WHATSAPP_NEW_LOG_LEVEL`: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
 - `WHATSAPP_NEW_API_TIMEOUT`: tiempo máximo de espera en segundos para llamadas a la API. Valor por defecto: `30`.
 
-Puedes definir estos valores en tu entorno o copiando `.env.example` a `.env` y ajustando los campos anteriores.
-
 ### Instalación
 
-1. Configura las variables de entorno mencionadas.
-2. Ejecuta `composer run whatsapp-install` para instalar el bot.
-3. Ejecuta `composer run whatsapp-test` para verificar la configuración.
-4. Configura en Wamundo el webhook apuntando a `whatsapp_bot/webhook.php`.
+1. Ejecuta `composer run whatsapp-install` para instalar el bot.
+2. Ejecuta `composer run whatsapp-test` para verificar la configuración.
+3. Configura en Wamundo el webhook apuntando a `whatsapp_bot/webhook.php`.
 
 ### Comandos disponibles
 
