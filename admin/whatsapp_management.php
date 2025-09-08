@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'test_system':
             $test_results = runSystemTests();
             break;
-            
+
         case 'clear_logs':
             try {
                 $log_file = PROJECT_ROOT . '/whatsapp_bot/logs/webhook_complete.log';
@@ -138,6 +138,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message_type = 'error';
             }
             break;
+
+        case 'clean_env':
+            try {
+                $env_path = PROJECT_ROOT . '/.env';
+                if (file_exists($env_path)) {
+                    $lines = file($env_path);
+                    $updated = false;
+                    foreach ($lines as &$line) {
+                        if (preg_match('/^(WHATSAPP_NEW_[^=]+)=/', $line, $matches)) {
+                            $line = $matches[1] . "=\n";
+                            $updated = true;
+                        }
+                    }
+                    file_put_contents($env_path, implode('', $lines));
+                    if ($configLoaded && $config) {
+                        \Shared\ConfigService::getInstance()->reload();
+                    }
+                    $message = $updated ? 'Variables de WhatsApp limpiadas del .env' : 'No se encontraron variables WHATSAPP_NEW_*';
+                    $message_type = $updated ? 'success' : 'warning';
+                } else {
+                    $message = 'Archivo .env no encontrado';
+                    $message_type = 'warning';
+                }
+            } catch (Exception $e) {
+                $message = 'Error al limpiar variables: ' . $e->getMessage();
+                $message_type = 'error';
+            }
+            break;
     }
 }
 
@@ -146,16 +174,43 @@ function runSystemTests() {
     global $configLoaded, $config;
     
     $tests = [];
-    
-    // Test 1: Configuración básica
+
+    // Test 1: Variables en .env
+    $env_path = PROJECT_ROOT . '/.env';
+    if (file_exists($env_path)) {
+        $env_lines = file($env_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $env_vars = [];
+        foreach ($env_lines as $line) {
+            if (preg_match('/^(WHATSAPP_NEW_[^=]+)=(.*)$/', trim($line), $matches)) {
+                if (trim($matches[2]) !== '') {
+                    $env_vars[] = $matches[1];
+                }
+            }
+        }
+        $tests['env'] = [
+            'name' => 'Variables .env',
+            'status' => empty($env_vars) ? 'success' : 'warning',
+            'message' => empty($env_vars) ? 'Variables WHATSAPP_NEW_* vacías en .env' : 'Existen variables WHATSAPP_NEW_* con valor en .env',
+            'details' => array_fill_keys($env_vars, 'Definida')
+        ];
+    } else {
+        $tests['env'] = [
+            'name' => 'Variables .env',
+            'status' => 'warning',
+            'message' => 'Archivo .env no encontrado',
+            'details' => []
+        ];
+    }
+
+    // Test 2: Configuración básica
     $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
     $account_id = getConfig('WHATSAPP_NEW_ACCOUNT_ID');
-    
+
     $tests['config'] = [
         'name' => 'Configuración Básica',
         'status' => (!empty($send_secret) && !empty($account_id)) ? 'success' : 'error',
-        'message' => (!empty($send_secret) && !empty($account_id)) ? 
-            'Send Secret y Account ID configurados' : 
+        'message' => (!empty($send_secret) && !empty($account_id)) ?
+            'Send Secret y Account ID configurados' :
             'Faltan Send Secret o Account ID',
         'details' => [
             'Send Secret' => !empty($send_secret) ? 'Configurado' : 'No configurado',
@@ -163,8 +218,8 @@ function runSystemTests() {
             'Webhook Secret' => !empty(getConfig('WHATSAPP_NEW_WEBHOOK_SECRET')) ? 'Configurado' : 'Opcional'
         ]
     ];
-    
-    // Test 2: Archivos del sistema
+
+    // Test 3: Archivos del sistema
     $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook.php';
     $logs_dir = PROJECT_ROOT . '/whatsapp_bot/logs';
     
@@ -728,6 +783,18 @@ $recent_logs = getRecentLogs();
                     </div>
                 </div>
             </form>
+
+            <div class="admin-card mt-4">
+                <div class="p-3">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="clean_env">
+                        <button type="submit" class="btn-admin btn-warning-admin">
+                            <i class="fas fa-broom me-2"></i>
+                            Limpiar variables WhatsApp del .env
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- Tests del Sistema -->
