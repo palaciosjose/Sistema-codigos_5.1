@@ -106,12 +106,13 @@ try {
 
     // Configuraciones iniciales para el bot de WhatsApp
     $settings = [
-        ['WHATSAPP_API_URL', getenv('WHATSAPP_API_URL') ?: '', 'URL base de la API de WhatsApp', 'whatsapp'],
-        ['WHATSAPP_API_TOKEN', getenv('WHATSAPP_API_TOKEN') ?: '', 'Token de la API de WhatsApp', 'whatsapp'],
-        ['WHATSAPP_INSTANCE_ID', getenv('WHATSAPP_INSTANCE_ID') ?: '', 'ID de la instancia de WhatsApp', 'whatsapp'],
-        ['WHATSAPP_BOT_WEBHOOK', getenv('WHATSAPP_BOT_WEBHOOK') ?: '', 'URL del webhook del bot de WhatsApp', 'whatsapp'],
-        ['WHATSAPP_BOT_ENABLED', getenv('WHATSAPP_BOT_ENABLED') ?: '0', 'Bot de WhatsApp habilitado (1=Sí,0=No)', 'whatsapp'],
-        ['WHATSAPP_WEBHOOK_SECRET', getenv('WHATSAPP_WEBHOOK_SECRET') ?: '', 'Secreto para validar webhooks de WhatsApp', 'whatsapp']
+        ['WHATSAPP_NEW_API_URL', getenv('WHATSAPP_NEW_API_URL') ?: 'https://wamundo.com/api', 'URL base de la API de Wamundo', 'whatsapp'],
+        ['WHATSAPP_NEW_SEND_SECRET', getenv('WHATSAPP_NEW_SEND_SECRET') ?: '', 'Secreto para enviar mensajes', 'whatsapp'],
+        ['WHATSAPP_NEW_ACCOUNT_ID', getenv('WHATSAPP_NEW_ACCOUNT_ID') ?: '', 'ID de la cuenta en Wamundo', 'whatsapp'],
+        ['WHATSAPP_NEW_WEBHOOK_SECRET', getenv('WHATSAPP_NEW_WEBHOOK_SECRET') ?: '', 'Secreto para validar webhooks', 'whatsapp'],
+        ['WHATSAPP_NEW_LOG_LEVEL', getenv('WHATSAPP_NEW_LOG_LEVEL') ?: 'info', 'Nivel de registro del bot', 'whatsapp'],
+        ['WHATSAPP_NEW_API_TIMEOUT', getenv('WHATSAPP_NEW_API_TIMEOUT') ?: '30', 'Timeout de la API en segundos', 'whatsapp'],
+        ['WHATSAPP_ACTIVE_WEBHOOK', getenv('WHATSAPP_ACTIVE_WEBHOOK') ?: 'wamundo', 'Webhook activo', 'whatsapp']
     ];
 
     $stmt = $db->prepare("INSERT INTO settings (name, value, description, category) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");

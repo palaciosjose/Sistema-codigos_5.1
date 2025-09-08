@@ -144,8 +144,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
             // Insertar configuraciones por defecto de Wamundo
             insertWamundoDefaultSettings($pdo);
 
-            // Limpiar referencias a Whaticket
-            cleanupWhaticketReferences($pdo);
 
         } catch (Exception $e) {
             // Log del error pero no mostrar nada en pantalla
@@ -223,7 +221,8 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "WHATSAPP_NEW_SEND_SECRET=\n" .
         "WHATSAPP_NEW_ACCOUNT_ID=\n" .
         "WHATSAPP_NEW_LOG_LEVEL=info\n" .
-        "WHATSAPP_NEW_API_TIMEOUT=30\n\n" .
+        "WHATSAPP_NEW_API_TIMEOUT=30\n" .
+        "WHATSAPP_ACTIVE_WEBHOOK=wamundo\n\n" .
         "# ========== SISTEMA ==========\n" .
         "ENVIRONMENT=production\n" .
         "DEBUG_MODE=0\n" .
@@ -237,13 +236,7 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "ADMIN_EMAIL_OVERRIDE=1\n" .
         "MAX_SEARCH_RESULTS=50\n" .
         "CACHE_ENABLED=1\n" .
-        "CACHE_LIFETIME=300\n\n" .
-        "# ========== WHATICKET (DESACTIVADO - USAR WAMUNDO) ==========\n" .
-        "WHATSAPP_API_URL=\n" .
-        "WHATSAPP_TOKEN=\n" .
-        "WHATSAPP_INSTANCE_ID=\n" .
-        "WHATSAPP_WEBHOOK_SECRET=\n" .
-        "WHATSAPP_ACTIVE_WEBHOOK=wamundo\n";
+        "CACHE_LIFETIME=300\n";
 
     $project_root = dirname(__DIR__);
     $env_path = $project_root . '/.env';
@@ -287,29 +280,6 @@ function insertWamundoDefaultSettings($pdo) {
     }
 }
 
-function cleanupWhaticketReferences($pdo) {
-    try {
-        // Marcar Whaticket como inactivo
-        $stmt = $pdo->prepare("UPDATE settings SET setting_value = 'wamundo' WHERE setting_key = 'WHATSAPP_ACTIVE_WEBHOOK'");
-        $stmt->execute();
-
-        // Limpiar configuraciones obsoletas de Whaticket
-        $obsolete_keys = [
-            'WHATSAPP_API_URL',
-            'WHATSAPP_TOKEN',
-            'WHATSAPP_INSTANCE',
-            'WHATSAPP_WEBHOOK_SECRET'
-        ];
-
-        foreach ($obsolete_keys as $key) {
-            $stmt = $pdo->prepare("UPDATE settings SET setting_value = '' WHERE setting_key = ?");
-            $stmt->execute([$key]);
-        }
-
-    } catch (Exception $e) {
-        error_log("Warning: Error limpiando referencias Whaticket: " . $e->getMessage());
-    }
-}
 
 function validateInstallationData($data) {
     $errors = [];

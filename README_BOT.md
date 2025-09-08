@@ -42,13 +42,14 @@ El proyecto incluye scripts de Composer para instalar y probar el bot de WhatsAp
 
 ### Variables de entorno
 
-El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se obtienen desde tu panel de Whaticket:
+El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se obtienen desde tu panel de Wamundo:
 
-- **`WHATSAPP_API_URL`**: URL base de la API de Whaticket (por ejemplo `https://midominio.com/api`).
-- **`WHATSAPP_TOKEN`**: token de acceso generado en Whaticket → Configuración → API.
-- **`WHATSAPP_INSTANCE_ID`**: identificador de la instancia visible en Whaticket → Instancias.
-- **`WHATSAPP_WEBHOOK_SECRET`**: cadena usada para validar los webhooks recibidos; debe coincidir con el secreto configurado en Whaticket.
-- **`WHATSAPP_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
+- **`WHATSAPP_NEW_API_URL`**: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
+- **`WHATSAPP_NEW_SEND_SECRET`**: secreto utilizado para enviar mensajes mediante WamBot.
+- **`WHATSAPP_NEW_ACCOUNT_ID`**: identificador de la cuenta en Wamundo.
+- **`WHATSAPP_NEW_WEBHOOK_SECRET`**: cadena usada para validar los webhooks recibidos; debe coincidir con el secreto configurado en Wamundo.
+- **`WHATSAPP_NEW_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
+- **`WHATSAPP_NEW_API_TIMEOUT`**: tiempo máximo de espera en segundos para llamadas a la API. Valor por defecto: `30`.
 
 Los valores sensibles como `WHATSAPP_NEW_SEND_SECRET` y `WHATSAPP_NEW_WEBHOOK_SECRET` se almacenan cifrados cuando son guardados mediante el `ConfigService`.
 
@@ -58,10 +59,13 @@ El campo `whatsapp_id` debe guardarse como número completo con código de país
 #### Definir variables en el entorno
 
 ```bash
- export WHATSAPP_API_URL="https://midominio.com/api"
- export WHATSAPP_TOKEN="token_generado_en_whaticket"
- export WHATSAPP_INSTANCE_ID="123"
- export WHATSAPP_WEBHOOK_SECRET="secreto_webhook"
+ export WHATSAPP_NEW_API_URL="https://wamundo.com/api"
+ export WHATSAPP_NEW_SEND_SECRET="tu_send_secret"
+ export WHATSAPP_NEW_ACCOUNT_ID="123"
+ export WHATSAPP_NEW_WEBHOOK_SECRET="secreto_webhook"
+ export WHATSAPP_NEW_LOG_LEVEL="info"
+ export WHATSAPP_NEW_API_TIMEOUT="30"
+ export WHATSAPP_ACTIVE_WEBHOOK="wamundo"
 ```
 
 #### Uso de archivo `.env`
@@ -82,11 +86,13 @@ DB_PASSWORD=contraseña
 DB_NAME=nombre_db
 
 # Configuración del Bot de WhatsApp
-WHATSAPP_API_URL=https://midominio.com/api
-WHATSAPP_TOKEN=token_generado_en_whaticket
-WHATSAPP_INSTANCE_ID=123
-WHATSAPP_WEBHOOK_SECRET=secreto_webhook
-WHATSAPP_LOG_LEVEL=info
+WHATSAPP_NEW_API_URL=https://wamundo.com/api
+WHATSAPP_NEW_SEND_SECRET=tu_send_secret
+WHATSAPP_NEW_ACCOUNT_ID=123
+WHATSAPP_NEW_WEBHOOK_SECRET=secreto_webhook
+WHATSAPP_NEW_LOG_LEVEL=info
+WHATSAPP_NEW_API_TIMEOUT=30
+WHATSAPP_ACTIVE_WEBHOOK=wamundo
 ```
 
 Después de configurar el entorno, ejecuta:

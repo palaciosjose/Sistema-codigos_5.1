@@ -59,21 +59,21 @@ if (extension_loaded('mysqli')) {
 
 echo "<h2>4️⃣ Test de variables de entorno</h2>";
 
-$apiUrl   = getenv('WHATSAPP_API_URL');
-$apiToken = getenv('WHATSAPP_TOKEN');
+$apiUrl   = getenv('WHATSAPP_NEW_API_URL');
+$sendSecret = getenv('WHATSAPP_NEW_SEND_SECRET');
 
 if ($apiUrl) {
-    echo "<p>✅ WHATSAPP_API_URL: " . htmlspecialchars($apiUrl) . "</p>";
+    echo "<p>✅ WHATSAPP_NEW_API_URL: " . htmlspecialchars($apiUrl) . "</p>";
 } else {
-    echo "<p>❌ WHATSAPP_API_URL no configurada</p>";
-    $errors[] = 'WHATSAPP_API_URL no configurada';
+    echo "<p>❌ WHATSAPP_NEW_API_URL no configurada</p>";
+    $errors[] = 'WHATSAPP_NEW_API_URL no configurada';
 }
 
-if ($apiToken) {
-    echo "<p>✅ WHATSAPP_TOKEN establecido (" . strlen($apiToken) . " caracteres)</p>";
+if ($sendSecret) {
+    echo "<p>✅ WHATSAPP_NEW_SEND_SECRET establecido (" . strlen($sendSecret) . " caracteres)</p>";
 } else {
-    echo "<p>❌ WHATSAPP_TOKEN no configurado</p>";
-    $errors[] = 'WHATSAPP_TOKEN no configurado';
+    echo "<p>❌ WHATSAPP_NEW_SEND_SECRET no configurado</p>";
+    $errors[] = 'WHATSAPP_NEW_SEND_SECRET no configurado';
 }
 
 echo "<h2>5️⃣ Test de formato de payload</h2>";
