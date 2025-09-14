@@ -61,7 +61,7 @@ try {
 
     $messageText = trim($payloadData['message'] ?? '');
     $senderNumber = $payloadData['phone'] ?? '';
-    $senderNumber = preg_replace('/\D+/', '', $senderNumber);
+    $senderNumber = preg_replace('/[^+0-9]/', '', $senderNumber);
 
     logDebug("Mensaje procesado", [
         'sender' => $senderNumber,
