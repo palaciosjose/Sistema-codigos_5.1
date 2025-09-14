@@ -11,21 +11,31 @@ class LogService
     public function __construct(int $maxFiles = 30)
     {
         $root = defined('PROJECT_ROOT') ? PROJECT_ROOT : dirname(__DIR__, 2);
-        $logFile = $root . '/logs/whatsapp_bot.log';
+
+        $envPath = getenv('WHATSAPP_LOG_PATH') ?: ($_ENV['WHATSAPP_LOG_PATH'] ?? null);
+        $logFile = $envPath ?: $root . '/logs/whatsapp_bot.log';
         $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        $handler = new RotatingFileHandler($logFile, $maxFiles, Logger::DEBUG);
+
+        $levelName = getenv('WHATSAPP_NEW_LOG_LEVEL') ?: ($_ENV['WHATSAPP_NEW_LOG_LEVEL'] ?? 'info');
+        try {
+            $level = Logger::toMonologLevel($levelName);
+        } catch (\Throwable $e) {
+            $level = Logger::INFO;
+        }
+
+        $handler = new RotatingFileHandler($logFile, $maxFiles, $level, true, 0644);
         $handler->setFilenameFormat('{filename}-{date}', 'Y-m-d');
         $this->logger = new Logger('whatsapp_bot');
         $this->logger->pushHandler($handler);
-        $this->cleanupOldLogs($logDir, $maxFiles);
+        $this->cleanupOldLogs($logDir, pathinfo($logFile, PATHINFO_FILENAME), $maxFiles);
     }
 
-    private function cleanupOldLogs(string $dir, int $maxDays): void
+    private function cleanupOldLogs(string $dir, string $baseName, int $maxDays): void
     {
-        foreach (glob($dir . '/whatsapp_bot-*.log') as $file) {
+        foreach (glob($dir . '/' . $baseName . '-*.log') as $file) {
             if (filemtime($file) < strtotime("-{$maxDays} days")) {
                 @unlink($file);
             }
