@@ -15,16 +15,36 @@ class WhatsappAPI
      */
     public static function sendMessage(string $number, string $text): array
     {
-        $payload = [
-            'number' => $number,
-            'body'  => $text,
+        $url = rtrim(\WhatsappBot\Config\WHATSAPP_NEW_API_URL, '/') . '/send/whatsapp';
+
+        $data = [
+            'secret'    => \WhatsappBot\Config\WHATSAPP_NEW_SEND_SECRET,
+            'account'   => \WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID,
+            'recipient' => $number,
+            'type'      => 'text',
+            'message'   => $text,
+            'priority'  => 1,
         ];
 
-        if (\WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID !== '') {
-            $payload['accountId'] = \WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID;
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $data,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => \WhatsappBot\Config\WHATSAPP_NEW_API_TIMEOUT,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            throw new RuntimeException("Error enviando mensaje: HTTP $httpCode - $response");
         }
 
-        return self::makeRequest('/api/messages/send', $payload);
+        return json_decode($response, true) ?: [];
     }
 
     /**
