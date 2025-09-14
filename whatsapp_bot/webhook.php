@@ -74,7 +74,7 @@ try {
     if (strpos($messageText, '/') === 0) {
         CommandHandler::handle([
             'chat_id' => $senderNumber,
-            'whatsapp_id' => (int)$senderNumber,
+            'whatsapp_id' => $senderNumber,
             'text' => $messageText
         ]);
         $handled = true;
