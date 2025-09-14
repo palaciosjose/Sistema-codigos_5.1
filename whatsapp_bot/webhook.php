@@ -2,6 +2,9 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/config/whatsapp_config.php';
 
+use WhatsappBot\Handlers\CommandHandler;
+use WhatsappBot\Services\WhatsappQuery;
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
@@ -58,7 +61,7 @@ try {
 
     $messageText = trim($payloadData['message'] ?? '');
     $senderNumber = $payloadData['phone'] ?? '';
-    $senderNumber = preg_replace('/[^+0-9]/', '', $senderNumber);
+    $senderNumber = preg_replace('/\D+/', '', $senderNumber);
 
     logDebug("Mensaje procesado", [
         'sender' => $senderNumber,
@@ -66,34 +69,23 @@ try {
         'message_length' => strlen($messageText)
     ]);
 
+    $messages = include __DIR__ . '/templates/messages.php';
     $botResponse = '';
-    
-    if (strpos($messageText, '/start') === 0) {
-        $botResponse = "Hola! Bienvenido al bot.\n\nComandos:\n/test - Probar bot\n/ayuda - Ver comandos\n/info - Info del sistema";
-        logDebug("Comando /start ejecutado");
-        
-    } elseif (strpos($messageText, '/test') === 0) {
-        $botResponse = "Bot funcionando correctamente!\n\nAPI Wamundo: Activa\nWebhook: Funcionando\nLogs: Habilitados\n\nSistema operativo.";
-        logDebug("Comando /test ejecutado");
-        
-    } elseif (strpos($messageText, '/info') === 0) {
-        $botResponse = "Info del Sistema:\n\nTu numero: " . $senderNumber . "\nFecha: " . date('Y-m-d H:i:s') . "\nWebhook: Activo\nAPI: Wamundo\nEstado: Operativo";
-        logDebug("Comando /info ejecutado");
-        
-    } elseif (strpos($messageText, '/ayuda') === 0) {
-        $botResponse = "Comandos disponibles:\n\n/start - Iniciar\n/test - Probar bot\n/info - Informacion\n/ayuda - Esta ayuda\n\nSistema funcionando correctamente.";
-        logDebug("Comando /ayuda ejecutado");
-        
-    } elseif (strpos($messageText, '/') === 0) {
-        $botResponse = "Comando no reconocido: " . substr($messageText, 0, 20) . "\n\nUsa /ayuda para ver comandos disponibles.";
-        logDebug("Comando desconocido", ['command' => $messageText]);
-        
+    $handled = false;
+
+    if (strpos($messageText, '/') === 0) {
+        CommandHandler::handle([
+            'chat_id' => $senderNumber,
+            'whatsapp_id' => (int)$senderNumber,
+            'text' => $messageText
+        ]);
+        $handled = true;
     } else {
-        $botResponse = "Hola! Soy el bot. Usa /start para comenzar o /ayuda para ver comandos.";
+        $botResponse = $messages['welcome'] ?? '';
         logDebug("Mensaje de texto normal");
     }
 
-    if (!empty($senderNumber) && !empty($botResponse)) {
+    if (!$handled && !empty($senderNumber) && !empty($botResponse)) {
         logDebug("Enviando respuesta", ['response_length' => strlen($botResponse)]);
         try {
             \WhatsappBot\Utils\WhatsappAPI::sendMessage($senderNumber, $botResponse);
@@ -106,7 +98,7 @@ try {
         $completeLog = __DIR__ . '/logs/webhook_complete.log';
         @file_put_contents($completeLog, "Mensaje de prueba enviado\n", FILE_APPEND | LOCK_EX);
         logDebug("Resultado envío", ['success' => $sent]);
-    } else {
+    } elseif (!$handled) {
         logDebug("No se envió respuesta", ['sender_empty' => empty($senderNumber), 'response_empty' => empty($botResponse)]);
     }
 
