@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/config/whatsapp_config.php';
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
@@ -19,40 +22,6 @@ function logDebug($message, $data = []) {
 }
 
 logDebug("=== WEBHOOK INICIADO ===");
-
-function sendWhatsAppMessage($recipient, $message) {
-    logDebug("Enviando mensaje", ['recipient' => $recipient, 'message_length' => strlen($message)]);
-    
-    $url = "https://wamundo.com/api/send/whatsapp";
-    
-    $data = [
-        "secret" => "b28b28d472e40899f323c7c2abc471eeed838541",
-        "account" => "175788333672b32a1f754ba1c09b3695e0cb6cde7f68c72bc817985",
-        "recipient" => $recipient,
-        "type" => "text",
-        "message" => $message,
-        "priority" => 1
-    ];
-    
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $url,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $data,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_SSL_VERIFYPEER => false
-    ]);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    logDebug("Respuesta API", ['http_code' => $httpCode, 'response' => substr($response, 0, 100)]);
-    
-    return $httpCode === 200;
-}
-
 try {
     logDebug("Verificando método POST");
     
@@ -64,7 +33,7 @@ try {
 
     logDebug("Verificando secret");
     
-    $expectedSecret = '912a2b17d46ee5bd023d5e1b903dc28913a07e52';
+    $expectedSecret = \WhatsappBot\Config\WHATSAPP_NEW_WEBHOOK_SECRET;
     $receivedSecret = $_POST["secret"] ?? '';
     
     if ($receivedSecret !== $expectedSecret) {
@@ -126,7 +95,16 @@ try {
 
     if (!empty($senderNumber) && !empty($botResponse)) {
         logDebug("Enviando respuesta", ['response_length' => strlen($botResponse)]);
-        $sent = sendWhatsAppMessage($senderNumber, $botResponse);
+        try {
+            \WhatsappBot\Utils\WhatsappAPI::sendMessage($senderNumber, $botResponse);
+            $sent = true;
+        } catch (\Throwable $e) {
+            $sent = false;
+            logDebug("Error al enviar", ['error' => $e->getMessage()]);
+        }
+
+        $completeLog = __DIR__ . '/logs/webhook_complete.log';
+        @file_put_contents($completeLog, "Mensaje de prueba enviado\n", FILE_APPEND | LOCK_EX);
         logDebug("Resultado envío", ['success' => $sent]);
     } else {
         logDebug("No se envió respuesta", ['sender_empty' => empty($senderNumber), 'response_empty' => empty($botResponse)]);
