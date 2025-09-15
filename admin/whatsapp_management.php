@@ -60,6 +60,7 @@ function getConfig($key, $default = '') {
 $current_config = [
     'send_secret' => getConfig('WHATSAPP_NEW_SEND_SECRET'),
     'account_id' => getConfig('WHATSAPP_NEW_ACCOUNT_ID'),
+    'api_url' => getConfig('WHATSAPP_NEW_API_URL'),
     'webhook_url' => getConfig('WHATSAPP_WEBHOOK_URL', $defaultWebhookUrl),
     'log_level' => getConfig('WHATSAPP_NEW_LOG_LEVEL', 'info'),
 ];
@@ -76,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'save_config':
             $send_secret = trim($_POST['send_secret'] ?? '');
             $account_id = trim($_POST['account_id'] ?? '');
+            $api_url = trim($_POST['api_url'] ?? '');
             $webhook_url = trim($_POST['webhook_url'] ?? $defaultWebhookUrl);
             $log_level = $_POST['log_level'] ?? 'info';
 
@@ -96,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($configLoaded && $config) {
                         $config->set('WHATSAPP_NEW_SEND_SECRET', $send_secret);
                         $config->set('WHATSAPP_NEW_ACCOUNT_ID', $account_id);
+                        $config->set('WHATSAPP_NEW_API_URL', $api_url);
                         $config->set('WHATSAPP_WEBHOOK_URL', $webhook_url);
                         $config->set('WHATSAPP_NEW_LOG_LEVEL', $log_level);
 
@@ -148,6 +151,7 @@ function runSystemTests() {
     global $scheme, $host;
     $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
     $account_id = getConfig('WHATSAPP_NEW_ACCOUNT_ID');
+    $api_url = getConfig('WHATSAPP_NEW_API_URL');
     $webhook_url = getConfig('WHATSAPP_WEBHOOK_URL', $scheme . '://' . $host . '/whatsapp_bot/webhook.php');
 
     $tests['config'] = [
@@ -159,6 +163,7 @@ function runSystemTests() {
         'details' => [
             'Send Secret' => !empty($send_secret) ? 'Configurado' : 'No configurado',
             'Account ID' => !empty($account_id) ? 'Configurado' : 'No configurado',
+            'API URL' => !empty($api_url) ? $api_url : 'No configurada',
             'Webhook URL' => !empty($webhook_url) ? $webhook_url : 'No configurada'
         ]
     ];
@@ -668,7 +673,7 @@ $recent_logs = getRecentLogs();
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group-admin">
                                 <label class="form-label-admin">
                                     <i class="fas fa-key me-2"></i>
@@ -684,7 +689,7 @@ $recent_logs = getRecentLogs();
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group-admin">
                                 <label class="form-label-admin">
                                     <i class="fas fa-id-badge me-2"></i>
@@ -696,6 +701,21 @@ $recent_logs = getRecentLogs();
                                        required>
                                 <div class="form-text-admin">
                                     Identificador único de tu cuenta en Wamundo
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group-admin">
+                                <label class="form-label-admin">
+                                    <i class="fas fa-plug me-2"></i>
+                                    API URL
+                                </label>
+                                <input type="text" class="form-control-admin" name="api_url"
+                                       value="<?= htmlspecialchars($current_config['api_url']) ?>"
+                                       placeholder="https://wamundo.com/api/send/whatsapp">
+                                <div class="form-text-admin">
+                                    Endpoint de la API de Wamundo
                                 </div>
                             </div>
                         </div>
