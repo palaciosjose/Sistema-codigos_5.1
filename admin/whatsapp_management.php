@@ -386,7 +386,9 @@ function getRecentLogs($lines = 20) {
 }
 
 // Cargar datos
-$current_config['webhook_url'] = '/whatsapp_bot/webhook.php';
+$scheme = $_SERVER['REQUEST_SCHEME'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$current_config['webhook_url'] = $scheme . '://' . $host . '/whatsapp_bot/webhook.php';
 
 $stats = getWhatsAppStats();
 $recent_logs = getRecentLogs();
