@@ -139,33 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
-        case 'clean_env':
-            try {
-                $env_path = PROJECT_ROOT . '/.env';
-                if (file_exists($env_path)) {
-                    $lines = file($env_path);
-                    $updated = false;
-                    foreach ($lines as &$line) {
-                        if (preg_match('/^(WHATSAPP_NEW_[^=]+)=/', $line, $matches)) {
-                            $line = $matches[1] . "=\n";
-                            $updated = true;
-                        }
-                    }
-                    file_put_contents($env_path, implode('', $lines));
-                    if ($configLoaded && $config) {
-                        \Shared\ConfigService::getInstance()->reload();
-                    }
-                    $message = $updated ? 'Variables de WhatsApp limpiadas del .env' : 'No se encontraron variables WHATSAPP_NEW_*';
-                    $message_type = $updated ? 'success' : 'warning';
-                } else {
-                    $message = 'Archivo .env no encontrado';
-                    $message_type = 'warning';
-                }
-            } catch (Exception $e) {
-                $message = 'Error al limpiar variables: ' . $e->getMessage();
-                $message_type = 'error';
-            }
-            break;
     }
 }
 
@@ -805,17 +778,6 @@ $recent_logs = getRecentLogs();
                 </div>
             </form>
 
-            <div class="admin-card mt-4">
-                <div class="p-3">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="clean_env">
-                        <button type="submit" class="btn-admin btn-warning-admin">
-                            <i class="fas fa-broom me-2"></i>
-                            Limpiar variables WhatsApp del .env
-                        </button>
-                    </form>
-                </div>
-            </div>
         </div>
 
         <!-- Tests del Sistema -->
