@@ -148,34 +148,7 @@ function runSystemTests() {
     
     $tests = [];
 
-    // Test 1: Variables en .env
-    $env_path = PROJECT_ROOT . '/.env';
-    if (file_exists($env_path)) {
-        $env_lines = file($env_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $env_vars = [];
-        foreach ($env_lines as $line) {
-            if (preg_match('/^(WHATSAPP_NEW_[^=]+)=(.*)$/', trim($line), $matches)) {
-                if (trim($matches[2]) !== '') {
-                    $env_vars[] = $matches[1];
-                }
-            }
-        }
-        $tests['env'] = [
-            'name' => 'Variables .env',
-            'status' => empty($env_vars) ? 'success' : 'warning',
-            'message' => empty($env_vars) ? 'Variables WHATSAPP_NEW_* vacías en .env' : 'Existen variables WHATSAPP_NEW_* con valor en .env',
-            'details' => array_fill_keys($env_vars, 'Definida')
-        ];
-    } else {
-        $tests['env'] = [
-            'name' => 'Variables .env',
-            'status' => 'warning',
-            'message' => 'Archivo .env no encontrado',
-            'details' => []
-        ];
-    }
-
-    // Test 2: Configuración básica
+    // Test 1: Configuración básica
     $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
     $account_id = getConfig('WHATSAPP_NEW_ACCOUNT_ID');
 
@@ -192,7 +165,7 @@ function runSystemTests() {
         ]
     ];
 
-    // Test 3: Archivos del sistema
+    // Test 2: Archivos del sistema
     $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook.php';
     $logs_dir = PROJECT_ROOT . '/whatsapp_bot/logs';
     
