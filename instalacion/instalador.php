@@ -1472,7 +1472,7 @@ $verification_error = $verification_result['error'];
 
         <?php if ($env_crypto_key && !$env_has_whaticket_keys): ?>
             <div class="alert alert-success mt-3">
-                <i class="fas fa-lock me-2"></i>Clave de cifrado verificada y sin claves de Whaticket.
+                <i class="fas fa-lock me-2"></i>Clave de cifrado verificada.
             </div>
         <?php endif; ?>
 
