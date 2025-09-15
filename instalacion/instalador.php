@@ -654,7 +654,20 @@ function createCompleteDatabase($pdo) {
             INDEX idx_whatsapp_id (whatsapp_id),
             INDEX idx_created_at (created_at),
             INDEX idx_action (action)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci",
+
+        // Tabla de sesiones activas de WhatsApp
+        "CREATE TABLE IF NOT EXISTS `whatsapp_sessions` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            whatsapp_id BIGINT NOT NULL,
+            user_id INT NOT NULL,
+            session_token VARCHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_whatsapp_id (whatsapp_id),
+            INDEX idx_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     ];
     
     foreach ($tables as $sql) {
