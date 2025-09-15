@@ -199,7 +199,7 @@ Las variables `WHATSAPP_NEW_*` ya no se generan automáticamente en el archivo `
 
 Desde el panel puedes definir:
 
-- `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo.
+- `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api/send/whatsapp`).
 - `WHATSAPP_NEW_SEND_SECRET`: secreto utilizado para enviar mensajes a través de WamBot.
 - `WHATSAPP_NEW_ACCOUNT_ID`: identificador de la cuenta configurada en Wamundo.
  - `WHATSAPP_WEBHOOK_URL`: URL del webhook configurado en Wamundo.

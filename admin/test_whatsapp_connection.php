@@ -40,7 +40,7 @@ function testWhatsAppConnection($url, $token) {
         return [false, 'Faltan credenciales de WhatsApp en la configuración'];
     }
     // Usar el endpoint que SÍ funciona
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    $endpoint = rtrim($url, '/');
     log_action('POST ' . $endpoint . ' (test conexión)');
     
     // Payload de prueba
@@ -88,7 +88,7 @@ function validateWhatsAppInstance($url, $token) {
         return [false, 'Faltan credenciales de WhatsApp en la configuración'];
     }
     // Usar el endpoint que SÍ funciona
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    $endpoint = rtrim($url, '/');
     log_action('POST ' . $endpoint . ' (validar instancia)');
     
     // Payload de prueba
@@ -138,7 +138,7 @@ function sendTestMessage($url, $token, $phone, $accountId) {
     if (empty($phone)) {
         return [false, 'Número de teléfono requerido'];
     }
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    $endpoint = rtrim($url, '/');
     log_action('POST ' . $endpoint);
     $payloadArray = [
         'number' => $phone,
@@ -192,7 +192,7 @@ function verifyWebhook($url, $token, $webhookUrl) {
     
     // 2. En lugar de buscar endpoints inexistentes, 
     //    verificamos que podemos enviar mensajes (el único endpoint que funciona)
-    $endpoint = rtrim($url, '/') . '/api/messages/send';
+    $endpoint = rtrim($url, '/');
     log_action('POST ' . $endpoint . ' (verificación vía envío de mensaje)');
     
     // Mensaje de prueba con número que no causará problemas

@@ -6,9 +6,9 @@ use Shared\ConfigService;
 $config = ConfigService::getInstance();
 
 // WamBot API configuration
-$apiUrl = $config->get('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api');
+$apiUrl = $config->get('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api/send/whatsapp');
 if (!filter_var($apiUrl, FILTER_VALIDATE_URL)) {
-    $apiUrl = 'https://wamundo.com/api';
+    $apiUrl = 'https://wamundo.com/api/send/whatsapp';
 }
 define(__NAMESPACE__ . '\\WHATSAPP_NEW_API_URL', $apiUrl);
 

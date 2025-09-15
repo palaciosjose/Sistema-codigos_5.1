@@ -15,7 +15,7 @@ class WhatsappAPI
      */
     public static function sendMessage(string $number, string $text): array
     {
-        $url = rtrim(\WhatsappBot\Config\WHATSAPP_NEW_API_URL, '/') . '/send/whatsapp';
+        $url = rtrim(\WhatsappBot\Config\WHATSAPP_NEW_API_URL, '/');
 
         $data = [
             'secret'    => \WhatsappBot\Config\WHATSAPP_NEW_SEND_SECRET,
@@ -62,7 +62,7 @@ class WhatsappAPI
             $payload['accountId'] = \WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID;
         }
 
-        return self::makeRequest('/api/messages/action', $payload, false);
+        return self::makeRequest('/messages/action', $payload, false);
     }
 
     /**
@@ -70,7 +70,7 @@ class WhatsappAPI
      */
     public static function checkNumber(string $number): array
     {
-        return self::makeRequest('/api/messages/check', [
+        return self::makeRequest('/messages/check', [
             'number' => $number,
         ]);
     }
@@ -85,7 +85,7 @@ class WhatsappAPI
         if (\WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID !== '') {
             $payload['accountId'] = \WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID;
         }
-        return self::makeRequest('/api/messages/webhook', $payload, false);
+        return self::makeRequest('/messages/webhook', $payload, false);
     }
 
     /**
@@ -94,7 +94,7 @@ class WhatsappAPI
      */
     public static function getInstanceInfo(): ?array
     {
-        $endpoint = '/api/messages/instance';
+        $endpoint = '/messages/instance';
         if (\WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID !== '') {
             $endpoint .= '?' . http_build_query([
                 'accountId' => \WhatsappBot\Config\WHATSAPP_NEW_ACCOUNT_ID,
