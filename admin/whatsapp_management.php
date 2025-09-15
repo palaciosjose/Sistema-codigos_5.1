@@ -649,9 +649,7 @@ $recent_logs = getRecentLogs();
                     </button>
                 </div>
                 
-                <div class="webhook-url-display" id="webhookUrl">
-                    <?= htmlspecialchars($current_config['webhook_url']) ?>
-                </div>
+                <div class="webhook-url-display" id="webhookUrl"><?= htmlspecialchars($current_config['webhook_url']) ?></div>
                 
                 <div class="mt-3">
                     <small class="text-muted">
@@ -852,7 +850,7 @@ $recent_logs = getRecentLogs();
 <script>
 function copyWebhookUrl() {
     const urlElement = document.getElementById('webhookUrl');
-    const url = urlElement.textContent;
+    const url = urlElement.textContent.trim();
     
     navigator.clipboard.writeText(url).then(function() {
         // Feedback visual
