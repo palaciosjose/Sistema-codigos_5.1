@@ -195,7 +195,7 @@ Este proyecto integra un bot de WhatsApp (WamBot) que se comunica con la platafo
 
 ### Configuración
 
-Las claves necesarias para conectarse a Wamundo se gestionan únicamente desde el panel administrativo. Tras la instalación, las variables `WHATSAPP_NEW_*` permanecen vacías en el archivo `.env` y deben completarse desde el panel.
+Las variables `WHATSAPP_NEW_*` ya no se generan automáticamente en el archivo `.env`. Las claves necesarias para conectarse a Wamundo deben configurarse exclusivamente desde el panel administrativo. Después de la instalación el `.env` mantiene estos valores vacíos y cualquier actualización debe realizarse desde el panel.
 
 Desde el panel puedes definir:
 

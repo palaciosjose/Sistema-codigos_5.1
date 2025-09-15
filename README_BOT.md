@@ -42,7 +42,7 @@ El proyecto incluye scripts de Composer para instalar y probar el bot de WhatsAp
 
 ### Variables de entorno
 
-El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se obtienen desde tu panel de Wamundo:
+El bot de WhatsApp utiliza las siguientes variables de entorno. Estas claves ya no se generan automáticamente en `.env` y deben configurarse únicamente desde el panel administrativo de Wamundo:
 
 - **`WHATSAPP_NEW_API_URL`**: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
 - **`WHATSAPP_NEW_SEND_SECRET`**: secreto utilizado para enviar mensajes mediante WamBot.
@@ -51,22 +51,12 @@ El bot de WhatsApp utiliza las siguientes variables de entorno. Los valores se o
 - **`WHATSAPP_NEW_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
 - **`WHATSAPP_NEW_API_TIMEOUT`**: tiempo máximo de espera en segundos para llamadas a la API. Valor por defecto: `30`.
 
+Tras la instalación el archivo `.env` mantiene estos campos vacíos; el panel guarda los valores de forma segura en la base de datos.
+
 Los valores sensibles como `WHATSAPP_NEW_SEND_SECRET` y `WHATSAPP_NEW_WEBHOOK_SECRET` se almacenan cifrados cuando son guardados mediante el `ConfigService`.
 
 #### Formato de `whatsapp_id`
 El campo `whatsapp_id` debe guardarse como número completo con código de país y sin sufijos como `@c.us` (ejemplo: `521234567890`).
-
-#### Definir variables en el entorno
-
-```bash
- export WHATSAPP_NEW_API_URL="https://wamundo.com/api"
- export WHATSAPP_NEW_SEND_SECRET="tu_send_secret"
- export WHATSAPP_NEW_ACCOUNT_ID="123"
- export WHATSAPP_NEW_WEBHOOK_SECRET="secreto_webhook"
- export WHATSAPP_NEW_LOG_LEVEL="info"
- export WHATSAPP_NEW_API_TIMEOUT="30"
- export WHATSAPP_ACTIVE_WEBHOOK="wamundo"
-```
 
 #### Uso de archivo `.env`
 
@@ -86,10 +76,11 @@ DB_PASSWORD=contraseña
 DB_NAME=nombre_db
 
 # Configuración del Bot de WhatsApp
-WHATSAPP_NEW_API_URL=https://wamundo.com/api
-WHATSAPP_NEW_SEND_SECRET=tu_send_secret
-WHATSAPP_NEW_ACCOUNT_ID=123
-WHATSAPP_NEW_WEBHOOK_SECRET=secreto_webhook
+# Las claves WHATSAPP_NEW_* se definen desde el panel administrativo
+WHATSAPP_NEW_API_URL=
+WHATSAPP_NEW_SEND_SECRET=
+WHATSAPP_NEW_ACCOUNT_ID=
+WHATSAPP_NEW_WEBHOOK_SECRET=
 WHATSAPP_NEW_LOG_LEVEL=info
 WHATSAPP_NEW_API_TIMEOUT=30
 WHATSAPP_ACTIVE_WEBHOOK=wamundo
