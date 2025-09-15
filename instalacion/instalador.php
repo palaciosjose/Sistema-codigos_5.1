@@ -258,8 +258,6 @@ function insertWamundoDefaultSettings($pdo) {
 
     // Configuraciones mínimas requeridas para Wamundo
     $default_settings = [
-        'WHATSAPP_NEW_LOG_LEVEL' => 'info',
-        'WHATSAPP_NEW_API_TIMEOUT' => '30',
         'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo'
     ];
 
