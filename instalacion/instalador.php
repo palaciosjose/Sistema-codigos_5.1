@@ -134,9 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
         // CREAR TODA LA ESTRUCTURA DE BASE DE DATOS (INCLUYENDO BOT)
         createCompleteDatabase($pdo);
 
-        // Ejecutar migración de WhatsApp para crear tablas relacionadas
-        require_once __DIR__ . '/migrate_whatsapp.php';
-
         // Garantizar índice único para telegram_temp_data
         ensureTelegramTempIndex($pdo);
 
@@ -144,9 +141,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['configure'])) {
             // Crear archivo .env automáticamente con datos de BD
             $env_created = createEnvironmentFile($db_host, $db_name, $db_user, $db_password);
 
-            // Insertar configuraciones por defecto de WhatsApp
-            insertDefaultWhatsappSettings($pdo);
+            // Insertar configuraciones por defecto de Wamundo
+            insertWamundoDefaultSettings($pdo);
 
+            // Limpiar referencias a Whaticket
+            cleanupWhaticketReferences($pdo);
 
         } catch (Exception $e) {
             // Log del error pero no mostrar nada en pantalla
@@ -218,19 +217,13 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "DB_PASSWORD={$db_password}\n" .
         "DB_NAME={$db_name}\n" .
         "CRYPTO_KEY={$cryptoKey}\n\n" .
-        "# ========== WHATSAPP API ==========\n" .
-        "# Las siguientes claves se configurarán desde el panel administrativo\n" .
-        "# WHATSAPP_NEW_API_URL: URL base de la API de WhatsApp\n" .
-        "WHATSAPP_NEW_API_URL=\n" .
-        "# WHATSAPP_NEW_WEBHOOK_SECRET: secreto para validar webhooks\n" .
+        "# ========== WHATSAPP - WAMUNDO.COM ==========\n" .
+        "WHATSAPP_NEW_API_URL=https://wamundo.com/api\n" .
         "WHATSAPP_NEW_WEBHOOK_SECRET=\n" .
-        "# WHATSAPP_NEW_SEND_SECRET: secreto para enviar mensajes\n" .
         "WHATSAPP_NEW_SEND_SECRET=\n" .
-        "# WHATSAPP_NEW_ACCOUNT_ID: identificador de la cuenta en la API de WhatsApp\n" .
         "WHATSAPP_NEW_ACCOUNT_ID=\n" .
         "WHATSAPP_NEW_LOG_LEVEL=info\n" .
-        "WHATSAPP_NEW_API_TIMEOUT=30\n" .
-        "WHATSAPP_ACTIVE_WEBHOOK=\n\n" .
+        "WHATSAPP_NEW_API_TIMEOUT=30\n\n" .
         "# ========== SISTEMA ==========\n" .
         "ENVIRONMENT=production\n" .
         "DEBUG_MODE=0\n" .
@@ -263,18 +256,18 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
     return false;
 }
 
-function insertDefaultWhatsappSettings($pdo) {
+function insertWamundoDefaultSettings($pdo) {
     // Verificar que la tabla settings existe antes de intentar escribir
     $table_check = $pdo->query("SHOW TABLES LIKE 'settings'");
     if ($table_check === false || $table_check->rowCount() === 0) {
         return; // No se puede insertar si la tabla no existe
     }
 
-    // Configuraciones mínimas requeridas para la API de WhatsApp
+    // Configuraciones mínimas requeridas para Wamundo
     $default_settings = [
         'WHATSAPP_NEW_LOG_LEVEL' => 'info',
         'WHATSAPP_NEW_API_TIMEOUT' => '30',
-        'WHATSAPP_ACTIVE_WEBHOOK' => ''
+        'WHATSAPP_ACTIVE_WEBHOOK' => 'wamundo'
     ];
 
     foreach ($default_settings as $key => $value) {
@@ -288,6 +281,29 @@ function insertDefaultWhatsappSettings($pdo) {
     }
 }
 
+function cleanupWhaticketReferences($pdo) {
+    try {
+        // Marcar Whaticket como inactivo
+        $stmt = $pdo->prepare("UPDATE settings SET setting_value = 'wamundo' WHERE setting_key = 'WHATSAPP_ACTIVE_WEBHOOK'");
+        $stmt->execute();
+
+        // Limpiar configuraciones obsoletas de Whaticket
+        $obsolete_keys = [
+            'WHATSAPP_API_URL',
+            'WHATSAPP_TOKEN',
+            'WHATSAPP_INSTANCE',
+            'WHATSAPP_WEBHOOK_SECRET'
+        ];
+
+        foreach ($obsolete_keys as $key) {
+            $stmt = $pdo->prepare("UPDATE settings SET setting_value = '' WHERE setting_key = ?");
+            $stmt->execute([$key]);
+        }
+
+    } catch (Exception $e) {
+        error_log("Warning: Error limpiando referencias Whaticket: " . $e->getMessage());
+    }
+}
 
 function validateInstallationData($data) {
     $errors = [];
@@ -1314,9 +1330,11 @@ function verifyInstallation() {
         $env_path = dirname(INSTALL_DIR) . '/.env';
         $env_created = file_exists($env_path);
         $env_crypto_key = false;
+        $env_has_whaticket_keys = false;
         if ($env_created) {
             $env_content = file_get_contents($env_path);
             $env_crypto_key = preg_match('/^CRYPTO_KEY=.*/m', $env_content) === 1;
+            $env_has_whaticket_keys = preg_match('/WHATSAPP_API_URL|WHATSAPP_TOKEN|WHATSAPP_INSTANCE_ID|WHATSAPP_WEBHOOK_SECRET/', $env_content) === 1;
         }
 
         $test_conn->close();
@@ -1328,6 +1346,7 @@ function verifyInstallation() {
             'verified' => true,
             'env_created' => $env_created,
             'env_crypto_key' => $env_crypto_key,
+            'env_has_whaticket_keys' => $env_has_whaticket_keys,
             'error' => null
         ];
 
@@ -1339,6 +1358,7 @@ function verifyInstallation() {
             'verified' => false,
             'env_created' => false,
             'env_crypto_key' => false,
+            'env_has_whaticket_keys' => false,
             'error' => $verification_error
         ];
     }
@@ -1370,6 +1390,7 @@ $verification_result = verifyInstallation();
 $installation_verified = $verification_result['verified'];
 $env_created = $verification_result['env_created'];
 $env_crypto_key = $verification_result['env_crypto_key'];
+$env_has_whaticket_keys = $verification_result['env_has_whaticket_keys'];
 $verification_error = $verification_result['error'];
 ?>
 <div class="text-center">
@@ -1412,7 +1433,7 @@ $verification_error = $verification_result['error'];
                     <?php endif; ?>
                     <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
                     <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de WhatsApp insertadas</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
                     <li><i class="fas fa-check text-success me-2"></i> Todas las tablas necesarias creadas</li>
                 </ul>
             </div>
@@ -1428,7 +1449,7 @@ $verification_error = $verification_result['error'];
                     <?php endif; ?>
                     <li><i class="fas fa-check text-success me-2"></i> Bot de Telegram completamente integrado</li>
                     <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de WhatsApp insertadas</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Configuraciones de Wamundo insertadas</li>
                 </ul>
                 
                 <?php if ($verification_error): ?>
@@ -1445,9 +1466,9 @@ $verification_error = $verification_result['error'];
             </div>
         <?php endif; ?>
 
-        <?php if ($env_crypto_key): ?>
+        <?php if ($env_crypto_key && !$env_has_whaticket_keys): ?>
             <div class="alert alert-success mt-3">
-                <i class="fas fa-lock me-2"></i>Clave de cifrado verificada.
+                <i class="fas fa-lock me-2"></i>Clave de cifrado verificada y sin claves de Whaticket.
             </div>
         <?php endif; ?>
 
@@ -1480,7 +1501,7 @@ $verification_error = $verification_result['error'];
         <div class="alert alert-info">
             <h6><i class="fas fa-rocket me-2"></i>¡Sistema Completamente Configurado!</h6>
             <p class="mb-0">
-                <strong>WhatsApp:</strong> Configuración básica completa<br>
+                <strong>WhatsApp:</strong> Configurado con Wamundo.com<br>
                 <strong>Telegram:</strong> Bot integrado y funcional<br>
                 <strong>Base de datos:</strong> Todas las tablas creadas<br>
                 <strong>Configuración:</strong> Lista para usar
