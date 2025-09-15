@@ -39,6 +39,10 @@ $message = '';
 $message_type = '';
 $test_results = [];
 
+$scheme = $_SERVER['REQUEST_SCHEME'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$defaultWebhookUrl = $scheme . '://' . $host . '/whatsapp_bot/webhook.php';
+
 // Función para obtener configuración segura
 function getConfig($key, $default = '') {
     global $config, $configLoaded;
@@ -52,20 +56,16 @@ function getConfig($key, $default = '') {
     return $default;
 }
 
-// Configuración actual enmascarada
+// Configuración actual
 $current_config = [
     'send_secret' => getConfig('WHATSAPP_NEW_SEND_SECRET'),
     'account_id' => getConfig('WHATSAPP_NEW_ACCOUNT_ID'),
-    'webhook_secret' => getConfig('WHATSAPP_NEW_WEBHOOK_SECRET'),
+    'webhook_url' => getConfig('WHATSAPP_WEBHOOK_URL', $defaultWebhookUrl),
     'log_level' => getConfig('WHATSAPP_NEW_LOG_LEVEL', 'info'),
 ];
 
 if (!empty($current_config['send_secret'])) {
     $current_config['send_secret'] = '**********';
-}
-
-if (!empty($current_config['webhook_secret'])) {
-    $current_config['webhook_secret'] = '**********';
 }
 
 // Procesar acciones
@@ -76,17 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'save_config':
             $send_secret = trim($_POST['send_secret'] ?? '');
             $account_id = trim($_POST['account_id'] ?? '');
-            $webhook_secret = trim($_POST['webhook_secret'] ?? '');
+            $webhook_url = trim($_POST['webhook_url'] ?? $defaultWebhookUrl);
             $log_level = $_POST['log_level'] ?? 'info';
 
             if ($send_secret === '**********') {
                 $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
             }
 
-            if ($webhook_secret === '**********') {
-                $webhook_secret = getConfig('WHATSAPP_NEW_WEBHOOK_SECRET');
-            }
-            
             if (empty($send_secret) || empty($account_id)) {
                 $message = 'Send Secret y Account ID son campos obligatorios';
                 $message_type = 'error';
@@ -100,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($configLoaded && $config) {
                         $config->set('WHATSAPP_NEW_SEND_SECRET', $send_secret);
                         $config->set('WHATSAPP_NEW_ACCOUNT_ID', $account_id);
-                        $config->set('WHATSAPP_NEW_WEBHOOK_SECRET', $webhook_secret);
+                        $config->set('WHATSAPP_WEBHOOK_URL', $webhook_url);
                         $config->set('WHATSAPP_NEW_LOG_LEVEL', $log_level);
 
                         Shared\ConfigService::getInstance()->reload();
@@ -149,8 +145,10 @@ function runSystemTests() {
     $tests = [];
 
     // Test 1: Configuración básica
+    global $scheme, $host;
     $send_secret = getConfig('WHATSAPP_NEW_SEND_SECRET');
     $account_id = getConfig('WHATSAPP_NEW_ACCOUNT_ID');
+    $webhook_url = getConfig('WHATSAPP_WEBHOOK_URL', $scheme . '://' . $host . '/whatsapp_bot/webhook.php');
 
     $tests['config'] = [
         'name' => 'Configuración Básica',
@@ -161,7 +159,7 @@ function runSystemTests() {
         'details' => [
             'Send Secret' => !empty($send_secret) ? 'Configurado' : 'No configurado',
             'Account ID' => !empty($account_id) ? 'Configurado' : 'No configurado',
-            'Webhook Secret' => !empty(getConfig('WHATSAPP_NEW_WEBHOOK_SECRET')) ? 'Configurado' : 'Opcional'
+            'Webhook URL' => !empty($webhook_url) ? $webhook_url : 'No configurada'
         ]
     ];
 
@@ -386,10 +384,6 @@ function getRecentLogs($lines = 20) {
 }
 
 // Cargar datos
-$scheme = $_SERVER['REQUEST_SCHEME'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$current_config['webhook_url'] = $scheme . '://' . $host . '/whatsapp_bot/webhook.php';
-
 $stats = getWhatsAppStats();
 $recent_logs = getRecentLogs();
 
@@ -563,10 +557,10 @@ $recent_logs = getRecentLogs();
                     </div>
                     <div class="col-md-3">
                         <div class="text-center">
-                            <div class="<?= !empty($current_config['webhook_secret']) ? 'text-success' : 'text-warning' ?>">
-                                <i class="fas fa-shield-alt fa-3x mb-2"></i>
-                                <div class="small">Webhook Security</div>
-                                <div class="status-indicator <?= !empty($current_config['webhook_secret']) ? 'status-success' : 'status-warning' ?>"></div>
+                            <div class="<?= !empty($current_config['webhook_url']) ? 'text-success' : 'text-warning' ?>">
+                                <i class="fas fa-link fa-3x mb-2"></i>
+                                <div class="small">Webhook URL</div>
+                                <div class="status-indicator <?= !empty($current_config['webhook_url']) ? 'status-success' : 'status-warning' ?>"></div>
                             </div>
                         </div>
                     </div>
@@ -711,18 +705,18 @@ $recent_logs = getRecentLogs();
                         <div class="col-md-6">
                             <div class="form-group-admin">
                                 <label class="form-label-admin">
-                                    <i class="fas fa-shield-alt me-2"></i>
-                                    Webhook Secret
+                                    <i class="fas fa-link me-2"></i>
+                                    Webhook URL
                                 </label>
-                                <input type="text" class="form-control-admin" name="webhook_secret" 
-                                       value="<?= htmlspecialchars($current_config['webhook_secret']) ?>"
-                                       placeholder="Opcional - para validar webhooks">
+                                <input type="text" class="form-control-admin" name="webhook_url"
+                                       value="<?= htmlspecialchars($current_config['webhook_url']) ?>"
+                                       placeholder="<?= htmlspecialchars($defaultWebhookUrl) ?>">
                                 <div class="form-text-admin">
-                                    Recomendado para mayor seguridad en las comunicaciones
+                                    Dirección configurada en Wamundo para recibir webhooks
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="form-group-admin">
                                 <label class="form-label-admin">

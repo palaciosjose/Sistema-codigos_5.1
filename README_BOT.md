@@ -47,13 +47,15 @@ El bot de WhatsApp utiliza las siguientes variables de entorno. Estas claves ya 
 - **`WHATSAPP_NEW_API_URL`**: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
 - **`WHATSAPP_NEW_SEND_SECRET`**: secreto utilizado para enviar mensajes mediante WamBot.
 - **`WHATSAPP_NEW_ACCOUNT_ID`**: identificador de la cuenta en Wamundo.
-- **`WHATSAPP_NEW_WEBHOOK_SECRET`**: cadena usada para validar los webhooks recibidos; debe coincidir con el secreto configurado en Wamundo.
 - **`WHATSAPP_NEW_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
 - **`WHATSAPP_NEW_API_TIMEOUT`**: tiempo máximo de espera en segundos para llamadas a la API. Valor por defecto: `30`.
+- **`WHATSAPP_WEBHOOK_URL`**: URL configurada en Wamundo para recibir webhooks.
 
 Tras la instalación el archivo `.env` mantiene estos campos vacíos; el panel guarda los valores de forma segura en la base de datos.
 
-Los valores sensibles como `WHATSAPP_NEW_SEND_SECRET` y `WHATSAPP_NEW_WEBHOOK_SECRET` se almacenan cifrados cuando son guardados mediante el `ConfigService`.
+Configura en Wamundo el webhook apuntando a `https://{host}/whatsapp_bot/webhook.php` para recibir las notificaciones.
+
+Los valores sensibles como `WHATSAPP_NEW_SEND_SECRET` se almacenan cifrados cuando son guardados mediante el `ConfigService`.
 
 #### Formato de `whatsapp_id`
 El campo `whatsapp_id` debe guardarse como número completo con código de país y sin sufijos como `@c.us` (ejemplo: `521234567890`).
@@ -80,7 +82,7 @@ DB_NAME=nombre_db
 WHATSAPP_NEW_API_URL=
 WHATSAPP_NEW_SEND_SECRET=
 WHATSAPP_NEW_ACCOUNT_ID=
-WHATSAPP_NEW_WEBHOOK_SECRET=
+WHATSAPP_WEBHOOK_URL=
 WHATSAPP_NEW_LOG_LEVEL=info
 WHATSAPP_NEW_API_TIMEOUT=30
 WHATSAPP_ACTIVE_WEBHOOK=wamundo

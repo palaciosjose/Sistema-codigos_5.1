@@ -26,20 +26,6 @@ try {
         exit;
     }
 
-    $log->info('Verificando secret');
-    
-    $expectedSecret = \WhatsappBot\Config\WHATSAPP_NEW_WEBHOOK_SECRET;
-    $receivedSecret = $_POST["secret"] ?? '';
-    
-    if ($receivedSecret !== $expectedSecret) {
-        $log->error('Secret inválido', ['received' => substr($receivedSecret, 0, 10) . '...']);
-        http_response_code(401);
-        $response = ['error' => 'Unauthorized'];
-        echo json_encode($response);
-        $log->info('Respuesta enviada', $response);
-        exit;
-    }
-
     $log->info('Procesando payload');
     
     $payloadType = $_POST["type"] ?? '';

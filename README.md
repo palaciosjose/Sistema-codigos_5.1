@@ -201,8 +201,8 @@ Desde el panel puedes definir:
 
 - `WHATSAPP_NEW_API_URL`: URL base de la API de Wamundo.
 - `WHATSAPP_NEW_SEND_SECRET`: secreto utilizado para enviar mensajes a través de WamBot.
-- `WHATSAPP_NEW_WEBHOOK_SECRET`: secreto para validar los webhooks recibidos.
 - `WHATSAPP_NEW_ACCOUNT_ID`: identificador de la cuenta configurada en Wamundo.
+ - `WHATSAPP_WEBHOOK_URL`: URL del webhook configurado en Wamundo.
 
 Otros parámetros disponibles en `.env`:
 
@@ -213,7 +213,7 @@ Otros parámetros disponibles en `.env`:
 
 1. Ejecuta `composer run whatsapp-install` para instalar el bot.
 2. Ejecuta `composer run whatsapp-test` para verificar la configuración.
-3. Configura en Wamundo el webhook apuntando a `whatsapp_bot/webhook.php`.
+3. Configura en Wamundo el webhook apuntando a `https://{host}/whatsapp_bot/webhook.php`.
 
 ### Comandos disponibles
 
