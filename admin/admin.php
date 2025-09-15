@@ -528,23 +528,7 @@ function checkWamundoSystemStatus() {
         ];
     }
 
-    // 2. Verificar webhook secret
-    $webhook_secret = $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', '');
-    if (!empty($webhook_secret)) {
-        $status['checks']['webhook_secret'] = [
-            'status' => 'ok',
-            'message' => 'Webhook Secret configurado',
-            'icon' => 'fa-shield-alt'
-        ];
-    } else {
-        $status['checks']['webhook_secret'] = [
-            'status' => 'warning',
-            'message' => 'Webhook Secret no configurado (recomendado para seguridad)',
-            'icon' => 'fa-shield-alt'
-        ];
-    }
-
-    // 3. Verificar archivo webhook
+    // 2. Verificar archivo webhook
     $webhook_file = PROJECT_ROOT . '/whatsapp_bot/webhook.php';
     if (file_exists($webhook_file)) {
         $status['checks']['webhook_file'] = [

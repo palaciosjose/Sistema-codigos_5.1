@@ -20,9 +20,9 @@ $accountId = $config->get('WHATSAPP_NEW_ACCOUNT_ID', '');
 $accountId = $accountId ? trim($accountId) : '';
 define(__NAMESPACE__ . '\\WHATSAPP_NEW_ACCOUNT_ID', $accountId);
 
-$webhookSecret = $config->get('WHATSAPP_NEW_WEBHOOK_SECRET', '');
-$webhookSecret = $webhookSecret ? trim($webhookSecret) : '';
-define(__NAMESPACE__ . '\\WHATSAPP_NEW_WEBHOOK_SECRET', $webhookSecret);
+$webhookUrl = $config->get('WHATSAPP_WEBHOOK_URL', '');
+$webhookUrl = $webhookUrl ? trim($webhookUrl) : '';
+define(__NAMESPACE__ . '\\WHATSAPP_WEBHOOK_URL', $webhookUrl);
 
 // Logging configuration
 

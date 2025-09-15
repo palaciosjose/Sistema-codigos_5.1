@@ -29,7 +29,6 @@ function log_action($message) {
 
 $action = filter_var($_POST['action'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $webhookUrl = filter_var(trim($_POST['webhook_url'] ?? ''), FILTER_SANITIZE_URL);
-$webhookSecret = filter_var(trim($_POST['webhook_secret'] ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 $config = ConfigService::getInstance();
 $apiUrl = $config->get('WHATSAPP_NEW_API_URL', '');
@@ -178,7 +177,7 @@ function sendTestMessage($url, $token, $phone, $accountId) {
     return [true, 'Mensaje de prueba enviado'];
 }
 
-function verifyWebhook($url, $token, $webhookUrl, $secret) {
+function verifyWebhook($url, $token, $webhookUrl) {
     if (empty($url) || empty($token)) {
         return [false, 'Faltan credenciales de WhatsApp en la configuración'];
     }
@@ -256,7 +255,7 @@ switch ($action) {
         }
         break;
     case 'verify_webhook':
-        $result = verifyWebhook($apiUrl, $token, $webhookUrl, $webhookSecret);
+        $result = verifyWebhook($apiUrl, $token, $webhookUrl);
         break;
     default:
         $result = [false, 'Acción inválida'];
