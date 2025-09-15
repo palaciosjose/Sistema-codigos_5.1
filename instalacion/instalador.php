@@ -217,13 +217,6 @@ function createEnvironmentFile($db_host, $db_name, $db_user, $db_password) {
         "DB_PASSWORD={$db_password}\n" .
         "DB_NAME={$db_name}\n" .
         "CRYPTO_KEY={$cryptoKey}\n\n" .
-        "# ========== WHATSAPP - WAMUNDO.COM ==========\n" .
-        "WHATSAPP_NEW_API_URL=https://wamundo.com/api\n" .
-        "WHATSAPP_NEW_WEBHOOK_SECRET=\n" .
-        "WHATSAPP_NEW_SEND_SECRET=\n" .
-        "WHATSAPP_NEW_ACCOUNT_ID=\n" .
-        "WHATSAPP_NEW_LOG_LEVEL=info\n" .
-        "WHATSAPP_NEW_API_TIMEOUT=30\n\n" .
         "# ========== SISTEMA ==========\n" .
         "ENVIRONMENT=production\n" .
         "DEBUG_MODE=0\n" .
