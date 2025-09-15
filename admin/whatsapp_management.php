@@ -241,7 +241,7 @@ function runSystemTests() {
 
 // Función para test de API
 function testWamundoAPI($send_secret, $account_id) {
-    $baseUrl = getConfig('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api');
+    $baseUrl = getConfig('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api/send/whatsapp');
     if (empty($baseUrl)) {
         return [
             'success' => false,
@@ -249,7 +249,7 @@ function testWamundoAPI($send_secret, $account_id) {
             'details' => []
         ];
     }
-    $url = rtrim($baseUrl, '/') . '/send/whatsapp';
+    $url = rtrim($baseUrl, '/');
     $data = [
         "secret" => $send_secret,
         "account" => $account_id,

@@ -110,7 +110,7 @@ try {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $defaultWebhookUrl = $scheme . '://' . $host . '/whatsapp_bot/webhook.php';
     $settings = [
-        ['WHATSAPP_NEW_API_URL', $config->get('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api'), 'URL base de la API de Wamundo', 'whatsapp'],
+        ['WHATSAPP_NEW_API_URL', $config->get('WHATSAPP_NEW_API_URL', 'https://wamundo.com/api/send/whatsapp'), 'URL base de la API de Wamundo', 'whatsapp'],
         ['WHATSAPP_NEW_SEND_SECRET', $config->get('WHATSAPP_NEW_SEND_SECRET', ''), 'Secreto para enviar mensajes', 'whatsapp'],
         ['WHATSAPP_NEW_ACCOUNT_ID', $config->get('WHATSAPP_NEW_ACCOUNT_ID', ''), 'ID de la cuenta en Wamundo', 'whatsapp'],
         ['WHATSAPP_WEBHOOK_URL', $config->get('WHATSAPP_WEBHOOK_URL', $defaultWebhookUrl), 'URL del webhook del bot', 'whatsapp'],

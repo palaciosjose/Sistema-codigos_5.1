@@ -4,7 +4,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use Shared\WhatsAppUrlHelper;
 
 $base = $argv[1] ?? '';
-$statusEndpoint = $argv[2] ?? '/api/messages/instance';
+$statusEndpoint = $argv[2] ?? '/messages/instance';
 
 $warning = null;
 $sanitized = WhatsAppUrlHelper::sanitizeBaseUrl($base, $warning);

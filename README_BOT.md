@@ -44,7 +44,7 @@ El proyecto incluye scripts de Composer para instalar y probar el bot de WhatsAp
 
 El bot de WhatsApp utiliza las siguientes variables de entorno. Estas claves ya no se generan automáticamente en `.env` y deben configurarse únicamente desde el panel administrativo de Wamundo:
 
-- **`WHATSAPP_NEW_API_URL`**: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api`).
+- **`WHATSAPP_NEW_API_URL`**: URL base de la API de Wamundo (por ejemplo `https://wamundo.com/api/send/whatsapp`).
 - **`WHATSAPP_NEW_SEND_SECRET`**: secreto utilizado para enviar mensajes mediante WamBot.
 - **`WHATSAPP_NEW_ACCOUNT_ID`**: identificador de la cuenta en Wamundo.
 - **`WHATSAPP_NEW_LOG_LEVEL`**: nivel de registro (`debug`, `info`, `warning`, `error`). Valor por defecto: `info`.
